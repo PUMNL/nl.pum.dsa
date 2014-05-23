@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<menu>
+  <item>
+    <path>civicrm/dsa/import</path>
+    <page_callback>CRM_Dsa_Page_DSAImport</page_callback>
+    <title>DSAImport</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+</menu>
