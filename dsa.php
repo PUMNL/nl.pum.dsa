@@ -1,6 +1,7 @@
 <?php
 
 require_once 'dsa.civix.php';
+require_once 'CRM/Dsa/page/DSAImport.php';
 
 /**
  * Implementation of hook_civicrm_config
@@ -221,7 +222,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$dsaId = $originalId;
 				} else {
 					$dsaId = $activityId; // could still be NULL
-				} 
+				}
 				
 				// DSA fields are displayed using a custom .tpl-file
 				// assume templates are in a templates folder relative to this file
@@ -232,9 +233,11 @@ function dsa_civicrm_buildForm($formName, &$form) {
 						'template' => "{$templatePath}/dsa_section.tpl"
 					)
 				);
-				
+								
 				// Add DSA reference date to the form (locations/rates may vary per imported dsa batch - need to establish which batch was active at this date)
 				$form->add('hidden', 'dsa_ref_dt', NULL, array('id'=> 'dsa_ref_dt'));
+				// Add a hidden field to hold a complete list of locations/rates for each country
+				$form->add('hidden', 'dsa_location_lst', NULL, array('id'=> 'dsa_location_lst'));
 				// Add the country field element to the form (standard civi country list)
 				$country = array('' => ts('- select -')) + CRM_Core_PseudoConstant::country();
 				$form->addElement('select', 'dsa_country', ts('DSA Country'), $country);
@@ -324,6 +327,10 @@ function dsa_civicrm_buildForm($formName, &$form) {
 						// just continue without default value
 					}
 					
+					// Retieve all available locations / rates for the specified reference date (if any)
+					$rateData = CRM_Dsa_Page_DSAImport::getAllActiveRates();
+					$defaults['dsa_location_lst'] = json_encode($rateData, JSON_UNESCAPED_UNICODE);
+					
 					// Default DSA percentage
 					if (!is_null($percentageDefault)) {
 						$defaults['dsa_percentage'] = $percentageDefault;
@@ -366,6 +373,10 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$result = $dao_defaults->fetch();
 //dpm($dao_defaults, 'DAO Defaults');
 //dpm($result, 'Defaults Result');
+					// Retieve all available locations / rates for the specified reference date (if any)
+					$rateData = CRM_Dsa_Page_DSAImport::getAllActiveRates(); // should ref_date from previous query be used?
+					$defaults['dsa_location_lst'] = json_encode($rateData, JSON_UNESCAPED_UNICODE);
+					
 					$defaults['dsa_country'] = $dao_defaults->cy_id;
 					//$defaults['dsa_location'] = $dao_defaults->loc_id . '|' . $dao_defaults->rate;
 					$defaults['dsa_load_location'] = $dao_defaults->loc_id . '|' . $dao_defaults->rate; // gets set when JQ does the initial location load
@@ -388,7 +399,81 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$form->setDefaults($defaults);
 				}
 			}
+			
+			// Find field "status_id" and its value
+			foreach($form->_elements as $elmNo=>$elmObj) {
+				if ($elmObj->_attributes) {
+					if ($elmObj->_attributes['name']) {
+						if ($elmObj->_attributes['name'] == 'status_id') {
+							$fldId = $elmNo;
+							$fldStatus = $elmObj->_values[0];
+						}
+					}
+				}
+			}
+			
+			// modify status options only if status field was found
+			if (isset($fldId)) {
+//dpm($fldStatus, 'fldStatus'); 
+//dpm($fldId, 'fldId'); 
+			
+				// Retrieve all possible values for option group "activity_status" values
+				$params = array(
+					'version' => 3,
+					'q' => 'civicrm/ajax/rest',
+					'sequential' => 1,
+					'option_group_name' => 'activity_status',
+				);
+				$dao_options = civicrm_api('OptionValue', 'get', $params);
+//dpm($dao_options, '$dao_options');
+				
+				// build translation array: id -> name
+				$arStatus = array();
+				foreach($dao_options['values'] as $dao_key=>$dao_value) {
+					$arStatus[$dao_value['value']] = $dao_value['name'];
+				}
+//dpm($arStatus, '$arStatus');
+				
+				// convert options to a DSA-specific options list
+				switch ($arStatus[$fldStatus]) {
+					case 'Scheduled':
+					case 'Cancelled':
+					case 'Not Required':
+					case 'dsa_payable':
+						$allowedStatus = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
+						break;
+					case 'dsa_paid':
+						$allowedStatus = array('dsa_paid');
+						break;
+					default:
+						$allowedStatus = array($arStatus[$fldStatus]);
+				}
+				
+				// add 1st option '-select-' to options list
+				$arOptions = array($form->_elements[$fldId]->_options[0]);
+				
+				// add allowed options to options list -if available-
+				foreach($dao_options['values'] as $dao_key=>$dao_value) {
+					if (in_array($dao_value['name'], $allowedStatus)) {
+						$arOptions[] = array(
+							'text' => ts($dao_value['label']),
+							'attr' => array(
+								'value' => $dao_value['value'],
+							),
+						);
+					}
+				}
+//dpm($arOptions, '$arOptions');
+			
+				// Apply allowed options to status_id field
+				$form->_elements[$fldId]->_options = $arOptions;
+			}
+			
+			
 //dpm($form, 'Post dsa-mod form data for ' . $formName);
+			break;
+		case 'CRM_Case_Form_CaseView':
+			
 			break;
 		}
 	
@@ -439,25 +524,19 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 
 
 function _amountCheck($fieldName, $fields, &$errors) {
-/* // CRM_Utils_Type::validate(&$field, T_MONEY)
-	try {
+ 	try {
 		$fieldValue=$fields[$fieldName];
-		if ($fieldValue=='') {
+		if (!CRM_Utils_Type::validate($fieldValue, 'Money', False)) {
 			$errors[$fieldName] = 'Please enter a valid amount';
-		} elseif (!is_numeric($fieldValue)) {
-			$errors[$fieldName] = 'Amount is not a numeric value';
-			//
-		} elseif (preg_match('/([a-zA-Z!@#$%\^&\*\(\)\[\]\{\}:;\'\"\`~\<\>\/\\\=\?\\+_|])/', $fieldValue)) {
-			$errors[$fieldName] = 'Amount contains an invalid pattern';
 		} elseif ($fieldValue<0) {
-			$errors[$fieldName] = 'Please set minimum amount to: 0';
+			$errors[$fieldName] = 'Minimum amount is: 0';
 		} elseif ($fieldValue>99999.99) {
-			$errors[$fieldName] = 'Please set maximum amount to: 99999.99';
+			$errors[$fieldName] = 'Maximum amount is: 99999.99';
 		}
 		return TRUE;
 	} catch(Exception $e) {
 		$errors[''] = 'Caught exception: ' . $e->getMessage();
-	} */
+	}
 }
 
 /**

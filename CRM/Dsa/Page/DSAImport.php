@@ -6,7 +6,7 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 	protected $_action = '';
 	
 	function run() {
-		// define actio (url parameter action)
+		// define action (url parameter action)
 		if ($_GET['action']) {
 			$_action = htmlspecialchars($_GET['action']);
 		} else {
@@ -452,12 +452,51 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 			CRM_Core_Session::setStatus('No active DSA batches found!', 'Warning');
 			return null;
 		} elseif ($dao->N > 1) {
-			CRM_Core_Session::setStatus($dao->N . ' Active DSA batches found!' . PHP_EOL . '(Proceeding using the most recent one)', 'Warning');
+			CRM_Core_Session::setStatus($dao->N . ' Active DSA batches found!' . PHP_EOL . '(Proceeding using the most recently imported one)', 'Warning');
 		}
 		$dao->fetch();
 		$result = self::_daoToArray($dao);
 		return $result;
 	}
+	
+	
+	/**
+	 * Function to all active rates for all known countries
+	 * Used to bypass API permission problem in JS
+	 */
+	public static function getAllActiveRates($dt=NULL) {
+		$result = array();
+		self::_dateDefault($dt);
+		$active_batch = self::getActiveDSABatch($dt);
+//		dpm($active_batch, "Active batch");
+		if (is_null($active_batch)) {
+			return null;
+		} else {
+			$sql = 'SELECT c.id AS country_id,  r.country, r.id, r.rate, r.location, \'' . $dt . '\' AS ref_date FROM civicrm_dsa_rate r, civicrm_country c WHERE c.iso_code=r.country AND r.batch_id=' . $active_batch['id'] . ' ORDER BY country_id, location';
+			$dao = CRM_Core_DAO::executeQuery($sql);
+			$result = array();
+			$recno = 0;
+			while ($dao->fetch()) {
+				$recno++;
+				if ($recno==1) {
+					$result['ref_date'] = $dao->ref_date;
+					$result['countries'] = array();
+				}
+				if (!array_key_exists($dao->country_id, $result['countries'])) {
+					$result['countries'][$dao->country_id] = array();
+					$result['countries'][$dao->country_id]['iso'] = $dao->country;
+					$result['countries'][$dao->country_id]['locations'] = array();
+				}
+				$result['countries'][$dao->country_id]['locations'][] = array(
+					'id' => $dao->id,
+					'location' => $dao->location,
+					'rate' => $dao->rate,
+				);
+			}
+			return $result;
+		}
+	}
+	
 
 	/**
 	 * Function to retrieve active rates for a specified country
@@ -523,6 +562,9 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 		if (isset($dao->country)) {
 			$result['country'] = $dao->country;
 		}
+		if (isset($dao->country_id)) {
+			$result['country_id'] = $dao->country_id;
+		}
 		if (isset($dao->code)) {
 			$result['code'] = $dao->code;
 		}
@@ -534,6 +576,9 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 		}
 		if (isset($dao->ref_date)) {
 			$result['date'] = $dao->ref_date;
+		}
+		if (isset($dao->concat)) {
+			$result['concat'] = $dao->concat;
 		}
 		return $result;
     }

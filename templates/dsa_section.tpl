@@ -5,6 +5,7 @@
 {* template block that contains the new field *}
 {$form.dsa_ref_dt.html}
 {$form.dsa_load_location.html}
+{$form.dsa_location_lst.html}
 <table id="dsa-temp">
 	<tr>
 		<td colspan="2">
@@ -103,7 +104,6 @@
 	cj('#dsa_country').trigger('change', ['{$form.dsa_location.value[0]']);
 	// trigger onChange on dsa_other to retrieve an initial set of locations
 	cj('#dsa_other').trigger('change');
-
 	
 	function processDSACountryChange(elm) {
 		// exit function if no country is selected
@@ -115,26 +115,18 @@
 		var loc = cj('#dsa_location');
 		
 		// query for new locations based on the selected dsa_country
-		CRM.api(
-			'DsaRate',
-			'get',
-			{
-				'q': 'civicrm/ajax/rest',
-				'sequential': 1,
-				'country': elm.value
-			},
-			{
-				success: function(data) {
-					dt = data.values[0].date;
-					cj('#dsa_ref_dt').val(dt);
-					cj.each(data.values, function(index, value) {
-						loc.append('<option value="' + value.id + '|' + value.rate + '">' + value.location + ' (' + parseFloat(value.rate).toFixed(2) + ')</option>');
-					});
-					loc.val(cj('#dsa_load_location').val()); // apply default value after initial load
-					cj('#dsa_load_location').val(''); // clear default value for location
-				}
-			}
-		);
+		var ratesData = cj.parseJSON(cj('#dsa_location_lst').val()); {/literal}{* nl.pum.dsa/CRM/Dsa/Page/DSAImport.php function getAllActiveRates(dt) *}{literal}
+		var dt = ratesData.ref_date;
+		cj('#dsa_ref_dt').val(dt);
+		if (ratesData.countries[elm.value]) {
+			cj.each(ratesData.countries[(elm.value)].locations, function(index, value) {
+				loc.append('<option value="' + value.id + '|' + value.rate + '">' + value.location + ' (' + parseFloat(value.rate).toFixed(2) + ')</option>');
+			});
+		} else {
+			CRM.alert('No locations found');
+		}
+		loc.val(cj('#dsa_load_location').val()); // apply default value after initial load
+		cj('#dsa_load_location').val(''); // clear default value for location
 		return true;
 	}
 	
