@@ -329,7 +329,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					
 					// Retieve all available locations / rates for the specified reference date (if any)
 					$rateData = CRM_Dsa_Page_DSAImport::getAllActiveRates();
-					$defaults['dsa_location_lst'] = json_encode($rateData, JSON_UNESCAPED_UNICODE);
+					$defaults['dsa_location_lst'] = json_encode($rateData);
 					
 					// Default DSA percentage
 					if (!is_null($percentageDefault)) {
@@ -375,7 +375,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 //dpm($result, 'Defaults Result');
 					// Retieve all available locations / rates for the specified reference date (if any)
 					$rateData = CRM_Dsa_Page_DSAImport::getAllActiveRates(); // should ref_date from previous query be used?
-					$defaults['dsa_location_lst'] = json_encode($rateData, JSON_UNESCAPED_UNICODE);
+					$defaults['dsa_location_lst'] = json_encode($rateData);
 					
 					$defaults['dsa_country'] = $dao_defaults->cy_id;
 					//$defaults['dsa_location'] = $dao_defaults->loc_id . '|' . $dao_defaults->rate;
