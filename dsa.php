@@ -1,7 +1,7 @@
 <?php
 
 require_once 'dsa.civix.php';
-require_once 'CRM/Dsa/page/DSAImport.php';
+require_once 'CRM/Dsa/Page/DSAImport.php';
 
 /**
  * Implementation of hook_civicrm_config
