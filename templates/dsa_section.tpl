@@ -74,11 +74,13 @@
 	</tr>
 	{* approver cid to name ? *}
 	{* approval date/time ? *}
+	{*
 	<tr>
 		<td colspan="2">
 			<div id="postDsaSpacer"></div>
 		</td>
 	</tr>
+	*}
 </table>
 
 {* reposition the above attachments *}
@@ -88,7 +90,17 @@
 	cj('#dsa-temp tr').insertBefore('tr.crm-case-activity-form-block-attachment');
 	// remove temporary dsa container table
 	cj('#dsa-temp').remove();
-
+	// remove (hide) attachment
+	cj('tr.crm-case-activity-form-block-attachment').hide();
+	// remove (hide) send a copy
+	cj('tr.crm-case-activity-form-block-send_copy').hide();
+	// remove (hide) schedule follow-up
+	cj('tr.crm-case-activity-form-block-schedule_followup').hide();
+	// remove (hide) duration
+	cj('tr.crm-case-activity-form-block-duration').hide();
+	// remove (hide) duration
+	cj('tr.crm-case-activity-form-block-priority_id').hide();
+	
 	// add onChange event to dsa_country field to build a list of selectable locations
 	cj('#dsa_country').change(function() { processDSACountryChange(this) });
 	// add onChange event to dsa_location field to update dsa amount
@@ -98,12 +110,12 @@
 	// add onChange event to dsa_days field to update dsa amount
 	cj('#dsa_days').change(function() { processDSADaysChange(this) });
 	// add onChange event to dsa_other field to enable/disable dsa_other_description
-	cj('#dsa_other').change(function() { processDSAOtherChange(this) });
+	//cj('#dsa_other').change(function() { processDSAOtherChange(this) });
 
 	// trigger onChange on dsa_country to retrieve an initial set of locations
 	cj('#dsa_country').trigger('change', ['{$form.dsa_location.value[0]']);
 	// trigger onChange on dsa_other to retrieve an initial set of locations
-	cj('#dsa_other').trigger('change');
+	//cj('#dsa_other').trigger('change');
 	
 	function processDSACountryChange(elm) {
 		// exit function if no country is selected
@@ -125,14 +137,17 @@
 		} else {
 			CRM.alert('No locations found');
 		}
+		//CRM.alert('Preset location\n' + cj('#dsa_load_location').val());
 		loc.val(cj('#dsa_load_location').val()); // apply default value after initial load
-		cj('#dsa_load_location').val(''); // clear default value for location
+		//cj('#dsa_load_location').val(''); // clear default value for location -> DON'T: need it again after validation failure? Or update on location change?
 		return true;
 	}
 	
 	function processDSALocationChange(elm) {
 		//CRM.alert('Location changed');
 		processAmountUpdate();
+		// make sure the location is set when the page reopens after validation failure
+		cj('#dsa_load_location').val(cj('#dsa_location').val());
 		return true;
 	}
 	

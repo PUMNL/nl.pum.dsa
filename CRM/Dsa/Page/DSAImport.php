@@ -461,10 +461,11 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 	
 	
 	/**
-	 * Function to all active rates for all known countries
+	 * Function to all active locations/rates for all known countries
+	 * Parameter represents a reference date.
 	 * Used to bypass API permission problem in JS
 	 */
-	public static function getAllActiveRates($dt=NULL) {
+	public static function getAllActiveRatesByDate($dt=NULL) {
 		$result = array();
 		self::_dateDefault($dt);
 		$active_batch = self::getActiveDSABatch($dt);
@@ -480,6 +481,44 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 				$recno++;
 				if ($recno==1) {
 					$result['ref_date'] = $dao->ref_date;
+					$result['countries'] = array();
+				}
+				if (!array_key_exists($dao->country_id, $result['countries'])) {
+					$result['countries'][$dao->country_id] = array();
+					$result['countries'][$dao->country_id]['iso'] = $dao->country;
+					$result['countries'][$dao->country_id]['locations'] = array();
+				}
+				$result['countries'][$dao->country_id]['locations'][] = array(
+					'id' => $dao->id,
+					'location' => $dao->location,
+					'rate' => $dao->rate,
+				);
+			}
+			return $result;
+		}
+	}
+	
+	
+	/**
+	 * Function to collect all locations/rates for all known countries.
+	 * Parameter represents a location id.
+	 * The actual location set returned is the one containing the provided id
+	 * This function will NOT return a ref_date
+	 * Used to bypass API permission problem in JS
+	 */
+	public static function getAllRatesByLocationId($id=NULL) {
+		if ((is_null($id)) || ($id=='')) {
+			// if no location id was provided, retrieve the list based on todays date
+			return self::getAllActiveRatesByDate();
+		} else {
+			$result = array();
+			$sql = 'SELECT c.id AS country_id, r2.country, r2.id, r2.rate, r2.location FROM civicrm_dsa_rate r2, civicrm_country c WHERE  r2.batch_id = (SELECT r1.batch_id FROM civicrm_dsa_rate r1 WHERE r1.id = ' . $id . ') AND c.iso_code = r2.country';
+			$dao = CRM_Core_DAO::executeQuery($sql);
+			$recno = 0;
+			while ($dao->fetch()) {
+				$recno++;
+				if ($recno==1) {
+					//$result['ref_date'] = $dao->ref_date;
 					$result['countries'] = array();
 				}
 				if (!array_key_exists($dao->country_id, $result['countries'])) {

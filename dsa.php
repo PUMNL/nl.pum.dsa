@@ -233,7 +233,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 						'template' => "{$templatePath}/dsa_section.tpl"
 					)
 				);
-								
+				// Form structure =============================================
 				// Add DSA reference date to the form (locations/rates may vary per imported dsa batch - need to establish which batch was active at this date)
 				$form->add('hidden', 'dsa_ref_dt', NULL, array('id'=> 'dsa_ref_dt'));
 				// Add a hidden field to hold a complete list of locations/rates for each country
@@ -306,7 +306,13 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				// - creditation read
 				// - creditation save
 				
-				if (is_null($dsaId)) {
+				// Default field values =======================================
+				// Three scenario's here: a creation of a new activity, editing an existing and validation failure
+				if ($form->_flagSubmitted) {
+					// Defaults in case of a validation error
+					// All submitted values are present: leave most to civi, except:
+					//$defaults['dsa_load_location'] = $form->_submitValues['dsa_location'];
+				} elseif (is_null($dsaId)) {
 					// Defaults for new DSA creation
 					// Default DSA country: retrieve contacts primary adress' country (id)
 					$params = array(
@@ -328,7 +334,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					}
 					
 					// Retieve all available locations / rates for the specified reference date (if any)
-					$rateData = CRM_Dsa_Page_DSAImport::getAllActiveRates();
+					$rateData = CRM_Dsa_Page_DSAImport::getAllActiveRatesByDate();
 					$defaults['dsa_location_lst'] = json_encode($rateData);
 					
 					// Default DSA percentage
@@ -341,26 +347,26 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					}
 					// Default DSA amount
 					if (!is_null($percentageDefault)) {
-						$defaults['dsa_amount'] = 0;
+						$defaults['dsa_amount'] = '0.00';
 					}
 					// Default Briefing amount
-					$defaults['dsa_briefing'] = 0;
+					$defaults['dsa_briefing'] = '0.00';
 					// Default Debriefing amount
-					$defaults['dsa_debriefing'] = 0;
+					$defaults['dsa_debriefing'] = '0.00';
 					// Default Airport amount
-					$defaults['dsa_airport'] = 0;
+					$defaults['dsa_airport'] = '0.00';
 					// Default Transfer amount
-					$defaults['dsa_transfer'] = 0;
+					$defaults['dsa_transfer'] = '0.00';
 					// Default Hotel amount
-					$defaults['dsa_hotel'] = 0;
+					$defaults['dsa_hotel'] = '0.00';
 					// Default Visa amount
-					$defaults['dsa_visa'] = 0;
+					$defaults['dsa_visa'] = '0.00';
 					// Default Outfit amount
-					$defaults['dsa_outfit'] = 0;
+					$defaults['dsa_outfit'] = '0.00';
 					// Default Other amount
-					$defaults['dsa_other'] = 0;
+					$defaults['dsa_other'] = '0.00';
 					// Default Advance amount
-					$defaults['dsa_advance'] = 0;
+					$defaults['dsa_advance'] = '0.00';
 				} else {
 					// Defaults for editing an existing DSA record
 					// get DSACompose met activity_id = $activityId
@@ -373,8 +379,11 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$result = $dao_defaults->fetch();
 //dpm($dao_defaults, 'DAO Defaults');
 //dpm($result, 'Defaults Result');
-					// Retieve all available locations / rates for the specified reference date (if any)
-					$rateData = CRM_Dsa_Page_DSAImport::getAllActiveRates(); // should ref_date from previous query be used?
+					$loc_id = $dao_defaults->loc_id;
+					$dt = $dao_defaults->ref_date;
+					// Retieve all available locations / rates for the specified location
+					$rateData = CRM_Dsa_Page_DSAImport::getAllRatesByLocationId($loc_id); // should ref_date from previous query be used?
+//dpm($rateData, 'RateDate');
 					$defaults['dsa_location_lst'] = json_encode($rateData);
 					
 					$defaults['dsa_country'] = $dao_defaults->cy_id;
@@ -394,8 +403,9 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$defaults['dsa_other_description'] = $dao_defaults->description_other;
 					$defaults['dsa_advance'] = $dao_defaults->amount_advance;
 				}
+				
 				// Apply default values
-				if ($defaults) {
+				if (isset($defaults)) {
 					$form->setDefaults($defaults);
 				}
 			}
@@ -495,6 +505,12 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 	switch($formName) {
 		case 'CRM_Case_Form_Activity':
 			if ($form->_activityTypeName == 'DSA') {
+				// days
+				$fieldValue=trim($fields['dsa_days']);	
+				if ((!CRM_Utils_Type::validate($fieldValue, 'Positive', False)) && (!$fieldValue==0)) {
+					$errors['dsa_days'] = 'Please enter a valid number of days';
+				}
+				// amounts
 				$fldNames= array(
 					'dsa_amount',
 					'dsa_briefing',
@@ -510,8 +526,9 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 				foreach($fldNames as $name) {
 					$result = $result and _amountCheck($name, $fields, $errors);
 				}
-/*				if (!array_key_exists('dsa_other', $errors)) {
-					if (($fields['dsa_other']!=0) && (trim($fields['dsa_other_description'])=='')) {
+				
+//				if (!array_key_exists('dsa_other', $errors)) {
+/*					if (($fields['dsa_other']!=0) && (trim($fields['dsa_other_description'])=='')) {
 						$errors['dsa_other_description'] = ts('Please describe Expense Other');
 						$result = FALSE;
 					}
@@ -525,8 +542,8 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 
 function _amountCheck($fieldName, $fields, &$errors) {
  	try {
-		$fieldValue=$fields[$fieldName];
-		if (!CRM_Utils_Type::validate($fieldValue, 'Money', False)) {
+		$fieldValue=trim($fields[$fieldName]);
+		if ((!CRM_Utils_Type::validate($fieldValue, 'Float', False)) && (!$fieldValue==0))  {
 			$errors[$fieldName] = 'Please enter a valid amount';
 		} elseif ($fieldValue<0) {
 			$errors[$fieldName] = 'Minimum amount is: 0';
