@@ -198,6 +198,56 @@ function dsa_civicrm_buildForm($formName, &$form) {
 	
 	$loadJs = false;
 	switch($formName) {
+		case 'CRM_Case_Form_CaseView':
+			// avoid creation of a 2nd DSA activity in a status other than "Paid"
+			// obtain case id (if available)
+			if (isset($form->_caseID)) {
+				$caseId = $form->_caseID;
+				// all current revisions of the current case' activities of type DSA in an unfinished status
+				$sql = '
+					SELECT	ca.*
+					FROM	civicrm_case_activity ca,
+							civicrm_activity act
+					WHERE	ca.case_id = ' . $caseId . '
+					AND		act.id = ca.activity_id
+					AND		act.activity_type_id IN (
+								SELECT	vl.value
+								FROM	civicrm_option_group gp,
+										civicrm_option_value vl
+								WHERE	gp.name = \'activity_type\'
+								AND		gp.id = vl.option_group_id
+								AND		vl.name = \'DSA\'
+								)
+					AND		act.is_current_revision = 1
+					AND		act.status_id NOT IN (
+								SELECT	vl.value
+								FROM	civicrm_option_group gp,
+										civicrm_option_value vl
+								WHERE	gp.name = \'activity_status\'
+								AND		gp.id = vl.option_group_id
+								AND		vl.name IN (\'dsa_paid\', \'Cancelled\', \'Not Required\')
+								)';
+				$dao_activities = CRM_Core_DAO::executeQuery($sql);
+//dpm($dao_activities, 'DAO activities');
+				if ($dao_activities->N > 0) {
+					// DSA activities found: disallow creation of another one
+					foreach($form->_elements as $key=>$value) {
+						if ($value->_attributes) {
+							if ($value->_attributes['name']) {
+								if ($value->_attributes['name']=='activity_type_id') {
+									foreach($value->_options as $opt_key=>$opt_val) {
+										if ($opt_val['text']=='DSA') {
+											unset($form->_elements[$key]->_options[$opt_key]);
+											//$form->_elements[$key]->_options[$opt_key]
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			break;
 		case 'CRM_Case_Form_Activity':
 			if ($form->getVar('_activityTypeName')=='DSA') {
 			

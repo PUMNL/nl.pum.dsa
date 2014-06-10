@@ -34,13 +34,28 @@ acts as handler and return screen after submitting "convert" or "import" data
 displays imported DSA batches (maintenance not implemented yet)
 
 
-Requires a case activity called "DSA" (NOT automatically added yet)
-Requires an option group "DSA Rate" (name "dsa_rate"), containing e.g. "0%" (value 0), "20%" (value 20) and "100%" (value 100).
-This option group is NOT automatically added yet.
-Make sure to link the DSA activity to your cases in your case management xml files.
+** Important: **
+* Requires a case activity called "DSA" (NOT automatically added yet)
+* Requires an option group "DSA Rate" (name "dsa_rate"), containing e.g. "0%" (value 0), "20%" (value 20) and "100%" (value 100).
+* This option group is NOT automatically added yet.
+* Make sure to link the DSA activity to your cases in your case management xml files.
+* Requires additional values for option group "Activity Status": "Payable" (name "dsa_payable", value e.g. 1501), "Paid" (name "dsa_paid", value e.g. 1502). Both inactive(!).
+* These options are NOT automatically added yet.
+***
+
 
 Adds a set of additional fields to the activity "DSA".
 This set of fields is stored in civicrm_dsa_compose. If present, the field "original_id" in the case is used to tie the fields to the case, otherwise the case' id is used.
+
+A user is offered to add a DSA activity (if defined in xml). However, if a DSA activity is present in any status other than 'dsa_paid', 'Cancelled' or 'Not Required',
+The option to create a new DSA activity is withdrawn from the list of options.
+Once processed (status is set to 'dsa_paid', another DSA activity (likely for creditation or additional paiment) can be made.
+
+** TO DO **
+* validation: do not save DSA if another 'open' DSA activity exists
+* scheduled export of DSA activities / promotion to status "dsa_paid'
+* form adjustments regarding creditation
+***
 
 
 KNOWN ISSUES:
