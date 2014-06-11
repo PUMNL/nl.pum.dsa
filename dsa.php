@@ -187,7 +187,7 @@ function dsa_civicrm_navigationMenu( &$params ) {
  * Adds additional fields to the form
  */
 function dsa_civicrm_buildForm($formName, &$form) {
-//dpm($form, 'Pre DSA mod form data ' . $formName);
+dpm($form, 'Pre DSA mod form data ' . $formName);
 	/*
 	echo '<pre>';
 	print_r($form);
@@ -204,30 +204,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 			if (isset($form->_caseID)) {
 				$caseId = $form->_caseID;
 				// all current revisions of the current case' activities of type DSA in an unfinished status
-				$sql = '
-					SELECT	ca.*
-					FROM	civicrm_case_activity ca,
-							civicrm_activity act
-					WHERE	ca.case_id = ' . $caseId . '
-					AND		act.id = ca.activity_id
-					AND		act.activity_type_id IN (
-								SELECT	vl.value
-								FROM	civicrm_option_group gp,
-										civicrm_option_value vl
-								WHERE	gp.name = \'activity_type\'
-								AND		gp.id = vl.option_group_id
-								AND		vl.name = \'DSA\'
-								)
-					AND		act.is_current_revision = 1
-					AND		act.status_id NOT IN (
-								SELECT	vl.value
-								FROM	civicrm_option_group gp,
-										civicrm_option_value vl
-								WHERE	gp.name = \'activity_status\'
-								AND		gp.id = vl.option_group_id
-								AND		vl.name IN (\'dsa_paid\', \'Cancelled\', \'Not Required\')
-								)';
-				$dao_activities = CRM_Core_DAO::executeQuery($sql);
+				$dao_activities = _dao_findOpenDsaActivities($caseId);
 //dpm($dao_activities, 'DAO activities');
 				if ($dao_activities->N > 0) {
 					// DSA activities found: disallow creation of another one
@@ -550,11 +527,33 @@ function dsa_civicrm_buildForm($formName, &$form) {
  * Adds validation of added fields to the form
  */
 function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$errors ) {
+//echo '<pre>';
 //dpm($fields, "HOOK_VALIDATEFORM: FIELDS ON ". $formName);
+//print_r ($fields);
+//echo '================================';
 //dpm($form, "HOOK_VALIDATEFORM: ". $formName);
+//print_r ($form);
+//echo '</pre>';
+//exit();
 	switch($formName) {
 		case 'CRM_Case_Form_Activity':
 			if ($form->_activityTypeName == 'DSA') {
+				// only open DSA activity within case?
+				$caseId = $form->_caseId;
+				$activityId = $form->_activityId;
+				// all current revisions of the current case' activities of type DSA in an unfinished status
+				try {
+					$dao_activities = _dao_findOpenDsaActivities($caseId, $activityId);
+				} catch(Exception $e) {
+					// ignore
+				}
+//echo '<pre>';
+//print_r ($dao_activities);
+//echo '</pre>';
+//exit();
+				if ($dao_activities->N > 0) {
+					$errors['status_id'] = 'Only one \'open\' DSA activity allowed.';
+				}
 				// days
 				$fieldValue=trim($fields['dsa_days']);	
 				if ((!CRM_Utils_Type::validate($fieldValue, 'Positive', False)) && (!$fieldValue==0)) {
@@ -814,4 +813,39 @@ function dsa_civicrm_postProcess( $formName, &$form ) {
 			break;
 	} // switch ($formName)
 	return;
+}
+
+function _dao_findOpenDsaActivities($caseId, $excludeActivityId=NULL) {
+	if (is_null($excludeActivityId)) {
+		$excludeActivityId = '\'NULL\'';
+	} elseif ($excludeActivityId=='') {
+		$excludeActivityId = '\'NULL\'';
+	}
+	$sql = '
+		SELECT	ca.*
+		FROM	civicrm_case_activity ca,
+				civicrm_activity act
+		WHERE	ca.case_id = ' . $caseId . '
+		AND		act.id = ca.activity_id
+		AND		act.activity_type_id IN (
+					SELECT	vl.value
+					FROM	civicrm_option_group gp,
+							civicrm_option_value vl
+					WHERE	gp.name = \'activity_type\'
+					AND		gp.id = vl.option_group_id
+					AND		vl.name = \'DSA\'
+					)
+		AND		act.is_current_revision = 1
+		AND		act.status_id NOT IN (
+					SELECT	vl.value
+					FROM	civicrm_option_group gp,
+							civicrm_option_value vl
+					WHERE	gp.name = \'activity_status\'
+					AND		gp.id = vl.option_group_id
+					AND		vl.name IN (\'dsa_paid\', \'Cancelled\', \'Not Required\')
+					)
+		AND		ca.activity_id NOT IN (' . $excludeActivityId . ')
+		';
+	$dao_activities = CRM_Core_DAO::executeQuery($sql);
+	return $dao_activities;
 }

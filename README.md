@@ -50,9 +50,9 @@ This set of fields is stored in civicrm_dsa_compose. If present, the field "orig
 A user is offered to add a DSA activity (if defined in xml). However, if a DSA activity is present in any status other than 'dsa_paid', 'Cancelled' or 'Not Required',
 The option to create a new DSA activity is withdrawn from the list of options.
 Once processed (status is set to 'dsa_paid', another DSA activity (likely for creditation or additional paiment) can be made.
+If multiple DSA activities are being edited into a state that would lead to having more than one 'open' DSA activity, validation will block the ones causing a violation.
 
 ** TO DO **
-* validation: do not save DSA if another 'open' DSA activity exists
 * scheduled export of DSA activities / promotion to status "dsa_paid'
 * form adjustments regarding creditation
 ***
