@@ -2,6 +2,8 @@
 
 require_once 'dsa.civix.php';
 require_once 'CRM/Dsa/Page/DSAImport.php';
+require_once 'dsa.activitytype.inc.php';
+require_once 'dsa.optiongroup.inc.php';
 
 /**
  * Implementation of hook_civicrm_config
@@ -29,6 +31,8 @@ function dsa_civicrm_xmlMenu(&$files) {
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_install
  */
 function dsa_civicrm_install() {
+  DSA_OptionGroup::install();
+  DSA_ActivityType::install();
   return _dsa_civix_civicrm_install();
 }
 
@@ -38,6 +42,7 @@ function dsa_civicrm_install() {
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_uninstall
  */
 function dsa_civicrm_uninstall() {
+  // added option groups, option values and activity types are not deleted!
   return _dsa_civix_civicrm_uninstall();
 }
 
@@ -47,6 +52,8 @@ function dsa_civicrm_uninstall() {
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_enable
  */
 function dsa_civicrm_enable() {
+  DSA_OptionGroup::enable();
+  DSA_ActivityType::enable();
   return _dsa_civix_civicrm_enable();
 }
 
@@ -56,6 +63,8 @@ function dsa_civicrm_enable() {
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_disable
  */
 function dsa_civicrm_disable() {
+  DSA_OptionGroup::disable();
+  DSA_ActivityType::disable();
   return _dsa_civix_civicrm_disable();
 }
 
