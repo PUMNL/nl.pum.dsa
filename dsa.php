@@ -187,15 +187,8 @@ function dsa_civicrm_navigationMenu( &$params ) {
  * Adds additional fields to the form
  */
 function dsa_civicrm_buildForm($formName, &$form) {
-dpm($form, 'Pre DSA mod form data ' . $formName);
-	/*
-	echo '<pre>';
-	print_r($form);
-	//print_r($formName);
-	echo '</pre>';
-	exit();
-	//*/
-	
+//dpm($form, 'Pre DSA mod form data ' . $formName);
+
 	$loadJs = false;
 	switch($formName) {
 		case 'CRM_Case_Form_CaseView':
@@ -435,82 +428,67 @@ dpm($form, 'Pre DSA mod form data ' . $formName);
 				if (isset($defaults)) {
 					$form->setDefaults($defaults);
 				}
-			}
-			
-			// Find field "status_id" and its value
-			foreach($form->_elements as $elmNo=>$elmObj) {
-				if ($elmObj->_attributes) {
-					if ($elmObj->_attributes['name']) {
-						if ($elmObj->_attributes['name'] == 'status_id') {
-							$fldId = $elmNo;
-							$fldStatus = $elmObj->_values[0];
+				
+				// Apply filter on status list
+				// retrieve a complete list of available activity statusses
+				$arStatusLst = _retrieveActivityStatusList();
+				// Find field "status_id" and its value
+				$fldStatus = _findFieldByName($form, 'status_id');
+				// Modify the offered activity status list depending on activity_type and current status
+				if (!empty($fldStatus)) {
+					if (isset($fldStatus['id'])) {
+						$fldVal = $fldStatus['obj']->_values[0];
+						$fldOptions = $fldStatus['obj']->_options; // use existing options list for modifications: might contain a filter from other modules
+						
+						// convert options to a DSA-specific options list
+						switch ($arStatusLst[$fldVal]['name']) {
+							case 'Scheduled':
+							case 'Cancelled':
+							case 'Not Required':
+							case 'dsa_payable':
+								$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
+								$addSelect = TRUE;
+								break;
+							case 'dsa_paid':
+								$allowedStatusName = array('dsa_paid');
+								$addSelect = FALSE;
+								break;
+							default:
+								$allowedStatusName = array($arStatusLst[$fldVal]);
+								$addSelect = TRUE;
 						}
+						
+						// apply modifictions
+						$newOptions = _leaveAllowedStatusOptions($fldOptions, $allowedStatusName, $addSelect);
+						$form->_elements[$fldStatus['id']]->_options = $newOptions;
 					}
 				}
-			}
-			
-			// modify status options only if status field was found
-			if (isset($fldId)) {
-//dpm($fldStatus, 'fldStatus'); 
-//dpm($fldId, 'fldId'); 
-			
-				// Retrieve all possible values for option group "activity_status" values
-				$params = array(
-					'version' => 3,
-					'q' => 'civicrm/ajax/rest',
-					'sequential' => 1,
-					'option_group_name' => 'activity_status',
-				);
-				$dao_options = civicrm_api('OptionValue', 'get', $params);
-//dpm($dao_options, '$dao_options');
-				
-				// build translation array: id -> name
-				$arStatus = array();
-				foreach($dao_options['values'] as $dao_key=>$dao_value) {
-					$arStatus[$dao_value['value']] = $dao_value['name'];
-				}
-//dpm($arStatus, '$arStatus');
-				
-				// convert options to a DSA-specific options list
-				switch ($arStatus[$fldStatus]) {
-					case 'Scheduled':
-					case 'Cancelled':
-					case 'Not Required':
-					case 'dsa_payable':
-						$allowedStatus = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
-						break;
-					case 'dsa_paid':
-						$allowedStatus = array('dsa_paid');
-						break;
-					default:
-						$allowedStatus = array($arStatus[$fldStatus]);
-				}
-				
-				// add 1st option '-select-' to options list
-				$arOptions = array($form->_elements[$fldId]->_options[0]);
-				
-				// add allowed options to options list -if available-
-				foreach($dao_options['values'] as $dao_key=>$dao_value) {
-					if (in_array($dao_value['name'], $allowedStatus)) {
-						$arOptions[] = array(
-							'text' => ts($dao_value['label']),
-							'attr' => array(
-								'value' => $dao_value['value'],
-							),
-						);
+			} else {
+				// CRM_Case_Form_Activity but not type DSA
+				// Apply filter on status list
+				// retrieve a complete list of available activity statusses
+				$arStatusLst = _retrieveActivityStatusList();
+				// Find field "status_id" and its value
+				$fldStatus = _findFieldByName($form, 'status_id');
+				// Modify the offered activity status list
+				if (!empty($fldStatus)) {
+					if (isset($fldStatus['id'])) {
+						$fldVal = $fldStatus['obj']->_values[0];
+						$fldOptions = $fldStatus['obj']->_options; // use existing options list for modifications: might contain a filter from other modules
+						
+						// convert options to a DSA-specific options list
+						$removeStatusName = array('dsa_payable', 'dsa_paid');
+						$addSelect = TRUE;
+						
+						// apply modifictions
+						$newOptions = _removeDisallowedStatusOptions($fldOptions, $removeStatusName, $addSelect);
+						$form->_elements[$fldStatus['id']]->_options = $newOptions;
 					}
-				}
-//dpm($arOptions, '$arOptions');
-			
-				// Apply allowed options to status_id field
-				$form->_elements[$fldId]->_options = $arOptions;
+				}	
 			}
 			
 			
 //dpm($form, 'Post dsa-mod form data for ' . $formName);
-			break;
-		case 'CRM_Case_Form_CaseView':
-			
 			break;
 		}
 	
@@ -848,4 +826,128 @@ function _dao_findOpenDsaActivities($caseId, $excludeActivityId=NULL) {
 		';
 	$dao_activities = CRM_Core_DAO::executeQuery($sql);
 	return $dao_activities;
+}
+
+/*
+ * Function to retrieve all values from option group "activity_status"
+ * Values are returned in associative array, 
+ * ar['status_id'] = array( 'name' => <status_name>, 'label' => <status_label> )
+ */
+
+function _retrieveActivityStatusList() {
+	// Retrieve all possible values for option group "activity_status" values
+	$params = array(
+		'version' => 3,
+		'q' => 'civicrm/ajax/rest',
+		'sequential' => 1,
+		'option_group_name' => 'activity_status',
+	);
+	$dao_options = civicrm_api('OptionValue', 'get', $params);
+
+	// build translation array: id -> name
+	$arStatus = array();
+	foreach($dao_options['values'] as $dao_key=>$dao_value) {
+		$arStatus[$dao_value['value']] = array(
+			'name' => $dao_value['name'],
+			'label' => $dao_value['label'],
+		);
+	}
+
+	return $arStatus;
+}
+
+/*
+ * Function to modify the list of options for activity status
+ * Options present in $currentOptionsList, but NOT listed in $allowedNamesAr will be removed from the list
+ * Use $keepEmptyFirst to keep "- SELECT -" in $currentOptionsList (if available)
+ * Used to remove standard activity statusses from DSA activities
+ */
+function _leaveAllowedStatusOptions($currentOptionsList, $allowedNamesAr, $keepEmptyFirst=TRUE) {
+	// build a translation list: option names to option labels
+	$nameToLabel = array();
+	$arStatus = _retrieveActivityStatusList();
+	foreach($arStatus as $key=>$value) {
+		$nameToLabel[$value['name']] = $value['label'];
+	}
+	
+	// add allowed options to options list -if available-
+	$resultAr = array();
+	$n=-1;
+//dpm($currentOptionsList, '>> $currentOptionsList');
+//dpm($allowedNamesAr, '>> $allowedNamesAr');
+	foreach($currentOptionsList as $key_opt=>$value_opt) {
+		$n++;
+		$currentName = $value_opt['text'];
+		if (($n==0) && ($value_opt['attr']['value']=='') && ($keepEmptyFirst)) {
+			$resultAr[] = $value_opt;
+		} else {
+			foreach($allowedNamesAr as $key_allow=>$value_allow) {
+				if ($nameToLabel[$value_allow]==$currentName) {
+					$resultAr[] = $value_opt;
+				}
+			}
+		}
+	}
+			
+	// Apply allowed options to status_id field
+	return $resultAr;
+}
+
+/*
+ * Function to modify the list of options for activity status
+ * Options present in $currentOptionsList that are listed in $removeNamesAr as well will be removed from the list
+ * Use $keepEmptyFirst to keep "- SELECT -" in $currentOptionsList (if available)
+ * Used to remove special DSA statusses from non-DSA activities
+ */
+function _removeDisallowedStatusOptions($currentOptionsList, $removeNamesAr, $keepEmptyFirst=TRUE) {
+	// build a translation list: option names to option labels
+	$nameToLabel = array();
+	$arStatus = _retrieveActivityStatusList();
+	foreach($arStatus as $key=>$value) {
+		$nameToLabel[$value['name']] = $value['label'];
+	}
+	
+	// add allowed options to options list -if available-
+	$resultAr = array();
+	$n=-1;
+	foreach($currentOptionsList as $key_opt=>$value_opt) {
+		$n++;
+		$currentName = $value_opt['text'];
+		$keep = TRUE;
+		if (($n==0) && ($value_opt['attr']['value']=='')) {
+			if (!$keepEmptyFirst) {
+				$keep = FALSE;
+			}
+		} else {
+			foreach($removeNamesAr as $key_remove=>$value_remove) {
+				if ($nameToLabel[$value_remove]==$currentName) {
+					$keep = FALSE;
+				}
+			}
+		}
+		if ($keep) {
+			$resultAr[] = $value_opt;
+		}
+	}
+			
+	// Apply allowed options to status_id field
+	return $resultAr;
+}
+
+/* Function to find a field in the form definition $form
+ * returns both the fields element id within $form->_elements and the corresponding field object
+ */
+function _findFieldByName($form, $fldName) {
+	$result = array();
+	foreach($form->_elements as $elmNo=>$elmObj) {
+		if ($elmObj->_attributes) {
+			if ($elmObj->_attributes['name']) {
+				if ($elmObj->_attributes['name'] == $fldName) {
+					$result['id'] = $elmNo;
+					$result['obj'] = $elmObj;
+				}
+			}
+		}
+	}
+	return $result;
 }

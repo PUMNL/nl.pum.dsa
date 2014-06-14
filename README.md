@@ -39,7 +39,8 @@ displays imported DSA batches (maintenance not implemented yet)
 * Requires an option group "DSA Rate" (name "dsa_rate"), containing e.g. "0%" (value 0), "20%" (value 20) and "100%" (value 100).
 * This option group is NOT automatically added yet.
 * Make sure to link the DSA activity to your cases in your case management xml files.
-* Requires additional values for option group "Activity Status": "Payable" (name "dsa_payable", value e.g. 1501), "Paid" (name "dsa_paid", value e.g. 1502). Both inactive(!).
+* Requires additional values for option group "Activity Status": "Payable" (mandatory name "dsa_payable", unique value e.g. 1501), "Paid" (mandatory name "dsa_paid", unique value e.g. 1502).
+* Make sure both statusses are set active: they will be removed from any non-DSA activity status list by this extension.
 * These options are NOT automatically added yet.
 ***
 
@@ -55,6 +56,9 @@ If multiple DSA activities are being edited into a state that would lead to havi
 ** TO DO **
 * scheduled export of DSA activities / promotion to status "dsa_paid'
 * form adjustments regarding creditation
+* white overlay screens for activity, status change etc.
+* batch management (start- / end dates)
+* disable move to case, copy to case, delete etc.
 ***
 
 
