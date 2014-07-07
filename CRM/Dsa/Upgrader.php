@@ -1,5 +1,7 @@
 <?php
 
+require_once 'dsa.optiongroup.inc.php';
+
 /**
  * Collection of upgrade steps
  */
@@ -63,7 +65,62 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_dsa_compose_1002.sql');
 		return TRUE;
 	}
-
+	
+	/**
+	 * Upgrade 1003 - alter table civicrm_dsa_compose
+	 * @date 21 May 2014
+	 */
+	public function upgrade_1003() {
+		$this->ctx->log->info('Applying update 1003 (create table civicrm_dsa_payment)');
+		// create table for dsa payments
+		$this->executeSqlFile('sql/civicrm_dsa_payment_1003.sql');
+		return TRUE;
+	}
+	
+	/**
+	 * Upgrade 1004 - add option group general_ledger
+	 * @date 30 June 2014
+	 */
+	public function upgrade_1004() {
+		$this->ctx->log->info('Applying update 1004 (create/fill option group \'general_ledger\')');
+		// re-run option group installer
+		DSA_OptionGroup::install();
+		return TRUE;
+	}
+	
+	/**
+	 * Upgrade 1005 - add relationship_type_id to civicrm_dsa_compose
+	 * @date 1 July 2014
+	 */
+	public function upgrade_1005() {
+		$this->ctx->log->info('Applying update 1005 (alter table civicrm_dsa_compose)');
+		// alter table civicrm_dsa_compose
+		$this->executeSqlFile('sql/civicrm_dsa_compose_1005.sql');
+		return TRUE;
+	}
+	
+	/**
+	 * Upgrade 1006 - add relationship_type_id to civicrm_dsa_compose
+	 * @date 2 July 2014
+	 */
+	public function upgrade_1006() {
+		$this->ctx->log->info('Applying update 1006 (alter table civicrm_dsa_compose)');
+		// alter table civicrm_dsa_compose
+		$this->executeSqlFile('sql/civicrm_dsa_compose_1006.sql');
+		return TRUE;
+	}
+	
+	/**
+	 * Upgrade 1007 - add type to civicrm_dsa_compose
+	 *              - set type in all records to 1 (payment)
+	 * @date 7 July 2014
+	 */
+	public function upgrade_1007() {
+		$this->ctx->log->info('Applying update 1007 (alter table civicrm_dsa_compose)');
+		// alter table civicrm_dsa_compose
+		$this->executeSqlFile('sql/civicrm_dsa_compose_1007.sql');
+		return TRUE;
+	}
 	
   /**
    * Example: Run an external SQL script when the module is uninstalled

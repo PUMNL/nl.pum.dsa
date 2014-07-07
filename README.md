@@ -13,6 +13,7 @@ Adds 5 tables
 - civicrm_dsa_rate
 - civicrm_country_pum
 - civicrm_dsa_compose
+- civicrm_dsa_payment (update 1003)
 
 Adds "DSA" submenu under "Administer" menu
 DSA submenu contains 3 buttons for DSA-rate control
@@ -40,20 +41,23 @@ displays imported DSA batches (maintenance not implemented yet)
 Adds a set of additional fields to the activity "DSA". These are not "custom fields" as known in CiciCRM.
 This set of fields is stored in civicrm_dsa_compose. If present, the field "original_id" in the case is used to tie the fields to the case, otherwise the case' id is used.
 
-A user is offered to add a DSA activity (if defined in xml). However, if a DSA activity is present in any status other than 'dsa_paid', 'Cancelled' or 'Not Required',
-The option to create a new DSA activity is withdrawn from the list of options.
-Once processed (status is set to 'dsa_paid', another DSA activity (likely for creditation or additional paiment) can be made.
-If multiple DSA activities are being edited into a state that would lead to having more than one 'open' DSA activity, validation will block the ones causing a violation.
+A user is offered to add a DSA activity (if defined in xml).
+On the activity the user is supposes to select a participant (implicit selection of payment type and participant role).
+Only one DSA activity per participant (!) will be allowed in any status other than 'dsa_paid', 'Cancelled' or 'Not Required'.
+Once processed (status is automatically set to 'dsa_paid', another DSA activity (likely for creditation or additional payment) can be made.
+If multiple DSA activities are being edited into a state that would lead to having more than one 'open' DSA activity, for a single participant, validation will block the ones causing a violation.
 
 
 
 ** TO DO **
 * test install process
-* scheduled export of DSA activities / promotion to status "dsa_paid'
+* scheduled export of DSA activities / promotion to status "dsa_paid"
+* control feature to export only on certain days on/after a specified date
 * form adjustments regarding creditation
 * white overlay screens for activity, status change etc.
-* batch management (start- / end dates)
-* disable move to case, copy to case, delete etc.
+* batch management (filling out start- / end dates)
+* disable move to case, copy to case, delete / conditional disabling edit.
+* maintenance option for civicrm_pum_country: create / remove / edit additional country info (unless fully replaced by a country card feature)
 ***
 
 

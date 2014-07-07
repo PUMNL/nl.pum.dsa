@@ -4,13 +4,21 @@
  
 {* template block that contains the new field *}
 {$form.dsa_ref_dt.html}
+{$form.dsa_type.html}
 {$form.dsa_load_location.html}
 {$form.dsa_location_lst.html}
+{$form.dsa_location_id.html}
+{$form.dsa_participant_id.html}
+{$form.dsa_participant_role.html}
 <table id="dsa-temp">
 	<tr>
 		<td colspan="2">
 			<div id="preDsaSpacer"></div>
 		</td>
+	</tr>
+	<tr class="crm-case-activity-form-block-dsa_participant">
+        <td class="label">{$form.dsa_participant.label}</td>
+		<td class="view-value">{$form.dsa_participant.html}</td>
 	</tr>
 	<tr class="crm-case-activity-form-block-dsa_country">
         <td class="label">{$form.dsa_country.label}</td>
@@ -72,8 +80,12 @@
         <td class="label">{$form.dsa_advance.label}</td>
 		<td class="view-value">{$form.dsa_advance.html}</td>
 	</tr>
-	{* approver cid to name ? *}
-	{* approval date/time ? *}
+{if $form.dsa_approval.value != ''}
+	<tr class="crm-case-activity-form-block-dsa_approval">
+        <td class="label">{$form.dsa_approval.label}</td>
+		<td class="view-value">{$form.dsa_approval.value}</td>
+	</tr>
+{/if}
 	{*
 	<tr>
 		<td colspan="2">
@@ -98,9 +110,13 @@
 	cj('tr.crm-case-activity-form-block-schedule_followup').hide();
 	// remove (hide) duration
 	cj('tr.crm-case-activity-form-block-duration').hide();
-	// remove (hide) duration
+	// remove (hide) priority
 	cj('tr.crm-case-activity-form-block-priority_id').hide();
+	// hide subject
+	cj('tr.crm-case-activity-form-block-subject').hide();
 	
+	// add onChange event to dsa_country field to build a list of selectable locations
+	cj('#dsa_participant').change(function() { processDSAParticipantChange(this) });
 	// add onChange event to dsa_country field to build a list of selectable locations
 	cj('#dsa_country').change(function() { processDSACountryChange(this) });
 	// add onChange event to dsa_location field to update dsa amount
@@ -116,6 +132,11 @@
 	cj('#dsa_country').trigger('change', ['{$form.dsa_location.value[0]']);
 	// trigger onChange on dsa_other to retrieve an initial set of locations
 	//cj('#dsa_other').trigger('change');
+	
+	// show approver details
+	//cj('tr#crm-case-activity-form-block-status_id').after('<tr class="crm-case-activity-form-block-dsa_approval"></tr>');
+	//cj('tr#crm-case-activity-form-block-dsa_approval').
+	//, cj('#dsa_approval').val())
 	
 	function processDSACountryChange(elm) {
 		// exit function if no country is selected
@@ -148,6 +169,9 @@
 		processAmountUpdate();
 		// make sure the location is set when the page reopens after validation failure
 		cj('#dsa_load_location').val(cj('#dsa_location').val());
+		// store location id in separate field
+		var data = (cj('#dsa_location').val() + '|0').split('|');
+		cj('#dsa_location_id').val(data[0]);
 		return true;
 	}
 	
@@ -176,6 +200,27 @@
 		amt = cj('#dsa_other').val();
 		hide = (cj.trim(amt)=='' || parseFloat(amt)==0);
 		cj('#dsa_other_description').prop('disabled', hide);
+	}
+	
+	function loadParticipants() {
+		// clear all options for dsa_particinants
+		cj('#dsa_participant option:gt(0)').remove();
+		var participant = cj('#dsa_participant');
+		var participantsData = cj.parseJSON(cj('#dsa_participants_lst').val());
+		cj.each(participantsData, function(index, value) {
+			participant.append('<option value="' + value.value + '">' + value.text + '</option>');
+		});
+		participant.val(cj('#dsa_load_participant').val()); // apply default value after initial load
+	}
+	
+	function processDSAParticipantChange(elm) {
+		//CRM.alert('Participant changed');
+		cj('#subject').val(cj('#dsa_participant option:selected').text());
+		var data = (cj('#dsa_participant').val() + '|0|0').split('|');
+		cj('#dsa_participant_id').val(data[0]);
+		cj('#dsa_participant_role').val(data[1]);
+		cj('#dsa_type').val(data[2]);
+		return true;
 	}
 	
 </script>
