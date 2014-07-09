@@ -593,7 +593,7 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 				if ($dao_activities->N > 0) {
 					$errors['status_id'] = 'Only one \'open\' DSA activity allowed.';
 				}
-/*
+*/
 				//===========================================================================================================
 
 				// days
@@ -618,12 +618,12 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 					$result = $result and _amountCheck($name, $fields, $errors);
 				}
 				
-//				if (!array_key_exists('dsa_other', $errors)) {
-/*					if (($fields['dsa_other']!=0) && (trim($fields['dsa_other_description'])=='')) {
+				if (!array_key_exists('dsa_other', $errors)) {
+					if (($fields['dsa_other']!=0) && (trim($fields['dsa_other_description'])=='')) {
 						$errors['dsa_other_description'] = ts('Please describe Expense Other');
 						$result = FALSE;
 					}
-				} */
+				}
 			}
 			break;
 	}

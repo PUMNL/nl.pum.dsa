@@ -183,27 +183,40 @@ function civicrm_api3_dsa_processpayments($params) {
 			$finrec_amt['ValutaCode']		= 'EUR';								// always EUR
 			
 			$amt_type .= ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
-			/*
-			create payment lines for all factuurnumbers (different payment lines for this project for this advisor)
-			number is used to determine the last char of the factuurnumber (1-9, A-Z)
-			1 = DSA amount
-			2 = vervallen					
-			3 = Outfit Allowance
-			4 = Advance amounts (also: Acquisition Advance Amount)
-			5 = reserved for LR renumeration
-			6 = KM PUM
-			7 = KM Schiphol
-			8 = Transfer amount
-			9 = Hotel
-			10 (=A) = Visa
-			11 (=B) = Other
-			12 (=C) = MEAL/PArking
-			13 (=D) = debriefing herberekening
-			33 (=X) = Training/BLP betaling Gast
-			34 (=Y) = Training/BLP betaling Expert/organisation costs
-			35 (=Z) = reserved for secondpayment LR remueration
-			*/
-			
+			switch ($amt_type) {
+				case '1': // DSA amount
+					break;
+				case '3': // Outfit Allowance
+					break;
+				case '4': // Advance amounts (also: Acquisition Advance Amount)
+					break;
+				case '5': // Reserved for LR renumeration
+					break;
+				case '6': // Km PUM
+					break;
+				case '7': // Km Airport (Schiphol)
+					break;
+				case '8': // Transfer amount
+					break;
+				case '9': // Hotel
+					break;
+				case 'A': // Visa
+					break;
+				case 'B': // Other
+					break;
+				case 'C': // Meal / Parking
+					break;
+				case 'D': // Debriefing settlement
+					break;
+				case 'X': // Training/BLP payment guest
+					break;
+				case 'Y': // Training/BLP payment expert/organisation costs
+					break;
+				case 'Z': // Reserved for secondpayment LR remueration
+					break;
+				default:
+					// no action
+			}
 			
 		
 			// dpm($finrec_amt, '$finrec_amt');

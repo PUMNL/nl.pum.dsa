@@ -115,6 +115,9 @@
 	// hide subject
 	cj('tr.crm-case-activity-form-block-subject').hide();
 	
+	var ratesData = cj.parseJSON(cj('#dsa_location_lst').val()); {/literal}{* nl.pum.dsa/CRM/Dsa/Page/DSAImport.php function getAllActiveRates(dt) *}{literal}
+	cj('#dsa_location_lst').remove(); // avoids submitting JSON data, causing the infamous IDS->kick error
+	
 	// add onChange event to dsa_country field to build a list of selectable locations
 	cj('#dsa_participant').change(function() { processDSAParticipantChange(this) });
 	// add onChange event to dsa_country field to build a list of selectable locations
@@ -148,7 +151,7 @@
 		var loc = cj('#dsa_location');
 		
 		// query for new locations based on the selected dsa_country
-		var ratesData = cj.parseJSON(cj('#dsa_location_lst').val()); {/literal}{* nl.pum.dsa/CRM/Dsa/Page/DSAImport.php function getAllActiveRates(dt) *}{literal}
+		//var ratesData = cj.parseJSON(cj('#dsa_location_lst').val()); {/literal}{* nl.pum.dsa/CRM/Dsa/Page/DSAImport.php function getAllActiveRates(dt) *}{literal}
 		var dt = ratesData.ref_date;
 		cj('#dsa_ref_dt').val(dt);
 		if (ratesData.countries[elm.value]) {
