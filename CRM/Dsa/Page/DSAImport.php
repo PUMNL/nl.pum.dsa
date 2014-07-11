@@ -507,7 +507,7 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 	 * Used to bypass API permission problem in JS
 	 */
 	public static function getAllRatesByLocationId($id=NULL) {
-		if ((is_null($id)) || ($id=='')) {
+		if ((is_null($id)) || ($id=='') || ($id==0)) {
 			// if no location id was provided, retrieve the list based on todays date
 			return self::getAllActiveRatesByDate();
 		} else {

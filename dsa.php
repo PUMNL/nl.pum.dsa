@@ -196,7 +196,7 @@ function dsa_civicrm_navigationMenu( &$params ) {
  * Adds additional fields to the form
  */
 function dsa_civicrm_buildForm($formName, &$form) {
-// dpm($form, 'Pre DSA mod form data ' . $formName);
+//dpm($form, 'Pre DSA mod form data ' . $formName);
 
 	$loadJs = false;
 	switch($formName) {
@@ -357,8 +357,12 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				// Three scenario's here: a creation of a new activity, editing an existing and validation failure
 				if ($form->_flagSubmitted) {
 					// Defaults in case of a validation error
-					// All submitted values are present: leave most to civi, except:
-					//$defaults['dsa_load_location'] = $form->_submitValues['dsa_location'];
+					// All submitted values are present: leave most to civi except dsa_location_lst:
+					// That field was removed in jquery (temlate) and needs to be reapplied, or the location won't be reloaded properly
+					$loc_id = $form->_submitValues['dsa_location_id'];
+					$rateData = CRM_Dsa_Page_DSAImport::getAllRatesByLocationId($loc_id); // should ref_date from previous query be used?
+					$defaults['dsa_location_lst'] = json_encode($rateData);
+					
 				} elseif (is_null($dsaId)) {
 					// Defaults for new DSA creation
 					// Default DSA country: retrieve contacts primary adress' country (id)
@@ -382,10 +386,8 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					
 					// Retieve all available locations / rates for the specified reference date (if any)
 					$rateData = CRM_Dsa_Page_DSAImport::getAllActiveRatesByDate();
-					$defaults['dsa_location_lst'] = json_encode($rateData);
+					$defaults['dsa_location_lst'] = json_encode($rateData);					
 					
-					
-					 
 					// Default DSA percentage
 					if (!is_null($percentageDefault)) {
 						$defaults['dsa_percentage'] = $percentageDefault;
@@ -418,6 +420,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$defaults['dsa_advance'] = '0.00';
 					// Default approval details
 					$defaults['dsa_approval'] = '';
+					
 				} else {
 					// Defaults for editing an existing DSA record
 					// get DSACompose met activity_id = $activityId
@@ -431,18 +434,19 @@ SELECT
   con.display_name AS approver_name
 FROM
   civicrm_dsa_compose cmp
-	LEFT JOIN civicrm_contact con
-  	ON cmp.approval_cid = con.id,
-  civicrm_dsa_rate rte,
-  civicrm_country cnt
+  LEFT JOIN civicrm_contact con
+    ON cmp.approval_cid = con.id
+  LEFT JOIN civicrm_dsa_rate rte
+    ON cmp.loc_id = rte.id
+  LEFT JOIN civicrm_country cnt
+    ON rte.country = cnt.iso_code
 WHERE
-  cmp.activity_id = ' . $dsaId . ' AND
-  cmp.loc_id = rte.id AND
-  rte.country = cnt.iso_code
+  cmp.activity_id = ' . $dsaId . '
 					';
 //dpm($sql, '$sql (fetch default values)');
 					$dao_defaults = CRM_Core_DAO::executeQuery($sql);
 					$result = $dao_defaults->fetch();
+//dpm($dao_defaults, "dao defaults");
 					$loc_id = $dao_defaults->loc_id;
 					$dt = $dao_defaults->ref_date;
 					// Retieve all available locations / rates for the specified location
@@ -454,6 +458,7 @@ WHERE
 					$defaults['dsa_participant_id'] = $dao_defaults->contact_id;
 					$defaults['dsa_participant_role'] = $dao_defaults->relationship_type_id;
 					$defaults['dsa_participant'] = $dao_defaults->contact_id . '|' . $dao_defaults->relationship_type_id . '|' . $dao_defaults->type;
+//dpm($defaults['dsa_participant'], 'Default participant');
 					$defaults['dsa_type'] = $dao_defaults->type;
 					$defaults['dsa_percentage'] = $dao_defaults->percentage;
 					$defaults['dsa_days'] = $dao_defaults->days;
@@ -479,7 +484,7 @@ WHERE
 				if (isset($defaults)) {
 					$form->setDefaults($defaults);
 				}
-				
+								
 				// Apply filter on status list
 				// retrieve a complete list of available activity statusses
 				$arStatusLst = _retrieveActivityStatusList();
@@ -573,16 +578,16 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 				// participant
 				if ($fields['dsa_participant'] == '') {
 					$errors['dsa_participant'] = 'Please select a participant';
-				}
+				} else {
 				//===========================================================================================================
-/*
+
 				// only open DSA activity within case for this dsa_participant_id?
 				$caseId = $form->_caseId;
 				$activityId = $form->_activityId;
 				$participant_id = $fields['dsa_participant_id'];
 				// all current revisions of the current case' activities of type DSA in an unfinished status
 				try {
-//					$dao_activities = _dao_findOpenDsaActivities($caseId, $activityId, $participant_id);
+					$dao_activities = _dao_findOpenDsaActivities($caseId, $activityId, $participant_id);
 				} catch(Exception $e) {
 					// ignore
 				}
@@ -591,10 +596,11 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 //echo '</pre>';
 //exit();
 				if ($dao_activities->N > 0) {
-					$errors['status_id'] = 'Only one \'open\' DSA activity allowed.';
+					$errors['status_id'] = 'Only one \'open\' DSA activity per person allowed.';
 				}
-*/
+
 				//===========================================================================================================
+				}
 
 				// days
 				$fieldValue=trim($fields['dsa_days']);	
@@ -901,32 +907,37 @@ function _dao_findOpenDsaActivities($caseId, $activityId=NULL, $participant_id=N
 		$activityId = '\'NULL\'';
 	}
 	$sql = '
-		SELECT	ca.*
-		FROM	civicrm_case_activity ca,
-				civicrm_activity act
-		WHERE	ca.case_id = ' . $caseId . '
-		AND		act.id = ca.activity_id
-		AND		act.activity_type_id IN (
-					SELECT	vl.value
-					FROM	civicrm_option_group gp,
-							civicrm_option_value vl
-					WHERE	gp.name = \'activity_type\'
-					AND		gp.id = vl.option_group_id
-					AND		vl.name = \'DSA\'
-					)
-		AND		act.is_current_revision = 1
-		AND		act.status_id NOT IN (
-					SELECT	vl.value
-					FROM	civicrm_option_group gp,
-							civicrm_option_value vl
-					WHERE	gp.name = \'activity_status\'
-					AND		gp.id = vl.option_group_id
-					AND		vl.name IN (\'dsa_paid\', \'Cancelled\', \'Not Required\')
-					)
-		AND		dsa.activity_id = ifnull(act.original_id, act.id)
-		AND		ca.activity_id NOT IN (' . $activityId . ')
-		AND		dsa.contact_id IN (' . $participant_id . ')
-		';
+SELECT act.subject, dsa.*
+  FROM civicrm_case_activity cac,
+       civicrm_activity act,
+       civicrm_dsa_compose dsa
+ WHERE     cac.case_id = ' . $caseId . '
+       AND act.id = cac.activity_id
+       AND act.activity_type_id IN (
+	                                SELECT     vl.value
+                                      FROM     civicrm_option_group gp,
+                                               civicrm_option_value vl
+                                     WHERE     gp.name = \'activity_type\'
+                                           AND gp.id = vl.option_group_id
+                                           AND vl.name = \'DSA\'
+                                    )
+       AND act.is_current_revision = 1
+       AND act.status_id NOT IN (
+                                    SELECT     vl.value
+                                      FROM     civicrm_option_group gp,
+                                               civicrm_option_value vl
+                                     WHERE     gp.name = \'activity_status\'
+                                           AND gp.id = vl.option_group_id
+                                           AND vl.name IN (\'dsa_paid\', \'Cancelled\',  \'Not Required\')
+                                )
+       AND dsa.activity_id = ifnull(act.original_id, act.id)
+       AND IF(isnull(' . $participant_id . '), TRUE, dsa.contact_id = ' . $participant_id . ') /* return all when participant is not specified */
+       AND dsa.activity_id NOT IN (
+	                                SELECT     ifnull(ac2.original_id, ac2.id) AS dsa_id
+                                     FROM      civicrm_activity ac2
+                                    WHERE      ac2.id = ifnull(' . $activityId . ', 0)
+                                  ) /* if provided, exclude activity (or its predecessor or successor) from results */
+    ';
 	$dao_activities = CRM_Core_DAO::executeQuery($sql);
 	return $dao_activities;
 }

@@ -97,7 +97,7 @@
 
 {* reposition the above attachments *}
 {literal}
-<script type="text/javascript">
+<script type="text/javascript">	
 	// move newly created rows
 	cj('#dsa-temp tr').insertBefore('tr.crm-case-activity-form-block-attachment');
 	// remove temporary dsa container table
@@ -116,7 +116,8 @@
 	cj('tr.crm-case-activity-form-block-subject').hide();
 	
 	var ratesData = cj.parseJSON(cj('#dsa_location_lst').val()); {/literal}{* nl.pum.dsa/CRM/Dsa/Page/DSAImport.php function getAllActiveRates(dt) *}{literal}
-	cj('#dsa_location_lst').remove(); // avoids submitting JSON data, causing the infamous IDS->kick error
+	cj('#dsa_location_lst').remove(); // avoids submitting JSON data, causing the infamous IDS->kick error. DOWNSIDE: location list is lost in validation failures
+	//cj('#dsa_location_lst').val(json_encode(cj('#dsa_location_lst').val(), JSON_HEX_TAG));
 	
 	// add onChange event to dsa_country field to build a list of selectable locations
 	cj('#dsa_participant').change(function() { processDSAParticipantChange(this) });
@@ -133,13 +134,8 @@
 
 	// trigger onChange on dsa_country to retrieve an initial set of locations
 	cj('#dsa_country').trigger('change', ['{$form.dsa_location.value[0]']);
-	// trigger onChange on dsa_other to retrieve an initial set of locations
-	//cj('#dsa_other').trigger('change');
-	
-	// show approver details
-	//cj('tr#crm-case-activity-form-block-status_id').after('<tr class="crm-case-activity-form-block-dsa_approval"></tr>');
-	//cj('tr#crm-case-activity-form-block-dsa_approval').
-	//, cj('#dsa_approval').val())
+
+
 	
 	function processDSACountryChange(elm) {
 		// exit function if no country is selected
@@ -203,17 +199,6 @@
 		amt = cj('#dsa_other').val();
 		hide = (cj.trim(amt)=='' || parseFloat(amt)==0);
 		cj('#dsa_other_description').prop('disabled', hide);
-	}
-	
-	function loadParticipants() {
-		// clear all options for dsa_particinants
-		cj('#dsa_participant option:gt(0)').remove();
-		var participant = cj('#dsa_participant');
-		var participantsData = cj.parseJSON(cj('#dsa_participants_lst').val());
-		cj.each(participantsData, function(index, value) {
-			participant.append('<option value="' + value.value + '">' + value.text + '</option>');
-		});
-		participant.val(cj('#dsa_load_participant').val()); // apply default value after initial load
 	}
 	
 	function processDSAParticipantChange(elm) {
