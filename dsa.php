@@ -365,7 +365,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					
 				} elseif (is_null($dsaId)) {
 					// Defaults for new DSA creation
-					// Default DSA country: retrieve contacts primary adress' country (id)
+					// Default DSA country (part 1): retrieve contacts primary adress' country (id)
 					$params = array(
 						'version' => 3,
 						'q' => 'civicrm/ajax/rest',
@@ -382,6 +382,27 @@ function dsa_civicrm_buildForm($formName, &$form) {
 						}
 					} catch(Exception $e) {
 						// just continue without default value
+					}
+					// Default DSA country (part 2): no country derived from primary address: possibly a country project
+					if (!isset($defaults['dsa_country'])) {
+						$params = array(
+							'version' => 3,
+							'q' => 'civicrm/ajax/rest',
+							'sequential' => 1,
+							'contact_id' => $form->_currentlyViewedContactId,
+						);
+						try {
+							$result = civicrm_api('Contact', 'get', $params);
+							if (($result['values']['0']['contact_type'] == 'Organization') && ($result['values']['0']['contact_sub_type'][0] == 'Country')) {
+								foreach(CRM_Core_PseudoConstant::country() as $key=>$value) {
+									if ($value == $result['values']['0']['organization_name']) {
+										$defaults['dsa_country'] = $key;
+									}
+								}
+							}
+						} catch(Exception $e) {
+							// just continue without default value
+						}
 					}
 					
 					// Retieve all available locations / rates for the specified reference date (if any)
