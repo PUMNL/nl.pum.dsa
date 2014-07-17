@@ -577,7 +577,7 @@ WHERE
 
 
 /**
- * Implementation of hook_civicrm_buildForm
+ * Implementation of hook_civicrm_validateForm
  *
  * Adds validation of added fields to the form
  */
