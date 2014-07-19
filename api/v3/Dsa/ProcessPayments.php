@@ -87,14 +87,14 @@ function civicrm_api3_dsa_processpayments($params) {
   // standard record set (keys in dutch) containing run-specific details ==========================
   // fields not yet in the right order!
   $finrec_std = array(
-	'Boekjaar'				=> date('y', $runTime),								// 14 for 2014
-	'Dagboek'				=> 'I1',											// I1 for DSA
-	'Periode'				=> date('m', $runTime),								// 06 for June
-	'Datum'					=> date('d-m-Y', $runTime),							// today
-	'Bedrag'				=> '0',												// not in use (10 * "0")
-	'Filler1'				=> ' ',												// not in use (9 * " ")
-	'Filler2'				=> '',												// not in use (13 * " ")
-	'FactuurNrRunType'		=> 'D',												// D for DSA
+	'Boekjaar'				=> date('y', $runTime),											// 14 for 2014
+	'Dagboek'				=> 'I1',														// I1 for DSA
+	'Periode'				=> date('m', $runTime),											// 06 for June
+	'Datum'					=> date('d-m-Y', $runTime),										// today
+	'Bedrag'				=> '0',															// not in use (10 * "0")
+	'Filler1'				=> ' ',															// not in use (9 * " ")
+	'Filler2'				=> '',															// not in use (13 * " ")
+	'FactuurNrRunType'		=> 'D',															// D for DSA
 	
 	
 	
@@ -130,39 +130,45 @@ function civicrm_api3_dsa_processpayments($params) {
 		// fields not yet in the right order!
 		// based on (extension of / copy of) the run specific details $finrec_std
 		$finrec_act = $finrec_std;
-		$finrec_act['Kostendrager']			= 'd';									// country code main activity
-		$finrec_act['Kostenplaats']			= 'p';									// project number CCNNNNNT (country, number, type)
-		$finrec_act['Sponsorcode']			= 's';									// sponsor code ("10   " for DGIS, where "610  " would be preferred)
-		$finrec_act['OmschrijvingA']		= '';									// description fragment: surname
-		$finrec_act['OmschrijvingB']		= '';									// description fragment: additional space
-		$finrec_act['OmschrijvingC']		= '';									// description fragment: main activity number
-		$finrec_act['FactuurNrYear']		= '';									// 14 for 2014; date of "preparation", not dsa payment!
-		$finrec_act['FactuurNr']			= '';									// sequence based: "123456" would return "2345", "12" would return "0001"
-		$finrec_act['FactuurDatum']			= '';									// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
-		$finrec_act['Kenmerk']				= '';									// project number NNNNNCC (number, country)
-		$finrec_act['CrediteurNr']			= 'sh2';								// experts shortname (8 char)
-		$finrec_act['Shortname']			= 'sh1';								// experts shortname (8 char)
+		$finrec_act['Kostendrager']			= $daoDsa->case_country;						// country code main activity
+		$finrec_act['Kostenplaats']			= trim(implode(
+												array($daoDsa->case_country, $daoDsa->case_sequence, $daoDsa->case_type),
+												''));										// project number CCNNNNNT (country, number, type)
+		$finrec_act['Sponsorcode']			= 's';											// sponsor code ("10   " for DGIS, where "600  " would be preferred)
+		$finrec_act['OmschrijvingA']		= $daoDsa->last_name;							// description fragment: surname
+		$finrec_act['OmschrijvingB']		= '';											// description fragment: additional space
+		$finrec_act['OmschrijvingC']		= trim(implode(
+												array($daoDsa->case_sequence, $daoDsa->case_type, $daoDsa->case_country),
+												' '));										// description fragment: main activity number
+		$finrec_act['FactuurNrYear']		= '';											// 14 for 2014; date of "preparation", not dsa payment!
+		$finrec_act['FactuurNr']			= '';											// sequence based: "123456" would return "2345", "12" would return "0001"
+		$finrec_act['FactuurDatum']			= '';											// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
+		$finrec_act['Kenmerk']				= trim(implode(
+												array($daoDsa->case_sequence, $daoDsa->case_country),
+												''));										// project number NNNNNCC (number, country)
+		$finrec_act['CrediteurNr']			= 'sh2';										// experts shortname (8 char)
+		$finrec_act['Shortname']			= 'sh1';										// experts shortname (8 char)
 		$finrec_act['NaamOrganisatie']		= trim(implode(
 												array( $daoDsa->middle_name, $daoDsa->last_name, $daoDsa->Initials),
-												' '));								// experts name (e.g. van Oranje-Nassau W.A.)
-		$finrec_act['Taal']					= 'N';									// always "N"
+												' '));										// experts name (e.g. van Oranje-Nassau W.A.)
+		$finrec_act['Taal']					= 'N';											// always "N"
 		$finrec_act['Land']					= $country[$daoDsa->country_id]['iso_code'];
-																					// experts country of residence
-		$finrec_act['Adres1']				= $daoDsa->street_address;				// extperts street + number
+																							// experts country of residence
+		$finrec_act['Adres1']				= $daoDsa->street_address;						// extperts street + number
 		$finrec_act['Adres2']				= trim(implode(
 												array( $daoDsa->postal_code, $daoDsa->postal_code_suffix, $daoDsa->city), 
-												' '));				;				// extperts zip + city
-		$finrec_act['BankRekNr']			= ltrim($daoDsa->Account_number, '0');	// experts bank account: number (not IBAN)
-		$finrec_act['Soort']				= 'x';									// main activity (case) type (1 character)
-		$finrec_act['Rekeninghouder']		= 'rh';									// bank account holder: name
-		$finrec_act['RekeninghouderLand']	= 'xx';									// bank account holder: country
-		$finrec_act['RekeninghouderAdres1']	= $finrec_act['Adres1'];				// bank account holder: street + number
-		$finrec_act['RekeninghouderAdres2']	= $finrec_act['Adres2'];				// bank account holder: zip + city
-		$finrec_act['IBAN']					= $daoDsa->IBAN_number;					// bank account: IBAN
-		$finrec_act['Banknaam']				= 'nm';									// bank name
-		$finrec_act['BankPlaats']			= 'pl';									// bank city
-		$finrec_act['BankLand']				= 'yy';									// bank country
-		$finrec_act['BIC']					= $daoDsa->BIC_Swiftcode;				// experts bank account: BIC/Swift code
+												' '));				;						// extperts zip + city
+		$finrec_act['BankRekNr']			= ltrim($daoDsa->Account_number, '0');			// experts bank account: number (not IBAN)
+		$finrec_act['Soort']				= $daoDsa->case_type;							// main activity (case) type (1 character)
+		$finrec_act['Rekeninghouder']		= 'rh';											// bank account holder: name
+		$finrec_act['RekeninghouderLand']	= 'xx';											// bank account holder: country
+		$finrec_act['RekeninghouderAdres1']	= $finrec_act['Adres1'];						// bank account holder: street + number
+		$finrec_act['RekeninghouderAdres2']	= $finrec_act['Adres2'];						// bank account holder: zip + city
+		$finrec_act['IBAN']					= $daoDsa->IBAN_number;							// bank account: IBAN
+		$finrec_act['Banknaam']				= 'nm';											// bank name
+		$finrec_act['BankPlaats']			= 'pl';											// bank city
+		$finrec_act['BankLand']				= 'yy';											// bank country
+		$finrec_act['BIC']					= $daoDsa->BIC_Swiftcode;						// experts bank account: BIC/Swift code
 		
 		// loop through the individual payment amounts for this activity
 		$amt_type = '';
@@ -173,59 +179,133 @@ function civicrm_api3_dsa_processpayments($params) {
 			// based on (extension of / copy of) the activity specific details $finrec_act
 			
 			$finrec_amt = $finrec_act;
-			$finrec_amt['Boekstuk']			= 'b';									// Sequence; per amount field
-			$finrec_amt['GrootboekNr']		= 'g';									// code from _dsa_generalLedgerCodes() - amount specific
-			$finrec_amt['DC']				= 'd';									// D for payment, C for full creditation. What about partial creditation (Debriefing DSA)?
-			$finrec_amt['PlusMin']			= '+';									// + for payment, - for creditation
-			$finrec_amt['FactuurPlusMin']	= '+';									// + for payment, - for creditation
-			$finrec_amt['FactuurNrAmtType']	= 'Z';									// represents type of amount in a single character: 1-9, A-Z
-			$finrec_amt['FactuurBedrag']	= round(0, 2, PHP_ROUND_HALF_UP) * 100;	// payment amount in EUR cents (123,456 -> 12346)
-			$finrec_amt['ValutaCode']		= 'EUR';								// always EUR
+			$finrec_amt['Boekstuk']			= 'b';											// Sequence; per amount field
+			$finrec_amt['DC']				= 'd';											// D for payment, C for full creditation. What about partial creditation (Debriefing DSA)?
+			$finrec_amt['PlusMin']			= '+';											// + for payment, - for creditation
+			$finrec_amt['FactuurPlusMin']	= '+';											// + for payment, - for creditation
 			
-			$amt_type .= ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
+			
+			$amt_type = ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
+			$case_type = $daoDsa->case_name;
+			$gl_key = '';
 			switch ($amt_type) {
 				case '1': // DSA amount
+					$amt = _ifnull($daoDsa->amount_dsa, 0);
+					switch ($case_type) {
+						case 'BLP':
+							$gl_key = 'gl_blp';
+							break;
+						default:
+							$gl_key = 'gl_dsa';
+					}
 					break;
+
 				case '3': // Outfit Allowance
+					// additional query required! =============================================================
+					$amt = 0; //_ifnull($daoDsa->amount_outfit, 0)
+					$gl_key = 'gl_outfit';
 					break;
+
 				case '4': // Advance amounts (also: Acquisition Advance Amount)
+					$amt = _ifnull($daoDsa->amount_advance, 0);
+					switch ($case_type) {
+						case 'BLP':
+							$gl_key = 'gl_blp_adv';
+							break;
+						default:
+							$gl_key = 'gl_def_adv';
+					}
 					break;
-				case '5': // Reserved for LR renumeration
+					
+				case '5': // Km PUM briefing (also documented as "reserved for LR remunaration")
+					$amt = _ifnull($daoDsa->amount_briefing, 0);
+					$gl_key = 'gl_pum_km_brf';
 					break;
-				case '6': // Km PUM
+					
+				case '6': // Km PUM debriefing
+					$amt = _ifnull($daoDsa->amount_debriefing, 0);
+					$gl_key = 'gl_pum_km_debr';
 					break;
+					
 				case '7': // Km Airport (Schiphol)
+					$amt = _ifnull($daoDsa->amount_airport, 0);
+					$gl_key = 'gl_pum_km_airp';
 					break;
+					
 				case '8': // Transfer amount
+					$amt = _ifnull($daoDsa->amount_transfer, 0);
+					$gl_key = 'gl_transfer';
 					break;
+					
 				case '9': // Hotel
+					$amt = _ifnull($daoDsa->amount_hotel, 0);
+					$gl_key = 'gl_hotel';
 					break;
+					
 				case 'A': // Visa
+					$amt = _ifnull($daoDsa->amount_visa, 0);
+					$gl_key = 'gl_visa';
 					break;
+					
 				case 'B': // Other
+					$amt = _ifnull($daoDsa->amount_other, 0);
+					$gl_key = 'gl_other';
 					break;
+					
 				case 'C': // Meal / Parking
+					$amt = 0;
+					$gl_key = '';
 					break;
+					
 				case 'D': // Debriefing settlement
+					$amt = 0; // ===============================================================================
+					$gl_key = '';
 					break;
+					
 				case 'X': // Training/BLP payment guest
+					$amt = 0;
+					$gl_key = '';
 					break;
+					
 				case 'Y': // Training/BLP payment expert/organisation costs
+					$amt = 0;
+					$gl_key = '';
 					break;
+					
 				case 'Z': // Reserved for secondpayment LR remueration
+					$amt = 0;
+					$gl_key = '';
 					break;
+					
 				default:
 					// no action
+					$amt = 0;
+					$gl_key = '';
 			}
 			
+			if (($amt==0) || ($gl_key=='')) {
+				// no action
+			} elseif (!array_key_exists($gl_key, $gl)) {
+				// need a more controlled way out. E.g. skip amount or skip entire payment record
+				// ================================================================================================
+				throw exception ('Unknown key for General Ledger: ' . $gl_key);
+			} else {
+				// continue construction of payment line
+				$finrec_amt['GrootboekNr']		= $gl[$gl_key];								// code from _dsa_generalLedgerCodes() - amount specific
+				$finrec_amt['FactuurNrAmtType']	= $amt_type;								// represents type of amount in a single character: 1-9, A-Z
+				$finrec_amt['FactuurBedrag']	= round($amt, 2, PHP_ROUND_HALF_UP) * 100;	// payment amount in EUR cents (123,456 -> 12346)
+				$finrec_amt['ValutaCode']		= 'EUR';									// always EUR
+				
+				// dpm($finrec_amt, '$finrec_amt');
+//dpm(_dsa_concatValues($finrec_amt), '_dsa_concatValues($finrec_amt)'); // ============================================
+				//dpm($amt_type);
+			}
 		
-			// dpm($finrec_amt, '$finrec_amt');
-			// dpm(_dsa_concatValues($finrec_amt), '_dsa_concatValues($finrec_amt)');
+			
 	
 			// append to temp string
 			// append unique number to sql
 		}
-		dpm($amt_type);
 		
 		// write temp string to file
 		// add to sql: mark paid
@@ -236,7 +316,7 @@ function civicrm_api3_dsa_processpayments($params) {
 	// close file
 	fclose($exportFin);
 	
-	dpm($warnings, 'Warnings');
+dpm($warnings, 'Warnings'); // ================================================================================
 
   
   // files:
@@ -464,14 +544,16 @@ function _dao_retrievePayableDsa($statusLst) {
 	$sql = '
 SELECT
 	\'--META-->\' AS \'_META\',
-	act.id AS act_id,
 	cac.case_id AS case_id,
+	act.id AS act_id,
 	con.id AS participant_id,
 	dsa.approval_cid AS approver_id,
-/*
 	\'--CASE-->\' as \'_CASE\',
-	cas.*,
-*/
+/*	cas.* */
+	ovl3.name as case_name,
+	num.case_sequence,
+	num.case_type,
+	num.case_country ,
 	\'--ACTIVITY-->\' AS \'_ACTIVITY\',
 	act.*,
 	\'--DSA-->\' AS \'_DSA\',
@@ -484,6 +566,7 @@ SELECT
 	dsa.amount_airport,
 	dsa.amount_transfer,
 	dsa.amount_visa,
+	dsa.amount_hotel,
 	dsa.amount_outfit,
 	dsa.amount_other,
 	dsa.description_other,
@@ -526,6 +609,9 @@ FROM
 		ON apr.id = dsa.approval_cid,
 	civicrm_case_activity cac,
 	civicrm_case cas,
+	civicrm_case_pum num,
+	civicrm_option_group ogp3,
+	civicrm_option_value ovl3,
 	civicrm_contact con
 		LEFT JOIN civicrm_address adr
 		ON adr.contact_id = con.id AND
@@ -551,6 +637,10 @@ WHERE
 	dsa.activity_id = ifnull(act.original_id, act.id) AND /* join data in civicrm_dsa_compose table */
 	cac.activity_id = act.id AND
 	cas.id = cac.case_id AND /* join case data through case activities */
+	num.entity_id = cas.id AND /* join main activity (case) numbering */
+	ogp3.name = \'case_type\' AND
+	ovl3.option_group_id = ogp3.id AND
+	ovl3.value = cas.case_type_id AND /* join case type name */
 	con.id = dsa.contact_id AND /* join contact data - will drop DSA if not found */
 	' . $custom['Additional_Data']['table'] . '.entity_id = con.id /* additional custom data for contact */
 ORDER BY
@@ -609,3 +699,10 @@ function _dsa_generalLedgerCodes() {
 	*/
 }
 
+/*
+ * Equivalent function for mySQL 'ifnull(a,b)'
+ * if returns a if not NULL, otherwise returns b
+ */
+function _ifnull($a, $b=null) {
+    return is_null($a)?$b:$a;
+}

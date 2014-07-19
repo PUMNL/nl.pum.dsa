@@ -86,6 +86,10 @@
 		<td class="view-value">{$form.dsa_approval.value}</td>
 	</tr>
 {/if}
+	<tr class="crm-case-activity-form-block-dsa_total">
+        <td class="label">total</td>
+		<td class="view-value bold"><span id="dsa_total"></span></td>
+	</tr>
 	{*
 	<tr>
 		<td colspan="2">
@@ -131,11 +135,13 @@
 	cj('#dsa_days').change(function() { processDSADaysChange(this) });
 	// add onChange event to dsa_other field to enable/disable dsa_other_description
 	//cj('#dsa_other').change(function() { processDSAOtherChange(this) });
+	// add onChange event to all amount-fields to calculate the total amount
+	cj('#dsa_amount, #dsa_briefing, #dsa_debriefing, #dsa_airport, #dsa_transfer, #dsa_hotel, #dsa_visa, #dsa_outfit, #dsa_other, #dsa_advance').change(function() { processTotal() });
 
 	// trigger onChange on dsa_country to retrieve an initial set of locations
 	cj('#dsa_country').trigger('change', ['{$form.dsa_location.value[0]']);
-
-
+	// trigger calculation of total amount
+	processTotal();
 	
 	function processDSACountryChange(elm) {
 		// exit function if no country is selected
@@ -192,13 +198,15 @@
 		dur = cj('#dsa_days').val();
 		amt = ((rate * pct * dur) / 100).toFixed(2);
 		cj('#dsa_amount').val(amt);
+		processTotal();
 		return true;
 	}
 	
 	function processDSAOtherChange(elm) {
 		amt = cj('#dsa_other').val();
-		hide = (cj.trim(amt)=='' || parseFloat(amt)==0);
+		hide = (cj.trim(amt)=='' || parseNumber(amt)==0);
 		cj('#dsa_other_description').prop('disabled', hide);
+		processTotal();
 	}
 	
 	function processDSAParticipantChange(elm) {
@@ -209,6 +217,30 @@
 		cj('#dsa_participant_role').val(data[1]);
 		cj('#dsa_type').val(data[2]);
 		return true;
+	}
+	
+	function processTotal() {
+		//CRM.alert('Recalculating total');
+		cj('#dsa_total').html(
+			(
+			parseNumeric(cj('#dsa_amount').val()) +
+			parseNumeric(cj('#dsa_briefing').val()) +
+			parseNumeric(cj('#dsa_debriefing').val()) +
+			parseNumeric(cj('#dsa_airport').val()) +
+			parseNumeric(cj('#dsa_transfer').val()) +
+			parseNumeric(cj('#dsa_hotel').val()) +
+			parseNumeric(cj('#dsa_visa').val()) +
+			parseNumeric(cj('#dsa_outfit').val()) +
+			parseNumeric(cj('#dsa_other').val()) +
+			parseNumeric(cj('#dsa_advance').val())
+			).toFixed(2)
+		);
+		return true;
+	}
+	
+	function parseNumeric(num) {
+		result = parseFloat(num);
+		return isNaN(result)?0:result;
 	}
 	
 </script>
