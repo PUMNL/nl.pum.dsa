@@ -57,7 +57,7 @@ function civicrm_api3_dsa_processpayments($params) {
   );
   $result = civicrm_api('Country', 'get', $params);
   $country = $result['values'];
-  //dpm($country, '$country');
+//dpm($country, '$country');
   
   // fetch DSA statusses
   $statusLst = _getDsaStatusList();
@@ -97,8 +97,7 @@ function civicrm_api3_dsa_processpayments($params) {
 	'FactuurNrRunType'		=> 'D',															// D for DSA
 	
 	
-	
-	'Soort'					=> _dsaSize('', 1, ' ', TRUE),
+/*	
 	'Shortname'				=> _dsaSize('', 1, ' ', TRUE),
 	'Rekeninghouder'		=> _dsaSize('', 1, ' ', TRUE),
 	'RekeninghouderLand'	=> _dsaSize('', 1, ' ', TRUE),
@@ -109,6 +108,7 @@ function civicrm_api3_dsa_processpayments($params) {
 	'BankPlaats'			=> _dsaSize('', 1, ' ', TRUE),
 	'BankLand'				=> _dsaSize('', 1, ' ', TRUE),
 	'BIC'					=> _dsaSize('', 1, ' ', TRUE),
+*/
   );
   
   // fetch payable dsa
@@ -117,7 +117,7 @@ function civicrm_api3_dsa_processpayments($params) {
   // loop: dsa payments
   $warnings = array();
   while ($daoDsa->fetch()) {
-	dpm($daoDsa, 'dsa record');
+//dpm($daoDsa, 'dsa record');
 	// check if address (country id), approver id and approval date are available
 	if (is_null($daoDsa->country_id)) {
 		$warnings[] = 'No primary address found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
@@ -136,10 +136,8 @@ function civicrm_api3_dsa_processpayments($params) {
 												''));										// project number CCNNNNNT (country, number, type)
 		$finrec_act['Sponsorcode']			= 's';											// sponsor code ("10   " for DGIS, where "600  " would be preferred)
 		$finrec_act['OmschrijvingA']		= $daoDsa->last_name;							// description fragment: surname
-		$finrec_act['OmschrijvingB']		= '';											// description fragment: additional space
-		$finrec_act['OmschrijvingC']		= trim(implode(
-												array($daoDsa->case_sequence, $daoDsa->case_type, $daoDsa->case_country),
-												' '));										// description fragment: main activity number
+		$finrec_act['OmschrijvingB']		= $daoDsa->case_sequence;						// description fragment: main activity number
+		$finrec_act['OmschrijvingC']		= $daoDsa->case_country;						// description fragment: country
 		$finrec_act['FactuurNrYear']		= '';											// 14 for 2014; date of "preparation", not dsa payment!
 		$finrec_act['FactuurNr']			= '';											// sequence based: "123456" would return "2345", "12" would return "0001"
 		$finrec_act['FactuurDatum']			= '';											// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
@@ -152,8 +150,7 @@ function civicrm_api3_dsa_processpayments($params) {
 												array( $daoDsa->middle_name, $daoDsa->last_name, $daoDsa->Initials),
 												' '));										// experts name (e.g. van Oranje-Nassau W.A.)
 		$finrec_act['Taal']					= 'N';											// always "N"
-		$finrec_act['Land']					= $country[$daoDsa->country_id]['iso_code'];
-																							// experts country of residence
+		$finrec_act['Land']					= $country[$daoDsa->country_id]['iso_code'];	// experts country of residence
 		$finrec_act['Adres1']				= $daoDsa->street_address;						// extperts street + number
 		$finrec_act['Adres2']				= trim(implode(
 												array( $daoDsa->postal_code, $daoDsa->postal_code_suffix, $daoDsa->city), 
@@ -180,10 +177,23 @@ function civicrm_api3_dsa_processpayments($params) {
 			
 			$finrec_amt = $finrec_act;
 			$finrec_amt['Boekstuk']			= 'b';											// Sequence; per amount field
-			$finrec_amt['DC']				= 'd';											// D for payment, C for full creditation. What about partial creditation (Debriefing DSA)?
-			$finrec_amt['PlusMin']			= '+';											// + for payment, - for creditation
-			$finrec_amt['FactuurPlusMin']	= '+';											// + for payment, - for creditation
-			
+			switch ($daoDsa->type) {
+				case 1:
+					$finrec_amt['DC']				= 'D';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
+					$finrec_amt['PlusMin']			= '+';									// + for payment, - for creditation
+					$finrec_amt['FactuurPlusMin']	= '+';									// + for payment, - for creditation
+					break;
+				case 2:
+					$finrec_amt['DC']				= 'X';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
+					$finrec_amt['PlusMin']			= '-';									// + for payment, - for creditation
+					$finrec_amt['FactuurPlusMin']	= '-';									// + for payment, - for creditation
+					break;
+				case 3:
+					$finrec_amt['DC']				= 'C';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
+					$finrec_amt['PlusMin']			= '-';									// + for payment, - for creditation
+					$finrec_amt['FactuurPlusMin']	= '-';									// + for payment, - for creditation
+					break;
+			}
 			
 			$amt_type = ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
 			$case_type = $daoDsa->case_name;
@@ -297,7 +307,7 @@ function civicrm_api3_dsa_processpayments($params) {
 				$finrec_amt['ValutaCode']		= 'EUR';									// always EUR
 				
 				// dpm($finrec_amt, '$finrec_amt');
-//dpm(_dsa_concatValues($finrec_amt), '_dsa_concatValues($finrec_amt)'); // ============================================
+//dpm(_dsa_concatValues($finrec_amt), '_dsa_concatValues($finrec_amt)'); // complete output line for 1 amount ============================================
 				//dpm($amt_type);
 			}
 		
@@ -350,14 +360,14 @@ function _dsa_concatValues($ar) {
 		_dsaSize($ar['Kostenplaats'],			 8, ' ', TRUE) .	// project number CCNNNNNT (country, number, type)
 		_dsaSize($ar['Kostendrager'],			 8, ' ', TRUE) .	// country code main activity (8 chars!)
 		_dsaSize($ar['Datum'],					10, ' ', TRUE) .	// today
-		_dsaSize($ar['DC'],						 1, '?', TRUE) .	// D for payment, C for full creditation, but what about partial creditation (DSA debriefing)?
-		_dsaSize($ar['PlusMin'],				 1, '?', TRUE) .	// + for payment, - for creditation
+		_dsaSize($ar['DC'],						 1, ' ', TRUE) .	// D for payment, C for full creditation, but what about partial creditation (DSA debriefing)?
+		_dsaSize($ar['PlusMin'],				 1, ' ', TRUE) .	// + for payment, - for creditation
 		_dsaSize($ar['Bedrag'],					10, '0', FALSE) .	// not in use: 10 digit numeric 0
 		_dsaSize($ar['Filler1'],				 9, ' ', TRUE) .	// not in use: 9 spaces
 		_dsaSize($ar['OmschrijvingA'],			10, ' ', TRUE) .	// description fragment: surname
 		_dsaSize(' ',							 1, ' ', TRUE) .	// description fragment: additional space
-		_dsaSize($ar['OmschrijvingB'],			 6, ' ', TRUE) .	// description fragment: main activity number
-		_dsaSize($ar['OmschrijvingC'],			 3, ' ', TRUE) .	// description fragment: country
+		_dsaSize($ar['OmschrijvingB'],			 6, ' ', TRUE) .	// description fragment: main activity number ("NNNNN ")
+		_dsaSize($ar['OmschrijvingC'],			 3, ' ', TRUE) .	// description fragment: country ("CC ")
 		_dsaSize($ar['Filler2'],				13, ' ', TRUE) .	// not in use: 13 spaces
 		_dsaSize($ar['FactuurNrRunType'],		 1, ' ', TRUE) .	// D for DSA
 		_dsaSize($ar['FactuurNrYear'],			 2, ' ', TRUE) .	// 14 for 2014; date of "preparation", not dsa payment!
@@ -557,6 +567,7 @@ SELECT
 	\'--ACTIVITY-->\' AS \'_ACTIVITY\',
 	act.*,
 	\'--DSA-->\' AS \'_DSA\',
+	dsa.type,
 	dsa.loc_id,
 	dsa.percentage,
 	dsa.days,
@@ -646,7 +657,7 @@ WHERE
 ORDER BY
 	con.id
 	';
-	dpm(array($sql), 'DSA Payment $sql');
+//dpm(array($sql), 'DSA Payment $sql');
   
 	$dao = CRM_Core_DAO::executeQuery($sql);
 	
@@ -667,36 +678,14 @@ function _dsa_generalLedgerCodes() {
 		),
 	);
 	$result = civicrm_api('OptionValue', 'get', $params);
-	//dpm($result, 'API result');
+//dpm($result, 'API result');
 	$code_tbl = array();
-	//dpm($result['values'], 'API values');
+//dpm($result['values'], 'API values');
 	foreach($result['values'] as $value) {
 		$code_tbl[$value['name']] = $value['value'];
 	}
-	dpm($code_tbl, 'general ledger codes');
+//dpm($code_tbl, 'general ledger codes');
 	return $code_tbl;
-	/*
-	'LR'						=> '493',
-	'DSA_VOORSCHOTBLP'			=> '1411',
-	'DSA_BLP' 					=> '5600',
-	'DSA_BLP_KM'				=> '5640',
-	'DSA_VOORSCHOTTRAINING'		=> '1410',
-	'DSA_TRAINING'				=> '5500',	
-	'DSA_TRAINING_KM'			=> '5540',
-	'DSA' 						=> '5100',
-	'DSA_OUTFIT'				=> '5110',
-	'DSA_VOORSCHOTDEFAULT'		=> '1412',
-	'DSA_KMPUM'					=> '5140',	// Briefing
-	'DSA_KMPUM_DEBRIEFING'		=> '5141',	// Debriefing
-	'DSA_KMSCHIPHOL'			=> '5020',
-	'DSA_TRANSFER'				=> '5000',
-	'DSA_HOTEL'					=> '5120',
-	'DSA_VISA'					=> '5030',
-	'DSA_OTHER'					=> '5130',
-	'DSA_MEALPARKING'			=> '5133',
-	'DSA_DEBRIEFINGVERREKENING'	=> '5105',
-	'DSA_DUMMY'					=> '9999',
-	*/
 }
 
 /*
