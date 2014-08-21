@@ -44,10 +44,12 @@
         <td class="label">{$form.dsa_briefing.label}</td>
 		<td class="view-value">{$form.dsa_briefing.html}</td>
 	</tr>
+{*
 	<tr class="crm-case-activity-form-block-dsa_debriefing">
         <td class="label">{$form.dsa_debriefing.label}</td>
 		<td class="view-value">{$form.dsa_debriefing.html}</td>
 	</tr>
+*}
 	<tr class="crm-case-activity-form-block-dsa_airport">
         <td class="label">{$form.dsa_airport.label}</td>
 		<td class="view-value">{$form.dsa_airport.html}</td>
@@ -141,7 +143,7 @@
 	// add onChange event to dsa_other field to enable/disable dsa_other_description
 	//cj('#dsa_other').change(function() { processDSAOtherChange(this) });
 	// add onChange event to all amount-fields to calculate the total amount
-	cj('#dsa_amount, #dsa_briefing, #dsa_debriefing, #dsa_airport, #dsa_transfer, #dsa_hotel, #dsa_visa, #dsa_outfit, #dsa_other, #dsa_advance').change(function() { processTotal() });
+	cj('#dsa_amount, #dsa_briefing, #dsa_airport, #dsa_transfer, #dsa_hotel, #dsa_visa, #dsa_outfit, #dsa_other, #dsa_advance').change(function() { processTotal() }); // #dsa_debriefing
 
 	// trigger onChange on dsa_country to retrieve an initial set of locations
 	cj('#dsa_country').trigger('change', ['{$form.dsa_location.value[0]']);
@@ -230,7 +232,7 @@
 			(
 			parseNumeric(cj('#dsa_amount').val()) +
 			parseNumeric(cj('#dsa_briefing').val()) +
-			parseNumeric(cj('#dsa_debriefing').val()) +
+			//parseNumeric(cj('#dsa_debriefing').val()) +
 			parseNumeric(cj('#dsa_airport').val()) +
 			parseNumeric(cj('#dsa_transfer').val()) +
 			parseNumeric(cj('#dsa_hotel').val()) +

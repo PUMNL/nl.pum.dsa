@@ -334,30 +334,30 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				//$form->addGroup($percentage, 'dsa_percentage', ts('DSA Percentage'), '&nbsp;'); // bypassed due to warning regarding static function call (civi 4.4.5)
 				$form->addElement('select', 'dsa_percentage', ts('DSA Percentage'), array('' => ts('- select -')) + $percentage);
 				// Add number of days field
-				$form->add('text', 'dsa_days', ts( 'DSA Days'));
+				$form->add('text', 'dsa_days', ts('DSA Days'));
 				// Add DSA amount field
-				$form->add('text', 'dsa_amount', ts( 'DSA Amount'));
+				$form->add('text', 'dsa_amount', ts('DSA Amount'));
 				// Add Expense amount briefing field
-				$form->add('text', 'dsa_briefing', ts( 'Expense Briefing'));
+				$form->add('text', 'dsa_briefing', ts('Expense Briefing / Debriefing'));
 				// Add Expense amount debriefing field
-				$form->add('text', 'dsa_debriefing', ts( 'Expense Debriefing'));
+				//$form->add('text', 'dsa_debriefing', ts('Expense Debriefing'));
 				// Add Expense amount airport field
-				$form->add('text', 'dsa_airport', ts( 'Expense Airport'));
+				$form->add('text', 'dsa_airport', ts('Expense Airport'));
 				// Add Expense amount transfer field
-				$form->add('text', 'dsa_transfer', ts( 'Expense Transfer'));
+				$form->add('text', 'dsa_transfer', ts('Expense Transfer'));
 				// Add Expense amount hotel field
-				$form->add('text', 'dsa_hotel', ts( 'Expense Hotel'));
+				$form->add('text', 'dsa_hotel', ts('Expense Hotel'));
 				// Add Expense amount visa field
-				$form->add('text', 'dsa_visa', ts( 'Expense Visa'));
+				$form->add('text', 'dsa_visa', ts('Expense Visa'));
 				// Add Expense amount outfit field
-				$form->add('text', 'dsa_outfit', ts( 'Expense Outfit'));
+				$form->add('text', 'dsa_outfit', ts('Expense Outfit'));
 				// Add Expense amount other field (incl description)
-				$form->add('text', 'dsa_other', ts( 'Expense Other'));
-				$form->add('textarea', 'dsa_other_description', ts( 'Expense Other Description'));
+				$form->add('text', 'dsa_other', ts('Expense Other'));
+				$form->add('textarea', 'dsa_other_description', ts('Expense Other Description'));
 				// Add Expense advance amount field
-				$form->add('text', 'dsa_advance', ts( 'Expense Advance'));
+				$form->add('text', 'dsa_advance', ts('Expense Advance'));
 				// Add a field to hold approval details
-				$form->add('text', 'dsa_approval', ts( 'Approval'), array('id'=> 'dsa_approval'));
+				$form->add('text', 'dsa_approval', ts('Approval'), array('id'=>'dsa_approval'));
 				
 				// Default values for
 				// - new creation - ok
@@ -443,7 +443,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					// Default Briefing amount
 					$defaults['dsa_briefing'] = '0.00';
 					// Default Debriefing amount
-					$defaults['dsa_debriefing'] = '0.00';
+					//$defaults['dsa_debriefing'] = '0.00';
 					// Default Airport amount
 					$defaults['dsa_airport'] = '0.00';
 					// Default Transfer amount
@@ -504,7 +504,7 @@ WHERE
 					$defaults['dsa_days'] = $dao_defaults->days;
 					$defaults['dsa_amount'] = $dao_defaults->amount_dsa;
 					$defaults['dsa_briefing'] = $dao_defaults->amount_briefing;
-					$defaults['dsa_debriefing'] = $dao_defaults->amount_debriefing;
+					//$defaults['dsa_debriefing'] = $dao_defaults->amount_debriefing;
 					$defaults['dsa_airport'] = $dao_defaults->amount_airport;
 					$defaults['dsa_transfer'] = $dao_defaults->amount_transfer;
 					$defaults['dsa_hotel'] = $dao_defaults->amount_hotel;
@@ -651,14 +651,13 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 				$fldNames= array(
 					'dsa_amount',
 					'dsa_briefing',
-					'dsa_debriefing',
 					'dsa_airport',
 					'dsa_transfer',
 					'dsa_hotel',
 					'dsa_visa',
 					'dsa_outfit',
 					'dsa_other',
-					'dsa_advance');
+					'dsa_advance'); // 'dsa_debriefing',
 				$result = TRUE;
 				foreach($fldNames as $name) {
 					$result = $result and _amountCheck($name, $fields, $errors);
@@ -770,10 +769,12 @@ echo '</pre>';
 											'column'	=> 'amount_briefing',
 											'type'		=> 'number',
 											),
+				/*
 				'dsa_debriefing'		=>  array(
 											'column'	=> 'amount_debriefing',
 											'type'		=> 'number',
 											),
+				*/
 				'dsa_airport'			=>  array(
 											'column'	=> 'amount_airport',
 											'type'		=> 'number',
