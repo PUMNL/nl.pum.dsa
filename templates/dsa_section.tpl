@@ -80,16 +80,16 @@
         <td class="label">{$form.dsa_advance.label}</td>
 		<td class="view-value">{$form.dsa_advance.html}</td>
 	</tr>
+	<tr class="crm-case-activity-form-block-dsa_total">
+        <td class="label">total</td>
+		<td class="view-value bold"><span id="dsa_total"></span></td>
+	</tr>	
 {if $form.dsa_approval.value != ''}
 	<tr class="crm-case-activity-form-block-dsa_approval">
         <td class="label">{$form.dsa_approval.label}</td>
 		<td class="view-value">{$form.dsa_approval.value}</td>
 	</tr>
 {/if}
-	<tr class="crm-case-activity-form-block-dsa_total">
-        <td class="label">total</td>
-		<td class="view-value bold"><span id="dsa_total"></span></td>
-	</tr>
 	{*
 	<tr>
 		<td colspan="2">
@@ -118,6 +118,11 @@
 	cj('tr.crm-case-activity-form-block-priority_id').hide();
 	// hide subject
 	cj('tr.crm-case-activity-form-block-subject').hide();
+	// hide Medion and location
+	cj('tr.crm-case-activity-form-block-medium_id').hide();
+	// hide details and spacer row below it
+	cj('tr.crm-case-activity-form-block-details').hide();
+	cj('tr.crm-case-activity-form-block-details').next('tr').hide();
 	
 	var ratesData = cj.parseJSON(cj('#dsa_location_lst').val()); {/literal}{* nl.pum.dsa/CRM/Dsa/Page/DSAImport.php function getAllActiveRates(dt) *}{literal}
 	cj('#dsa_location_lst').remove(); // avoids submitting JSON data, causing the infamous IDS->kick error. DOWNSIDE: location list is lost in validation failures
