@@ -256,6 +256,20 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$dsaId = $activityId; // could still be NULL
 				}
 				
+				/* with a known $dsaId, we can find out if additional dsa data is already present
+				 * if so, it should be retreved for presentation
+				 * if not, we should prepare default values
+				 */
+				if (is_null($dsaId)) {
+					$dsaIsDefined = FALSE;
+				} else {
+					$sqlDsaRecord = 'SELECT count(case_id) as recCount FROM civicrm_dsa_compose WHERE activity_id = ' . $dsaId;
+					$daoDsaRecord = CRM_Core_DAO::executeQuery($sqlDsaRecord);
+					$daoDsaRecord->fetch();
+					$dsaIsDefined = ($daoDsaRecord->recCount>0); // FALSE if recCount==0, otherwise TRUE
+				}
+				
+				
 				// DSA fields are displayed using a custom .tpl-file
 				// assume templates are in a templates folder relative to this file
 				$templatePath = realpath(dirname(__FILE__)."/templates");
@@ -354,7 +368,12 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				// - creditation save
 				
 				// Default field values =======================================
-				// Three scenario's here: a creation of a new activity, editing an existing and validation failure
+				/* Three scenario's here:
+				   - manual creation of a new activity,
+				   - editing an existing activity without additional dsa data present (automatically generated ones),
+				   - editing an existing (additional dsa data alredy present) and
+				   - validation failure
+				*/
 				if ($form->_flagSubmitted) {
 					// Defaults in case of a validation error
 					// All submitted values are present: leave most to civi except dsa_location_lst:
@@ -363,8 +382,8 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$rateData = CRM_Dsa_Page_DSAImport::getAllRatesByLocationId($loc_id); // should ref_date from previous query be used?
 					$defaults['dsa_location_lst'] = json_encode($rateData);
 					
-				} elseif (is_null($dsaId)) {
-					// Defaults for new DSA creation
+				} elseif (!$dsaIsDefined) { //(is_null($dsaId)) {
+					// Defaults for new DSA creation (and for automatically generated DSA activities without additional data in civicrm_dsa_compose)
 					// Default DSA country (part 1): retrieve contacts primary adress' country (id)
 					$params = array(
 						'version' => 3,
@@ -873,6 +892,7 @@ echo '</pre>';
 exit();
 //*/
 			}
+			
 			// add / remove approver
 			$approver_id = $form->_currentUserId;
 			$statusList = _retrieveActivityStatusList();
@@ -898,7 +918,13 @@ echo '</pre>';
 */
 			
 			// update or insert? =====================================
-			if  ($action & CRM_Core_Action::$_names['add']) {
+			$sqlDsaRecord = 'SELECT count(case_id) as recCount FROM civicrm_dsa_compose WHERE activity_id = ' . $dsaId;
+			$daoDsaRecord = CRM_Core_DAO::executeQuery($sqlDsaRecord);
+			$daoDsaRecord->fetch();
+			$dsaIsDefined = ($daoDsaRecord->recCount>0); // FALSE if recCount==0, otherwise TRUE
+
+			//if  ($action & CRM_Core_Action::$_names['add']) {
+			if (!$dsaIsDefined) {
 				$sql = 'INSERT INTO civicrm_dsa_compose (' . implode(',', array_keys($input)) . ') VALUES (' . implode(',', array_values($input)) . ')';
 			} elseif ($action & CRM_Core_Action::$_names['update']) {
 				foreach($input as $fldNm=>$fldVal) {
