@@ -61,5 +61,10 @@ If multiple DSA activities are being edited into a state that would lead to havi
 ***
 
 
+Additional notes:
+As of release 1008, the term "outfit allowance" is no longer used and replaced my "medical" expense. However, general ledger code "gl_outfit" is still in use for that purpose (in both the API "DSA/ProcessPayment" and installation script "dsa.optiongroup.inc.php")
+
+
 KNOWN ISSUES:
 Expected upload directory: <site root>/upload (like <site root>/modules)
+

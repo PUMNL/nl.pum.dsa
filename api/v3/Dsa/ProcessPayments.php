@@ -124,8 +124,6 @@ function civicrm_api3_dsa_processpayments($params) {
 	} elseif (is_null($daoDsa->approval_datetime) || is_null($daoDsa->approver_name)){
 		$warnings[] = 'DSA approval details missing (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
 	} else {
-//		decide on outfit allowance & fill out field (per project, mission, 6 months or each main activity?)
-		
 		// add activity specific details ==============================================================
 		// fields not yet in the right order!
 		// based on (extension of / copy of) the run specific details $finrec_std
@@ -210,9 +208,8 @@ function civicrm_api3_dsa_processpayments($params) {
 					}
 					break;
 
-				case '3': // Outfit Allowance
-					// additional query required! =============================================================
-					$amt = 0; //_ifnull($daoDsa->amount_outfit, 0)
+				case '3': // Medical (a.k.a. Outfit Allowance)
+					$amt = _ifnull($daoDsa->amount_medical, 0)
 					$gl_key = 'gl_outfit';
 					break;
 
@@ -227,19 +224,20 @@ function civicrm_api3_dsa_processpayments($params) {
 					}
 					break;
 					
-				case '5': // Km PUM briefing (also documented as "reserved for LR remunaration")
+				case '5': // OV PUM briefing/debriefing (was: Km PUM briefing, also documented as "reserved for LR remuneration")
 					$amt = _ifnull($daoDsa->amount_briefing, 0);
-					$gl_key = 'gl_pum_km_brf';
+					$gl_key = 'gl_pum_ov_brf_debrf'; // 'gl_pum_km_brf';
 					break;
 					
-				case '6': // Km PUM debriefing
+/*				case '6': // Km PUM debriefing
 					$amt = _ifnull($daoDsa->amount_debriefing, 0);
 					$gl_key = 'gl_pum_km_debr';
 					break;
+*/
 					
-				case '7': // Km Airport (Schiphol)
+				case '7': // OV Aitport (was: Km Airport / Schiphol)
 					$amt = _ifnull($daoDsa->amount_airport, 0);
-					$gl_key = 'gl_pum_km_airp';
+					$gl_key = 'gl_pum_ov_airp';
 					break;
 					
 				case '8': // Transfer amount
@@ -573,12 +571,11 @@ SELECT
 	dsa.days,
 	dsa.amount_dsa,
 	dsa.amount_briefing,
-	dsa.amount_debriefing,
 	dsa.amount_airport,
 	dsa.amount_transfer,
 	dsa.amount_visa,
 	dsa.amount_hotel,
-	dsa.amount_outfit,
+	dsa.amount_medical,
 	dsa.amount_other,
 	dsa.description_other,
 	dsa.amount_advance,

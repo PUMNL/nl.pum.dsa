@@ -219,11 +219,66 @@ class DSA_OptionGroup {
 						'default'		=> FALSE,
 					),
 					array(
-						'label'			=> 'Dummy',
-						'name'			=> 'gl_dummy',
-						'value'			=> 9999,
-						'weight'		=> 190,
+						'label'			=> 'BLP ov',
+						'name'			=> 'gl_blp_ov',
+						'value'			=> 5645,
+						'weight'		=> 200,
 						'description'	=> '',
+						'default'		=> FALSE,
+					),
+					array(
+						'label'			=> 'Training ov',
+						'name'			=> 'gl_trn_ov',
+						'value'			=> 5545,
+						'weight'		=> 210,
+						'description'	=> '',
+						'default'		=> FALSE,
+					),
+					array(
+						'label'			=> 'PUM ov',
+						'name'			=> 'gl_pum_ov_brf_debrf',
+						'value'			=> 5145,
+						'weight'		=> 220,
+						'description'	=> '',
+						'default'		=> FALSE,
+					),
+					array(
+						'label'			=> 'PUM ov airport',
+						'name'			=> 'gl_pum_ov_airp',
+						'value'			=> 5025,
+						'weight'		=> 230,
+						'description'	=> '',
+						'default'		=> FALSE,
+					),
+				),
+			),
+			array(
+				'group_name'	=>	'dsa_configuration',
+				'group_label'	=>	'DSA Configuration',
+				'enable_level'	=>	'value',
+				'values'		=>	array(
+					array(
+						'label'			=> 'Payment offset',
+						'name'			=> 'payment_offset',
+						'value'			=> 10,
+						'weight'		=> 10,
+						'description'	=> 'Maximum no. of days prior to main activity start date from which payment is due',
+						'default'		=> FALSE,
+					),
+					array(
+						'label'			=> 'Default medical amount',
+						'name'			=> 'default_medical_amount',
+						'value'			=> '80.00',
+						'weight'		=> 20,
+						'description'	=> 'Default amount for Expense Medical (e.g. \'80.00\')',
+						'default'		=> FALSE,
+					),
+					array(
+						'label'			=> 'Minimum DSA amount',
+						'name'			=> 'minimum_dsa_amount',
+						'value'			=> '75.00',
+						'weight'		=> 30,
+						'description'	=> 'Minimum DSA amount (1 day at 100%)',
 						'default'		=> FALSE,
 					),
 				),
@@ -245,7 +300,7 @@ class DSA_OptionGroup {
 			$params = array(
 				'version'		=> 3,
 				'sequential'	=> 1,
-				'title'			=> $optionGroup['group_name'],
+				'name'			=> $optionGroup['group_name'],
 			);
 			$result = civicrm_api('OptionGroup', 'getsingle', $params);
 
@@ -309,6 +364,7 @@ class DSA_OptionGroup {
 							'is_default'		=> $optionValue['default'],
 						);
 						$result = civicrm_api('OptionValue', 'create', $params);
+CRM_Utils_System::setUFMessage($optionValue['name']);
 						// result could be checked / reported here
 					} else {
 						// optiongroup exists - no further action

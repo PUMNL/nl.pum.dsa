@@ -349,8 +349,8 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				$form->add('text', 'dsa_hotel', ts('Expense Hotel'));
 				// Add Expense amount visa field
 				$form->add('text', 'dsa_visa', ts('Expense Visa'));
-				// Add Expense amount outfit field
-				$form->add('text', 'dsa_outfit', ts('Expense Outfit'));
+				// Add Expense amount medical field
+				$form->add('text', 'dsa_medical', ts('Expense Medical'));
 				// Add Expense amount other field (incl description)
 				$form->add('text', 'dsa_other', ts('Expense Other'));
 				$form->add('textarea', 'dsa_other_description', ts('Expense Other Description'));
@@ -368,7 +368,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				// - creditation save
 				
 				// Default field values =======================================
-				/* Three scenario's here:
+				/* For most of the form, there are three scenario's here:
 				   - manual creation of a new activity,
 				   - editing an existing activity without additional dsa data present (automatically generated ones),
 				   - editing an existing (additional dsa data alredy present) and
@@ -452,8 +452,21 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$defaults['dsa_hotel'] = '0.00';
 					// Default Visa amount
 					$defaults['dsa_visa'] = '0.00';
-					// Default Outfit amount
-					$defaults['dsa_outfit'] = '0.00';
+					// Default Medical amount
+					$params = array(
+						'version' => 3,
+						'q' => 'civicrm/ajax/rest',
+						'sequential' => 1,
+						'option_group_name' => 'dsa_configuration',
+						'name' => 'default_medical_amount',
+						'return' => 'name,value',
+					);
+					try {
+						$result = civicrm_api('OptionValue', 'getsingle', $params);
+						$defaults['dsa_medical'] = $result['value'];
+					} catch (Exception $e) {
+						$defaults['dsa_medical'] = '0.00';
+					}
 					// Default Other amount
 					$defaults['dsa_other'] = '0.00';
 					// Default Advance amount
@@ -509,7 +522,7 @@ WHERE
 					$defaults['dsa_transfer'] = $dao_defaults->amount_transfer;
 					$defaults['dsa_hotel'] = $dao_defaults->amount_hotel;
 					$defaults['dsa_visa'] = $dao_defaults->amount_visa;
-					$defaults['dsa_outfit'] = $dao_defaults->amount_outfit;
+					$defaults['dsa_medical'] = $dao_defaults->amount_medical;
 					$defaults['dsa_other'] = $dao_defaults->amount_other;
 					$defaults['dsa_other_description'] = $dao_defaults->description_other;
 					$defaults['dsa_advance'] = $dao_defaults->amount_advance;
@@ -645,7 +658,7 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 				// days
 				$fieldValue=trim($fields['dsa_days']);	
 				if ((!CRM_Utils_Type::validate($fieldValue, 'Positive', False)) && (!$fieldValue==0)) {
-					$errors['dsa_days'] = 'Please enter a valid number of days';
+					$errors['dsa_days'] = ts('Please enter a valid number of days');
 				}
 				// amounts
 				$fldNames= array(
@@ -655,7 +668,7 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 					'dsa_transfer',
 					'dsa_hotel',
 					'dsa_visa',
-					'dsa_outfit',
+					'dsa_medical',
 					'dsa_other',
 					'dsa_advance'); // 'dsa_debriefing',
 				$result = TRUE;
@@ -663,6 +676,29 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 					$result = $result and _amountCheck($name, $fields, $errors);
 				}
 				
+				// minimum DSA amount
+				if ( (!array_key_exists('dsa_amount', $errors))  &&	(!array_key_exists('dsa_days', $errors)) ) {
+					$params = array(
+						'version' => 3,
+						'q' => 'civicrm/ajax/rest',
+						'sequential' => 1,
+						'option_group_name' => 'dsa_configuration',
+						'name' => 'minimum_dsa_amount',
+						'return' => 'name,value',
+					);
+					try {
+						$result = civicrm_api('OptionValue', 'getsingle', $params);
+						$minimumAmount = $result['value'];
+					} catch (Exception $e) {
+						$minimumAmount = '0.00';
+					}
+					if ( ($fields['dsa_amount'] / $fields['dsa_days']) < ($minimumAmount * $fields['dsa_percentage'] / 100) ) {
+						$errors['dsa_amount'] = ts('Minimum 100% daily DSA amount is') . ' ' . $minimumAmount;
+					}
+				}
+				
+				
+				// if 'other' amnount is filled out, a description is required as well
 				if (!array_key_exists('dsa_other', $errors)) {
 					if (($fields['dsa_other']!=0) && (trim($fields['dsa_other_description'])=='')) {
 						$errors['dsa_other_description'] = ts('Please describe Expense Other');
@@ -791,8 +827,8 @@ echo '</pre>';
 											'column'	=> 'amount_visa',
 											'type'		=> 'number',
 											),
-				'dsa_outfit'			=>  array(
-											'column'	=> 'amount_outfit',
+				'dsa_medical'			=>  array(
+											'column'	=> 'amount_medical',
 											'type'		=> 'number',
 											),
 				'dsa_other'				=>  array(

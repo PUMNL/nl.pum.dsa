@@ -122,6 +122,23 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		return TRUE;
 	}
 	
+	/**
+	 * Upgrade 1008 - add option values for option group general_ledger
+	 *				- add option group dsa_configuration
+	 *              - remove column amt_debriefing from civicrm_dsa_compose
+	 * @date 22 August 2014
+	 */
+	public function upgrade_1008() {
+		$this->ctx->log->info('Applying update 1008 (additional values for \'general_ledger\' / create/fill option group \'dsa_configuration\')');
+		// re-run option group installer
+		DSA_OptionGroup::install();
+		
+		$this->ctx->log->info('Applying update 1008 (alter table civicrm_dsa_compose)');
+		// alter table civicrm_dsa_compose
+		$this->executeSqlFile('sql/civicrm_dsa_compose_1008.sql');
+		return TRUE;
+	}
+	
   /**
    * Example: Run an external SQL script when the module is uninstalled
    *

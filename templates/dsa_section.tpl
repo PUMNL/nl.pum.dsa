@@ -66,9 +66,9 @@
         <td class="label">{$form.dsa_visa.label}</td>
 		<td class="view-value">{$form.dsa_visa.html}</td>
 	</tr>
-	<tr class="crm-case-activity-form-block-dsa_outfit">
-        <td class="label">{$form.dsa_outfit.label}</td>
-		<td class="view-value">{$form.dsa_outfit.html}</td>
+	<tr class="crm-case-activity-form-block-dsa_medical">
+        <td class="label">{$form.dsa_medical.label}</td>
+		<td class="view-value">{$form.dsa_medical.html}</td>
 	</tr>
 	<tr class="crm-case-activity-form-block-dsa_other">
         <td class="label">{$form.dsa_other.label}</td>
@@ -124,7 +124,7 @@
 	cj('tr.crm-case-activity-form-block-medium_id').hide();
 	// hide details and spacer row below it
 	cj('tr.crm-case-activity-form-block-details').hide();
-	cj('tr.crm-case-activity-form-block-details').next('tr').hide();
+	cj('tr.crm-case-activity-form-block-details').next('tr').hide
 	
 	var ratesData = cj.parseJSON(cj('#dsa_location_lst').val()); {/literal}{* nl.pum.dsa/CRM/Dsa/Page/DSAImport.php function getAllActiveRates(dt) *}{literal}
 	cj('#dsa_location_lst').remove(); // avoids submitting JSON data, causing the infamous IDS->kick error. DOWNSIDE: location list is lost in validation failures
@@ -143,7 +143,7 @@
 	// add onChange event to dsa_other field to enable/disable dsa_other_description
 	//cj('#dsa_other').change(function() { processDSAOtherChange(this) });
 	// add onChange event to all amount-fields to calculate the total amount
-	cj('#dsa_amount, #dsa_briefing, #dsa_airport, #dsa_transfer, #dsa_hotel, #dsa_visa, #dsa_outfit, #dsa_other, #dsa_advance').change(function() { processTotal() }); // #dsa_debriefing
+	cj('#dsa_amount, #dsa_briefing, #dsa_airport, #dsa_transfer, #dsa_hotel, #dsa_visa, #dsa_medical, #dsa_other, #dsa_advance').change(function() { processTotal() }); // #dsa_debriefing
 
 	// trigger onChange on dsa_country to retrieve an initial set of locations
 	cj('#dsa_country').trigger('change', ['{$form.dsa_location.value[0]']);
@@ -237,7 +237,7 @@
 			parseNumeric(cj('#dsa_transfer').val()) +
 			parseNumeric(cj('#dsa_hotel').val()) +
 			parseNumeric(cj('#dsa_visa').val()) +
-			parseNumeric(cj('#dsa_outfit').val()) +
+			parseNumeric(cj('#dsa_medical').val()) +
 			parseNumeric(cj('#dsa_other').val()) +
 			parseNumeric(cj('#dsa_advance').val())
 			).toFixed(2)
