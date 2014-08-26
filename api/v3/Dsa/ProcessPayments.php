@@ -45,8 +45,9 @@ function civicrm_api3_dsa_processpayments($params) {
 	throw new API_Exception('Could not single out a payment record for timestamp ' . $sqlTime . ' - Export terminated.');
   }
   $result = $dao->fetch();
-  $paymentId = $dao->id;
+  $paymentId = $dao->id; // all -dsa_compose records should be marked with this id when processed
   
+  // cache countryname vs ISO code
   $params = array(
 	'version' => 3,
 	'q' => 'civicrm/ajax/rest',
@@ -75,10 +76,10 @@ function civicrm_api3_dsa_processpayments($params) {
 	throw new API_Exception('File "' . $fileName . '" already exists - export terminated.');
   }
   
-  // empty string to build an overal payment report
+  // empty string to build an overall payment report
   $reportDsa = '';
   
-  // empty string to build a payment report for the expert
+  // empty string to build a payment report for the expert (participant)
   $reportExpert = '';
   
   // general ledger ("grootboek') codes
@@ -117,212 +118,275 @@ function civicrm_api3_dsa_processpayments($params) {
   // loop: dsa payments
   $warnings = array();
   while ($daoDsa->fetch()) {
+	try {
 //dpm($daoDsa, 'dsa record');
-	// check if address (country id), approver id and approval date are available
-	if (is_null($daoDsa->country_id)) {
-		$warnings[] = 'No primary address found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
-	} elseif (is_null($daoDsa->approval_datetime) || is_null($daoDsa->approver_name)){
-		$warnings[] = 'DSA approval details missing (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
-	} else {
-		// add activity specific details ==============================================================
-		// fields not yet in the right order!
-		// based on (extension of / copy of) the run specific details $finrec_std
-		$finrec_act = $finrec_std;
-		$finrec_act['Kostendrager']			= $daoDsa->case_country;						// country code main activity
-		$finrec_act['Kostenplaats']			= trim(implode(
-												array($daoDsa->case_country, $daoDsa->case_sequence, $daoDsa->case_type),
-												''));										// project number CCNNNNNT (country, number, type)
-		$finrec_act['Sponsorcode']			= 's';											// sponsor code ("10   " for DGIS, where "600  " would be preferred)
-		$finrec_act['OmschrijvingA']		= $daoDsa->last_name;							// description fragment: surname
-		$finrec_act['OmschrijvingB']		= $daoDsa->case_sequence;						// description fragment: main activity number
-		$finrec_act['OmschrijvingC']		= $daoDsa->case_country;						// description fragment: country
-		$finrec_act['FactuurNrYear']		= '';											// 14 for 2014; date of "preparation", not dsa payment!
-		$finrec_act['FactuurNr']			= '';											// sequence based: "123456" would return "2345", "12" would return "0001"
-		$finrec_act['FactuurDatum']			= '';											// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
-		$finrec_act['Kenmerk']				= trim(implode(
-												array($daoDsa->case_sequence, $daoDsa->case_country),
-												''));										// project number NNNNNCC (number, country)
-		$finrec_act['CrediteurNr']			= 'sh2';										// experts shortname (8 char)
-		$finrec_act['Shortname']			= 'sh1';										// experts shortname (8 char)
-		$finrec_act['NaamOrganisatie']		= trim(implode(
-												array( $daoDsa->middle_name, $daoDsa->last_name, $daoDsa->Initials),
-												' '));										// experts name (e.g. van Oranje-Nassau W.A.)
-		$finrec_act['Taal']					= 'N';											// always "N"
-		$finrec_act['Land']					= $country[$daoDsa->country_id]['iso_code'];	// experts country of residence
-		$finrec_act['Adres1']				= $daoDsa->street_address;						// extperts street + number
-		$finrec_act['Adres2']				= trim(implode(
-												array( $daoDsa->postal_code, $daoDsa->postal_code_suffix, $daoDsa->city), 
-												' '));				;						// extperts zip + city
-		$finrec_act['BankRekNr']			= ltrim($daoDsa->Account_number, '0');			// experts bank account: number (not IBAN)
-		$finrec_act['Soort']				= $daoDsa->case_type;							// main activity (case) type (1 character)
-		$finrec_act['Rekeninghouder']		= 'rh';											// bank account holder: name
-		$finrec_act['RekeninghouderLand']	= 'xx';											// bank account holder: country
-		$finrec_act['RekeninghouderAdres1']	= $finrec_act['Adres1'];						// bank account holder: street + number
-		$finrec_act['RekeninghouderAdres2']	= $finrec_act['Adres2'];						// bank account holder: zip + city
-		$finrec_act['IBAN']					= $daoDsa->IBAN_number;							// bank account: IBAN
-		$finrec_act['Banknaam']				= 'nm';											// bank name
-		$finrec_act['BankPlaats']			= 'pl';											// bank city
-		$finrec_act['BankLand']				= 'yy';											// bank country
-		$finrec_act['BIC']					= $daoDsa->BIC_Swiftcode;						// experts bank account: BIC/Swift code
-		
-		// loop through the individual payment amounts for this activity
-		$amt_type = '';
-		for ($n=1; $n<36; $n++) {
-			// skip if amount = 0
-			// add amount specific details ============================================================
+		// check if address (country id), approver id and approval date are available
+		if (is_null($daoDsa->country_id)) {
+			$warnings[] = 'No primary address found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
+		} elseif (is_null($daoDsa->approval_datetime) || is_null($daoDsa->approver_name)){
+			$warnings[] = 'DSA approval details missing (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
+		} else {
+			// prepare an empty array to collect all payment lines for a single record (export only complete record)
+			$recExportFin = array();
+			
+			// add activity specific details ==============================================================
 			// fields not yet in the right order!
-			// based on (extension of / copy of) the activity specific details $finrec_act
-			
-			$finrec_amt = $finrec_act;
-			$finrec_amt['Boekstuk']			= 'b';											// Sequence; per amount field
-			switch ($daoDsa->type) {
-				case 1:
-					$finrec_amt['DC']				= 'D';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
-					$finrec_amt['PlusMin']			= '+';									// + for payment, - for creditation
-					$finrec_amt['FactuurPlusMin']	= '+';									// + for payment, - for creditation
-					break;
-				case 2:
-					$finrec_amt['DC']				= 'X';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
-					$finrec_amt['PlusMin']			= '-';									// + for payment, - for creditation
-					$finrec_amt['FactuurPlusMin']	= '-';									// + for payment, - for creditation
-					break;
-				case 3:
-					$finrec_amt['DC']				= 'C';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
-					$finrec_amt['PlusMin']			= '-';									// + for payment, - for creditation
-					$finrec_amt['FactuurPlusMin']	= '-';									// + for payment, - for creditation
-					break;
+			// based on (extension of / copy of) the run specific details $finrec_std
+			$finrec_act = $finrec_std;
+			$finrec_act['Kostendrager']			= $daoDsa->case_country;						// country code main activity
+			$finrec_act['Kostenplaats']			= trim(implode(
+													array($daoDsa->case_country, $daoDsa->case_sequence, $daoDsa->case_type),
+													''));										// project number CCNNNNNT (country, number, type)
+			$finrec_act['Sponsorcode']			= 's';											// sponsor code ("10   " for DGIS, where "600  " would be preferred)
+			$finrec_act['OmschrijvingA']		= $daoDsa->last_name;							// description fragment: surname
+			$finrec_act['OmschrijvingB']		= $daoDsa->case_sequence;						// description fragment: main activity number
+			$finrec_act['OmschrijvingC']		= $daoDsa->case_country;						// description fragment: country
+			$finrec_act['FactuurNrYear']		= '';											// 14 for 2014; date of "preparation", not dsa payment!
+			$params = array(
+				'version' => 3,
+				'q' => 'civicrm/ajax/rest',
+				'sequential' => 1,
+				'name' => 'invoice_number',
+			);
+			try {
+				$result = civicrm_api('Sequence', 'nextval', $params);
+				$nextVal = $result['values'];
+			} catch (Exception $e) {
+				throw new Exception('Sequence \'invoice_number\' is not available.');
 			}
-			
-			$amt_type = ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
-			$case_type = $daoDsa->case_name;
-			$gl_key = '';
-			switch ($amt_type) {
-				case '1': // DSA amount
-					$amt = _ifnull($daoDsa->amount_dsa, 0);
-					switch ($case_type) {
-						case 'BLP':
-							$gl_key = 'gl_blp';
-							break;
-						default:
-							$gl_key = 'gl_dsa';
-					}
-					break;
 
-				case '3': // Medical (a.k.a. Outfit Allowance)
-					$amt = _ifnull($daoDsa->amount_medical, 0)
-					$gl_key = 'gl_outfit';
-					break;
-
-				case '4': // Advance amounts (also: Acquisition Advance Amount)
-					$amt = _ifnull($daoDsa->amount_advance, 0);
-					switch ($case_type) {
-						case 'BLP':
-							$gl_key = 'gl_blp_adv';
-							break;
-						default:
-							$gl_key = 'gl_def_adv';
-					}
-					break;
-					
-				case '5': // OV PUM briefing/debriefing (was: Km PUM briefing, also documented as "reserved for LR remuneration")
-					$amt = _ifnull($daoDsa->amount_briefing, 0);
-					$gl_key = 'gl_pum_ov_brf_debrf'; // 'gl_pum_km_brf';
-					break;
-					
-/*				case '6': // Km PUM debriefing
-					$amt = _ifnull($daoDsa->amount_debriefing, 0);
-					$gl_key = 'gl_pum_km_debr';
-					break;
-*/
-					
-				case '7': // OV Aitport (was: Km Airport / Schiphol)
-					$amt = _ifnull($daoDsa->amount_airport, 0);
-					$gl_key = 'gl_pum_ov_airp';
-					break;
-					
-				case '8': // Transfer amount
-					$amt = _ifnull($daoDsa->amount_transfer, 0);
-					$gl_key = 'gl_transfer';
-					break;
-					
-				case '9': // Hotel
-					$amt = _ifnull($daoDsa->amount_hotel, 0);
-					$gl_key = 'gl_hotel';
-					break;
-					
-				case 'A': // Visa
-					$amt = _ifnull($daoDsa->amount_visa, 0);
-					$gl_key = 'gl_visa';
-					break;
-					
-				case 'B': // Other
-					$amt = _ifnull($daoDsa->amount_other, 0);
-					$gl_key = 'gl_other';
-					break;
-					
-				case 'C': // Meal / Parking
-					$amt = 0;
-					$gl_key = '';
-					break;
-					
-				case 'D': // Debriefing settlement
-					$amt = 0; // ===============================================================================
-					$gl_key = '';
-					break;
-					
-				case 'X': // Training/BLP payment guest
-					$amt = 0;
-					$gl_key = '';
-					break;
-					
-				case 'Y': // Training/BLP payment expert/organisation costs
-					$amt = 0;
-					$gl_key = '';
-					break;
-					
-				case 'Z': // Reserved for secondpayment LR remueration
-					$amt = 0;
-					$gl_key = '';
-					break;
-					
-				default:
-					// no action
-					$amt = 0;
-					$gl_key = '';
-			}
+			$finrec_act['FactuurNr']			= $nextVal;										// sequence based: "123456" would return "2345", "12" would return "0001"
+			$finrec_act['FactuurDatum']			= '';											// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
+			$finrec_act['Kenmerk']				= trim(implode(
+													array($daoDsa->case_sequence, $daoDsa->case_country),
+													''));										// project number NNNNNCC (number, country)
+			$finrec_act['CrediteurNr']			= 'sh2';										// experts shortname (8 char)
+			$finrec_act['Shortname']			= 'sh1';										// experts shortname (8 char)
+			$finrec_act['NaamOrganisatie']		= trim(implode(
+													array( $daoDsa->middle_name, $daoDsa->last_name, $daoDsa->Initials),
+													' '));										// experts name (e.g. van Oranje-Nassau W.A.)
+			$finrec_act['Taal']					= 'N';											// always "N"
+			$finrec_act['Land']					= $country[$daoDsa->country_id]['iso_code'];	// experts country of residence
+			$finrec_act['Adres1']				= $daoDsa->street_address;						// extperts street + number
+			$finrec_act['Adres2']				= trim(implode(
+													array( $daoDsa->postal_code, $daoDsa->postal_code_suffix, $daoDsa->city), 
+													' '));				;						// extperts zip + city
+			$finrec_act['BankRekNr']			= ltrim($daoDsa->Account_number, '0');			// experts bank account: number (not IBAN)
+			$finrec_act['Soort']				= $daoDsa->case_type;							// main activity (case) type (1 character)
+			$finrec_act['Rekeninghouder']		= 'rh';											// bank account holder: name
+			$finrec_act['RekeninghouderLand']	= 'xx';											// bank account holder: country
+			$finrec_act['RekeninghouderAdres1']	= $finrec_act['Adres1'];						// bank account holder: street + number
+			$finrec_act['RekeninghouderAdres2']	= $finrec_act['Adres2'];						// bank account holder: zip + city
+			$finrec_act['IBAN']					= $daoDsa->IBAN_number;							// bank account: IBAN
+			$finrec_act['Banknaam']				= 'nm';											// bank name
+			$finrec_act['BankPlaats']			= 'pl';											// bank city
+			$finrec_act['BankLand']				= 'yy';											// bank country
+			$finrec_act['BIC']					= $daoDsa->BIC_Swiftcode;						// experts bank account: BIC/Swift code
 			
-			if (($amt==0) || ($gl_key=='')) {
-				// no action
-			} elseif (!array_key_exists($gl_key, $gl)) {
-				// need a more controlled way out. E.g. skip amount or skip entire payment record
-				// ================================================================================================
-				throw exception ('Unknown key for General Ledger: ' . $gl_key);
-			} else {
-				// continue construction of payment line
-				$finrec_amt['GrootboekNr']		= $gl[$gl_key];								// code from _dsa_generalLedgerCodes() - amount specific
-				$finrec_amt['FactuurNrAmtType']	= $amt_type;								// represents type of amount in a single character: 1-9, A-Z
-				$finrec_amt['FactuurBedrag']	= round($amt, 2, PHP_ROUND_HALF_UP) * 100;	// payment amount in EUR cents (123,456 -> 12346)
-				$finrec_amt['ValutaCode']		= 'EUR';									// always EUR
+			// loop through the individual payment amounts for this activity
+			$amt_type = '';
+			for ($n=1; $n<36; $n++) {
+				// skip if amount = 0
+				// add amount specific details ============================================================
+				// fields not yet in the right order!
+				// based on (extension of / copy of) the activity specific details $finrec_act
 				
-				// dpm($finrec_amt, '$finrec_amt');
-//dpm(_dsa_concatValues($finrec_amt), '_dsa_concatValues($finrec_amt)'); // complete output line for 1 amount ============================================
-				//dpm($amt_type);
-			}
-		
-			
+				$finrec_amt = $finrec_act;
+				switch ($daoDsa->type) {
+					case '1':
+						$finrec_amt['DC']				= 'D';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
+						$finrec_amt['PlusMin']			= '+';									// + for payment, - for creditation
+						$finrec_amt['FactuurPlusMin']	= '+';									// + for payment, - for creditation
+						break;
+					case '2':
+						$finrec_amt['DC']				= 'X';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
+						$finrec_amt['PlusMin']			= '-';									// + for payment, - for creditation
+						$finrec_amt['FactuurPlusMin']	= '-';									// + for payment, - for creditation
+						break;
+					case '3':
+						$finrec_amt['DC']				= 'C';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
+						$finrec_amt['PlusMin']			= '-';									// + for payment, - for creditation
+						$finrec_amt['FactuurPlusMin']	= '-';									// + for payment, - for creditation
+						break;
+				}
+				
+				$amt_type = ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
+				$case_type = $daoDsa->case_name;
+				$gl_key = '';
+				switch ($amt_type) {
+					case '1': // DSA amount
+						$amt = _ifnull($daoDsa->amount_dsa, 0);
+						switch ($case_type) {
+							case 'BLP':
+								$gl_key = 'gl_blp';
+								break;
+							default:
+								$gl_key = 'gl_dsa';
+						}
+						break;
 	
-			// append to temp string
-			// append unique number to sql
-		}
-		
-		// write temp string to file
-		// add to sql: mark paid
-		// execute sql
+					case '3': // Medical (a.k.a. Outfit Allowance)
+						$amt = _ifnull($daoDsa->amount_medical, 0);
+						$gl_key = 'gl_outfit';
+						break;
+	
+					case '4': // Advance amounts (also: Acquisition Advance Amount)
+						$amt = _ifnull($daoDsa->amount_advance, 0);
+						switch ($case_type) {
+							case 'BLP':
+								$gl_key = 'gl_blp_adv';
+								break;
+							default:
+								$gl_key = 'gl_def_adv';
+						}
+						break;
+						
+					case '5': // OV PUM briefing/debriefing (was: Km PUM briefing, also documented as "reserved for LR remuneration")
+						$amt = _ifnull($daoDsa->amount_briefing, 0);
+						$gl_key = 'gl_pum_ov_brf_debrf'; // 'gl_pum_km_brf';
+						break;
+						
+/*					case '6': // Km PUM debriefing
+						$amt = _ifnull($daoDsa->amount_debriefing, 0);
+						$gl_key = 'gl_pum_km_debr';
+						break;
+*/
+						
+					case '7': // OV Airport (was: Km Airport / Schiphol)
+						$amt = _ifnull($daoDsa->amount_airport, 0);
+						$gl_key = 'gl_pum_ov_airp';
+						break;
+					
+					case '8': // Transfer amount
+						$amt = _ifnull($daoDsa->amount_transfer, 0);
+						$gl_key = 'gl_transfer';
+						break;
+						
+					case '9': // Hotel
+						$amt = _ifnull($daoDsa->amount_hotel, 0);
+						$gl_key = 'gl_hotel';
+						break;
+						
+					case 'A': // Visa
+						$amt = _ifnull($daoDsa->amount_visa, 0);
+						$gl_key = 'gl_visa';
+						break;
+					
+					case 'B': // Other
+						$amt = _ifnull($daoDsa->amount_other, 0);
+						$gl_key = 'gl_other';
+						break;
+					
+					case 'C': // Meal / Parking
+						$amt = 0;
+						$gl_key = '';
+						break;
+					
+					case 'D': // Debriefing settlement
+						$amt = 0; // ===============================================================================
+						$gl_key = '';
+						break;
+					
+					case 'X': // Training/BLP payment guest
+						$amt = 0;
+						$gl_key = '';
+						break;
+					
+					case 'Y': // Training/BLP payment expert/organisation costs
+						$amt = 0;
+						$gl_key = '';
+						break;
+					
+					case 'Z': // Reserved for secondpayment LR remueration
+						$amt = 0;
+						$gl_key = '';
+						break;
+						
+					default:
+						// no action
+						$amt = 0;
+						$gl_key = '';
+				}
+				
+				if (($amt==0) || ($gl_key=='')) {
+					// no action
+				} elseif (!array_key_exists($gl_key, $gl)) {
+					// need a more controlled way out. E.g. skip amount or skip entire payment record
+					// ================================================================================================
+					throw exception ('Unknown key for General Ledger: ' . $gl_key);
+				} else {
+					// continue construction of payment line
+					$finrec_amt['GrootboekNr']		= $gl[$gl_key];								// code from _dsa_generalLedgerCodes() - amount specific
+					$finrec_amt['FactuurNrAmtType']	= $amt_type;								// represents type of amount in a single character: 1-9, A-Z
+					$finrec_amt['FactuurBedrag']	= round($amt, 2, PHP_ROUND_HALF_UP) * 100;	// payment amount in EUR cents (123,456 -> 12346)
+					$finrec_amt['ValutaCode']		= 'EUR';									// always EUR
+					$params = array(
+						'version' => 3,
+						'q' => 'civicrm/ajax/rest',
+						'sequential' => 1,
+						'name' => 'payment_line',
+					);
+					try {
+						$result = civicrm_api('Sequence', 'nextval', $params);
+						$lineNo = $result['values'];
+					} catch (Exception $e) {
+						throw new Exception('Sequence \'payment_line\' is not available.');
+					}
+					$finrec_amt['Boekstuk']			= $lineNo;									// Sequence; per amount field
+					
+					// append Fin exportline to array
+					$recExportFin[] = _dsa_concatValues($finrec_amt);
+				}
+			}
+			
+			// if paymentlines exist in temporary arrays:
+			// - update record in civicrm_dsa_compose to store reference to the payment
+			// - update status in civicrm_activity
+			// - write payment lines to file if payment lines exist
+			if (!empty($recExportFin)) {
+				// update dsa and activity records
+				$sql = 'UPDATE civicrm_dsa_compose SET payment_id=' . $paymentId . ' WHERE id=' . $daoDsa->dsa_id;
+				dpm($sql);
+				$dao = CRM_Core_DAO::executeQuery($sql);
+				
+				$sql = 'UPDATE civicrm_activity SET status_id=' . $statusLst['dsa_paid'] . ' WHERE id=' . $daoDsa->act_id;
+				dpm($sql);
+				$dao = CRM_Core_DAO::executeQuery($sql);
+				
+				// write temp string to file
+				foreach($recExportFin as $paymentLine) {
+					fwrite($exportFin, $paymentLine . "\r\n");
+				}
+			}
 
-	} // fetch next payable DSA record
+		} // fetch next payable DSA record
+	} catch (Exception $e) {
+		// an error occurred -> stop processing the current payment record and continue on the next
+		$warnings[] = $e->getMessage() . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
+	}
   }
-	// close file
-	fclose($exportFin);
+  // close file
+  fclose($exportFin);
+  
+  // read content for storage
+  $exportFin = fopen($fileName, 'r');
+  $contentFin = fread($exportFin, filesize($fileName));
+  fclose($exportFin);
+	
+  try {
+	$sql = 'UPDATE civicrm_dsa_payment SET filename=\'' . $fileName . '\', filesize=' . filesize($fileName) . ', filetype=\'text/plain\', content=\'' . $contentFin . '\' WHERE id=' . $paymentId;
+	$dao = CRM_Core_DAO::executeQuery($sql);
+	
+	try {
+		unlink($fileName);
+	} catch (Exception $e) {
+		$warnings[] = 'Could not delete ' . $fileName;
+	}
+	
+  } catch (Exception $e) {
+		$warnings[] = $e->getMessage() . ' (while storing file ' . $fileName . ')';
+  }
+  
 	
 dpm($warnings, 'Warnings'); // ================================================================================
 
@@ -349,51 +413,51 @@ dpm($warnings, 'Warnings'); // =================================================
 function _dsa_concatValues($ar) {
 	// field order and size is fixed!
 	return 
-		_dsaSize($ar['Boekjaar'],				 2, ' ', TRUE) .	// 14 for 2014
-		_dsaSize($ar['Dagboek'],				 2, ' ', TRUE) .	// I1 for DSA
-		_dsaSize($ar['Periode'],				 2, ' ', TRUE) .	// 06 for June
-		_dsaSize($ar['Boekstuk'],				 4, ' ', TRUE) .	// #### sequence (unique per month)
-		_dsaSize($ar['GrootboekNr'],			 4, ' ', TRUE) .	// general ledger code
-		_dsaSize($ar['Sponsorcode'],			 5, ' ', TRUE) .	// "10   " for DGIS where "610  " would be preferred
-		_dsaSize($ar['Kostenplaats'],			 8, ' ', TRUE) .	// project number CCNNNNNT (country, number, type)
-		_dsaSize($ar['Kostendrager'],			 8, ' ', TRUE) .	// country code main activity (8 chars!)
-		_dsaSize($ar['Datum'],					10, ' ', TRUE) .	// today
-		_dsaSize($ar['DC'],						 1, ' ', TRUE) .	// D for payment, C for full creditation, but what about partial creditation (DSA debriefing)?
-		_dsaSize($ar['PlusMin'],				 1, ' ', TRUE) .	// + for payment, - for creditation
-		_dsaSize($ar['Bedrag'],					10, '0', FALSE) .	// not in use: 10 digit numeric 0
-		_dsaSize($ar['Filler1'],				 9, ' ', TRUE) .	// not in use: 9 spaces
-		_dsaSize($ar['OmschrijvingA'],			10, ' ', TRUE) .	// description fragment: surname
-		_dsaSize(' ',							 1, ' ', TRUE) .	// description fragment: additional space
-		_dsaSize($ar['OmschrijvingB'],			 6, ' ', TRUE) .	// description fragment: main activity number ("NNNNN ")
-		_dsaSize($ar['OmschrijvingC'],			 3, ' ', TRUE) .	// description fragment: country ("CC ")
-		_dsaSize($ar['Filler2'],				13, ' ', TRUE) .	// not in use: 13 spaces
-		_dsaSize($ar['FactuurNrRunType'],		 1, ' ', TRUE) .	// D for DSA
-		_dsaSize($ar['FactuurNrYear'],			 2, ' ', TRUE) .	// 14 for 2014; date of "preparation", not dsa payment!
-		_dsaSize($ar['FactuurNr'],				 4, ' ', TRUE) .	// sequence based: "123456" would return "2345", "12" would return "0001"
-		_dsaSize($ar['FactuurNrAmtType'],		 1, ' ', TRUE) .	// represents type of amount in a single character: 1-9, A-Z
-		_dsaSize($ar['FactuurDatum'],			10, ' ', TRUE) .	// currently: creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
-		_dsaSize($ar['FactuurBedrag'],			11, '0', FALSE) .	// payment amount in EUR cents (123,456 -> 12346)
-		_dsaSize($ar['FactuurPlusMin'],			 1, '?', TRUE) .	// + for payment, - for creditation
-		_dsaSize($ar['Kenmerk'],				12, ' ', TRUE) .	// project number NNNNNCC (number, country)
-		_dsaSize($ar['ValutaCode'],				 3, ' ', TRUE) .	// always EUR
-		_dsaSize($ar['CrediteurNr'],			 8, ' ', TRUE) .	// experts shortname (8 char)
-		_dsaSize($ar['NaamOrganisatie'],		35, ' ', TRUE) .	// experts name (e.g. "van Oranje-Nassau W.A.")
-		_dsaSize($ar['Taal'],					 1, ' ', TRUE) .	// always "N"
-		_dsaSize($ar['Land'],					 3, ' ', TRUE) .	// ISO2
-		_dsaSize($ar['Adres1'],					35, ' ', TRUE) .	// experts street + number
-		_dsaSize($ar['Adres2'],					35, ' ', TRUE) .	// experts zip + city
-		_dsaSize($ar['BankRekNr'],				25, ' ', TRUE) .	// experts bank account: number (not IBAN)
-		_dsaSize($ar['Soort'],					 1, ' ', TRUE) .	// main activity (case) type (1 character)
-		_dsaSize($ar['Shortname'],				 8, ' ', TRUE) .	// experts shortname (8 char)
-		_dsaSize($ar['Rekeninghouder'],			35, ' ', TRUE) .	// bank account holder: name
-		_dsaSize($ar['RekeninghouderLand'],		20, ' ', TRUE) .	// bank account holder: country
-		_dsaSize($ar['RekeninghouderAdres1'],	35, ' ', TRUE) .	// bank account holder: street + number
-		_dsaSize($ar['RekeninghouderAdres2'],	35, ' ', TRUE) .	// bank account holder: zip + city
-		_dsaSize($ar['IBAN'],					34, ' ', TRUE) .	// bank account: IBAN
-		_dsaSize($ar['Banknaam'],				35, ' ', TRUE) .	// bank name
-		_dsaSize($ar['BankPlaats'],				35, ' ', TRUE) .	// bank city
-		_dsaSize($ar['BankLand'],				 3, ' ', TRUE) .	// bank country
-		_dsaSize($ar['BIC'],					11, 'X', TRUE);		// experts bank account: BIC/Swift code
+		_dsaSize($ar['Boekjaar'],				 2, ' ', TRUE,  FALSE) .	// 14 for 2014
+		_dsaSize($ar['Dagboek'],				 2, ' ', TRUE,  FALSE) .	// I1 for DSA
+		_dsaSize($ar['Periode'],				 2, ' ', TRUE,  FALSE) .	// 06 for June
+		_dsaSize($ar['Boekstuk'],				 4, '0', FALSE, FALSE) .	// #### sequence (must be unique per month)
+		_dsaSize($ar['GrootboekNr'],			 4, ' ', TRUE,  FALSE) .	// general ledger code
+		_dsaSize($ar['Sponsorcode'],			 5, ' ', TRUE,  FALSE) .	// "10   " for DGIS where "610  " would be preferred
+		_dsaSize($ar['Kostenplaats'],			 8, ' ', TRUE,  FALSE) .	// project number CCNNNNNT (country, number, type)
+		_dsaSize($ar['Kostendrager'],			 8, ' ', TRUE,  FALSE) .	// country code main activity (8 chars!)
+		_dsaSize($ar['Datum'],					10, ' ', TRUE,  FALSE) .	// today
+		_dsaSize($ar['DC'],						 1, ' ', TRUE,  FALSE) .	// D for payment, C for full creditation. Ther will be NO partial creditation.
+		_dsaSize($ar['PlusMin'],				 1, ' ', TRUE,  TRUE)  .	// + for payment, - for creditation
+		_dsaSize($ar['Bedrag'],					10, '0', FALSE, FALSE) .	// not in use: 10 digit numeric 0
+		_dsaSize($ar['Filler1'],				 9, ' ', TRUE,  FALSE) .	// not in use: 9 spaces
+		_dsaSize($ar['OmschrijvingA'],			10, ' ', TRUE,  FALSE) .	// description fragment: surname
+		_dsaSize(' ',							 1, ' ', TRUE,  FALSE) .	// description fragment: additional space
+		_dsaSize($ar['OmschrijvingB'],			 6, ' ', TRUE,  FALSE) .	// description fragment: main activity number ("NNNNN ")
+		_dsaSize($ar['OmschrijvingC'],			 3, ' ', TRUE,  FALSE) .	// description fragment: country ("CC ")
+		_dsaSize($ar['Filler2'],				13, ' ', TRUE,  FALSE) .	// not in use: 13 spaces
+		_dsaSize($ar['FactuurNrRunType'],		 1, ' ', TRUE,  FALSE) .	// D for DSA
+		_dsaSize($ar['FactuurNrYear'],			 2, ' ', TRUE,  FALSE) .	// 14 for 2014; date of "preparation", not dsa payment!
+		_dsaSize($ar['FactuurNr'],				 4, '0', FALSE, FALSE) .	// sequence based: "123456" would return "2345", "12" would return "0001"
+		_dsaSize($ar['FactuurNrAmtType'],		 1, ' ', TRUE,  FALSE) .	// represents type of amount in a single character: 1-9, A-Z
+		_dsaSize($ar['FactuurDatum'],			10, ' ', TRUE,  FALSE) .	// currently: creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
+		_dsaSize($ar['FactuurBedrag'],			11, '0', FALSE, FALSE) .	// payment amount in EUR cents (123,456 -> 12346)
+		_dsaSize($ar['FactuurPlusMin'],			 1, ' ', TRUE,  TRUE)  .	// + for payment, - for creditation
+		_dsaSize($ar['Kenmerk'],				12, ' ', TRUE,  FALSE) .	// project number NNNNNCC (number, country)
+		_dsaSize($ar['ValutaCode'],				 3, ' ', TRUE,  FALSE) .	// always EUR
+		_dsaSize($ar['CrediteurNr'],			 8, ' ', TRUE,  FALSE) .	// experts shortname (8 char)
+		_dsaSize($ar['NaamOrganisatie'],		35, ' ', TRUE,  FALSE) .	// experts name (e.g. "van Oranje-Nassau W.A.")
+		_dsaSize($ar['Taal'],					 1, ' ', TRUE,  FALSE) .	// always "N"
+		_dsaSize($ar['Land'],					 3, ' ', TRUE,  FALSE) .	// ISO2
+		_dsaSize($ar['Adres1'],					35, ' ', TRUE,  FALSE) .	// experts street + number
+		_dsaSize($ar['Adres2'],					35, ' ', TRUE,  FALSE) .	// experts zip + city
+		_dsaSize($ar['BankRekNr'],				25, ' ', TRUE,  FALSE) .	// experts bank account: number (not IBAN)
+		_dsaSize($ar['Soort'],					 1, ' ', TRUE,  FALSE) .	// main activity (case) type (1 character)
+		_dsaSize($ar['Shortname'],				 8, ' ', TRUE,  FALSE) .	// experts shortname (8 char)
+		_dsaSize($ar['Rekeninghouder'],			35, ' ', TRUE,  FALSE) .	// bank account holder: name
+		_dsaSize($ar['RekeninghouderLand'],		20, ' ', TRUE,  FALSE) .	// bank account holder: country
+		_dsaSize($ar['RekeninghouderAdres1'],	35, ' ', TRUE,  FALSE) .	// bank account holder: street + number
+		_dsaSize($ar['RekeninghouderAdres2'],	35, ' ', TRUE,  FALSE) .	// bank account holder: zip + city
+		_dsaSize($ar['IBAN'],					34, ' ', TRUE,  FALSE) .	// bank account: IBAN
+		_dsaSize($ar['Banknaam'],				35, ' ', TRUE,  FALSE) .	// bank name
+		_dsaSize($ar['BankPlaats'],				35, ' ', TRUE,  FALSE) .	// bank city
+		_dsaSize($ar['BankLand'],				 3, ' ', TRUE,  FALSE) .	// bank country
+		_dsaSize($ar['BIC'],					11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
 }
 
 function _getCustomDefinitions() {
@@ -498,23 +562,32 @@ function _charReplacementAdd(&$arCharReplacement, $orgChars, $replacementStr) {
  * Function to replace all occurances of the elements in array $removeCharAr
  * within string $data by the (1:1) mapped elements in array $replacementCharAr
  */
-function charReplacement($data, $removeCharAr, $replacementCharAr) {
+function charReplacement($data, $removeCharAr, $replacementCharAr, $skipFilter=FALSE) {
 	// Warning: $data may either grow or shrink in size
 	// step 1: substitition of known characters
 	$data = str_replace($removeCharAr, $replacementCharAr, $data); // replace all 'known' special characters by their 'known' replacement strings
 	// step 2: removal of all other illegal characters
-	$data = PREG_REPLACE("/[^0-9a-zA-Z \/\-]/i", '', $data); // remove all remaining special characters
+	if (!$skipFilter) {
+		$data = PREG_REPLACE("/[^0-9a-zA-Z \/\-]/i", '', $data); // remove all remaining special characters
+	}
 	return $data;
 }
 
 /*
  * Function to resize a value to a certain length for export to a fixed row-size file
  * contains implicit replacement of odd characters
+ * 
+ * parameters:
+ * $value: 	the value to parse into an export line
+ * $size:	the length in which $value should be parsed
+ * $fillChar: the character to use to increase $values length if neccessary
+ * $alignLeft: if TRUE: $fillChar is appended, if FALSE $fillChar is prepended
+ * $skipFilter: if TRUE: no additional removal of "unknown" character is performed. If FALSE, only certain characters are returned (by charReplacement())
  */
-function _dsaSize($value='', $size, $fillChar=' ', $alignLeft=TRUE) {	
+function _dsaSize($value='', $size, $fillChar=' ', $alignLeft=TRUE, $skipFilter=FALSE) {	
 	global $charMod;
 	// replace odd characters
-	$value = charReplacement($value, $charMod['originals'], $charMod['substitutes']);
+	$value = charReplacement($value, $charMod['originals'], $charMod['substitutes'], $skipFilter);
 	// verify or set the desired length of the value
 	if(is_numeric($size)) {
 		$size = intval($size, 10);
@@ -556,6 +629,7 @@ SELECT
 	act.id AS act_id,
 	con.id AS participant_id,
 	dsa.approval_cid AS approver_id,
+	dsa.id AS dsa_id,
 	\'--CASE-->\' as \'_CASE\',
 /*	cas.* */
 	ovl3.name as case_name,
@@ -661,7 +735,8 @@ ORDER BY
 	return $dao;
 }
 
-/* Function to provide general ledger codes
+/*
+ * Function to provide general ledger codes
  * should be replaced by a pre-filled table + query
  */
 function _dsa_generalLedgerCodes() {
