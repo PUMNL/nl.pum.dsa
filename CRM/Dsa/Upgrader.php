@@ -139,6 +139,17 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		return TRUE;
 	}
 	
+	/**
+	 * Upgrade 1009 - additional columns in civicrm_dsa_compose to track invoice numbers/codes for creditation
+	 * @date 27 August 2014
+	 */
+	public function upgrade_1009() {
+		$this->ctx->log->info('Applying update 1009 (alter table civicrm_dsa_compose)');
+		// alter table civicrm_dsa_compose
+		$this->executeSqlFile('sql/civicrm_dsa_compose_1009.sql');
+		return TRUE;
+	}
+	
   /**
    * Example: Run an external SQL script when the module is uninstalled
    *

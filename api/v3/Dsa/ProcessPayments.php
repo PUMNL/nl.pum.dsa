@@ -129,6 +129,9 @@ function civicrm_api3_dsa_processpayments($params) {
 			// prepare an empty array to collect all payment lines for a single record (export only complete record)
 			$recExportFin = array();
 			
+			// prepare am empty array to record changes to columns in civicrm_dsa_compose
+			$recSql_DsaCompose = array();
+			
 			// add activity specific details ==============================================================
 			// fields not yet in the right order!
 			// based on (extension of / copy of) the run specific details $finrec_std
@@ -156,6 +159,11 @@ function civicrm_api3_dsa_processpayments($params) {
 			}
 
 			$finrec_act['FactuurNr']			= $nextVal;										// sequence based: "123456" would return "2345", "12" would return "0001"
+			$recSql_DsaCompose['invoice_number'] = 
+				_dsaSize($finrec_act['FactuurNrRunType'],	1, ' ', TRUE,  FALSE) .	// D for DSA
+				_dsaSize($finrec_act['FactuurNrYear'],		2, ' ', TRUE,  FALSE) .	// 14 for 2014; date of "preparation", not dsa payment!
+				_dsaSize($finrec_act['FactuurNr'],			4, '0', FALSE, FALSE); 	// sequence based: "123456" would return "2345", "12" would return "0001";
+			
 			$finrec_act['FactuurDatum']			= '';											// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
 			$finrec_act['Kenmerk']				= trim(implode(
 													array($daoDsa->case_sequence, $daoDsa->case_country),
@@ -216,6 +224,7 @@ function civicrm_api3_dsa_processpayments($params) {
 				switch ($amt_type) {
 					case '1': // DSA amount
 						$amt = _ifnull($daoDsa->amount_dsa, 0);
+						$column = 'invoice_dsa';
 						switch ($case_type) {
 							case 'BLP':
 								$gl_key = 'gl_blp';
@@ -227,11 +236,13 @@ function civicrm_api3_dsa_processpayments($params) {
 	
 					case '3': // Medical (a.k.a. Outfit Allowance)
 						$amt = _ifnull($daoDsa->amount_medical, 0);
+						$column = 'invoice_medical';
 						$gl_key = 'gl_outfit';
 						break;
 	
 					case '4': // Advance amounts (also: Acquisition Advance Amount)
 						$amt = _ifnull($daoDsa->amount_advance, 0);
+						$column = 'invoice_advance';
 						switch ($case_type) {
 							case 'BLP':
 								$gl_key = 'gl_blp_adv';
@@ -241,78 +252,95 @@ function civicrm_api3_dsa_processpayments($params) {
 						}
 						break;
 						
-					case '5': // OV PUM briefing/debriefing (was: Km PUM briefing, also documented as "reserved for LR remuneration")
+/*					case '5': // Km PUM briefing, also documented as "reserved for LR remuneration"
 						$amt = _ifnull($daoDsa->amount_briefing, 0);
-						$gl_key = 'gl_pum_ov_brf_debrf'; // 'gl_pum_km_brf';
+						$column = 'invoice_briefing';
+						$gl_key = 'gl_pum_km_brf';
 						break;
-						
+*/						
 /*					case '6': // Km PUM debriefing
 						$amt = _ifnull($daoDsa->amount_debriefing, 0);
+						$column = 'invoice_debriefing';
 						$gl_key = 'gl_pum_km_debr';
 						break;
 */
+					case '6': // OV PUM briefing/debriefing
+						$amt = _ifnull($daoDsa->amount_briefing, 0);
+						$column = 'invoice_briefing';
+						$gl_key = 'gl_pum_ov_brf_debrf';
+						break;
 						
 					case '7': // OV Airport (was: Km Airport / Schiphol)
 						$amt = _ifnull($daoDsa->amount_airport, 0);
+						$column = 'invoice_airport';
 						$gl_key = 'gl_pum_ov_airp';
 						break;
 					
 					case '8': // Transfer amount
 						$amt = _ifnull($daoDsa->amount_transfer, 0);
+						$column = 'invoice_transfer';
 						$gl_key = 'gl_transfer';
 						break;
 						
 					case '9': // Hotel
 						$amt = _ifnull($daoDsa->amount_hotel, 0);
+						$column = 'invoice_hotel';
 						$gl_key = 'gl_hotel';
 						break;
 						
 					case 'A': // Visa
 						$amt = _ifnull($daoDsa->amount_visa, 0);
+						$column = 'invoice_visa';
 						$gl_key = 'gl_visa';
 						break;
 					
 					case 'B': // Other
 						$amt = _ifnull($daoDsa->amount_other, 0);
+						$column = 'invoice_other';
 						$gl_key = 'gl_other';
 						break;
 					
 					case 'C': // Meal / Parking
 						$amt = 0;
+						$column = '';
 						$gl_key = '';
 						break;
 					
 					case 'D': // Debriefing settlement
 						$amt = 0; // ===============================================================================
+						$column = '';
 						$gl_key = '';
 						break;
 					
 					case 'X': // Training/BLP payment guest
 						$amt = 0;
+						$column = '';
 						$gl_key = '';
 						break;
 					
 					case 'Y': // Training/BLP payment expert/organisation costs
 						$amt = 0;
+						$column = '';
 						$gl_key = '';
 						break;
 					
 					case 'Z': // Reserved for secondpayment LR remueration
 						$amt = 0;
+						$column = '';
 						$gl_key = '';
 						break;
 						
 					default:
 						// no action
 						$amt = 0;
+						$column = '';
 						$gl_key = '';
 				}
 				
 				if (($amt==0) || ($gl_key=='')) {
 					// no action
 				} elseif (!array_key_exists($gl_key, $gl)) {
-					// need a more controlled way out. E.g. skip amount or skip entire payment record
-					// ================================================================================================
+					// a controlled way out: raise an error causing the code to skip the entire payment record
 					throw exception ('Unknown key for General Ledger: ' . $gl_key);
 				} else {
 					// continue construction of payment line
@@ -334,6 +362,8 @@ function civicrm_api3_dsa_processpayments($params) {
 					}
 					$finrec_amt['Boekstuk']			= $lineNo;									// Sequence; per amount field
 					
+					$recSql_DsaCompose[$column] = $amt_type;
+					
 					// append Fin exportline to array
 					$recExportFin[] = _dsa_concatValues($finrec_amt);
 				}
@@ -344,13 +374,16 @@ function civicrm_api3_dsa_processpayments($params) {
 			// - update status in civicrm_activity
 			// - write payment lines to file if payment lines exist
 			if (!empty($recExportFin)) {
-				// update dsa and activity records
-				$sql = 'UPDATE civicrm_dsa_compose SET payment_id=' . $paymentId . ' WHERE id=' . $daoDsa->dsa_id;
-				dpm($sql);
+				// update dsa record
+				$recSql_DsaCompose['payment_id'] = $paymentId;
+				foreach($recSql_DsaCompose as $key=>$value) {
+					$recSql_DsaCompose[$key] = $key . '=\'' . $value . '\'';
+				}
+				$sql = 'UPDATE civicrm_dsa_compose SET ' . implode(',', $recSql_DsaCompose) . ' WHERE id=' . $daoDsa->dsa_id;
 				$dao = CRM_Core_DAO::executeQuery($sql);
-				
+
+				// update activity record
 				$sql = 'UPDATE civicrm_activity SET status_id=' . $statusLst['dsa_paid'] . ' WHERE id=' . $daoDsa->act_id;
-				dpm($sql);
 				$dao = CRM_Core_DAO::executeQuery($sql);
 				
 				// write temp string to file
