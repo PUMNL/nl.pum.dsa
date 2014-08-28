@@ -10,6 +10,16 @@
 {$form.dsa_location_id.html}
 {$form.dsa_participant_id.html}
 {$form.dsa_participant_role.html}
+{$form.invoice_number.html}
+{$form.invoice_dsa.html}
+{$form.invoice_briefing.html}
+{$form.invoice_airport.html}
+{$form.invoice_transfer.html}
+{$form.invoice_hotel.html}
+{$form.invoice_visa.html}
+{$form.invoice_medical.html}
+{$form.invoice_other.html}
+{$form.restrictEdit.html}
 <table id="dsa-temp">
 	<tr>
 		<td colspan="2">
@@ -32,11 +42,11 @@
         <td class="label">{$form.dsa_percentage.label}</td>
 		<td class="view-value">{$form.dsa_percentage.html}</td>
 	</tr>
-	<tr class="crm-case-activity-form-block-dsa_percentage">
+	<tr class="crm-case-activity-form-block-dsa_days">
         <td class="label">{$form.dsa_days.label}</td>
 		<td class="view-value">{$form.dsa_days.html}</td>
 	</tr>
-	<tr class="crm-case-activity-form-block-dsa_percentage">
+	<tr class="crm-case-activity-form-block-dsa_amount">
         <td class="label">{$form.dsa_amount.label}</td>
 		<td class="view-value">{$form.dsa_amount.html}</td>
 	</tr>
@@ -92,6 +102,11 @@
 		<td class="view-value">{$form.dsa_approval.value}</td>
 	</tr>
 {/if}
+	<tr class="crm-case-activity-form-block-invoice_number">
+        <td class="label"></td>
+		<td class="view-value"></td>
+	</tr>
+
 	{*
 	<tr>
 		<td colspan="2">
@@ -112,6 +127,8 @@
 	cj('tr.crm-case-activity-form-block-attachment').hide();
 	// remove (hide) send a copy
 	cj('tr.crm-case-activity-form-block-send_copy').hide();
+	// remove (hide) assign to
+	cj('tr.crm-case-activity-form-block-assignee_contact_id').hide();
 	// remove (hide) schedule follow-up
 	cj('tr.crm-case-activity-form-block-schedule_followup').hide();
 	// remove (hide) duration
@@ -120,11 +137,21 @@
 	cj('tr.crm-case-activity-form-block-priority_id').hide();
 	// hide subject
 	cj('tr.crm-case-activity-form-block-subject').hide();
-	// hide Medion and location
+	// hide medium and location
 	cj('tr.crm-case-activity-form-block-medium_id').hide();
 	// hide details and spacer row below it
 	cj('tr.crm-case-activity-form-block-details').hide();
 	cj('tr.crm-case-activity-form-block-details').next('tr').hide
+	// process invoice number
+	var obj=cj('#invoice_number');
+	if (obj.val() == '') {
+		cj('tr.crm-case-activity-form-block-invoice_number').hide;
+	} else {
+		cj('tr.crm-case-activity-form-block-invoice_number > td.label').html(obj.attr('label'));
+		cj('tr.crm-case-activity-form-block-invoice_number > td.view-value').html(obj.attr('value'));
+		// move tr below status
+		cj('tr.crm-case-activity-form-block-invoice_number').insertAfter('tr.crm-case-activity-form-block-status_id');
+	}
 	
 	var ratesData = cj.parseJSON(cj('#dsa_location_lst').val()); {/literal}{* nl.pum.dsa/CRM/Dsa/Page/DSAImport.php function getAllActiveRates(dt) *}{literal}
 	cj('#dsa_location_lst').remove(); // avoids submitting JSON data, causing the infamous IDS->kick error. DOWNSIDE: location list is lost in validation failures
@@ -149,6 +176,96 @@
 	cj('#dsa_country').trigger('change', ['{$form.dsa_location.value[0]']);
 	// trigger calculation of total amount
 	processTotal();
+	
+	// disable fields depending on status
+	var restrict = cj('#restrictEdit').val();
+	if ((restrict == '1') || (restrict == '2')) {
+		// with client
+		cj('tr#with-clients > td.view-value > br').remove;
+		cj('tr#with-clients > td.view-value > a.crm-with-contact').remove();
+		// reported by
+		var obj = cj('#source_contact_id');
+		obj.before( obj.val() );
+		obj.hide();
+		// date (and time)
+		var obj = cj('#activity_date_time');
+		obj.before( obj.val() );
+		var obj = cj('#activity_date_time_display');
+		obj.hide();
+		var obj = cj('#activity_date_time_time');
+		obj.before( obj.val() );
+		obj.hide();
+		cj('span.crm-clear-link').remove();
+		// participant
+		var obj = cj('#dsa_participant');
+		obj.before( cj('#dsa_participant option:selected').text() );
+		obj.hide();
+		// country
+		var obj = cj('#dsa_country');
+		obj.before( cj('#dsa_country option:selected').text() );
+		obj.hide();
+		// location
+		var obj = cj('#dsa_location');
+		obj.before( cj('#dsa_location option:selected').text() );
+		obj.hide();
+		// percentage
+		var obj = cj('#dsa_percentage');
+		obj.before( cj('#dsa_percentage option:selected').text() );
+		obj.hide();
+		// days
+		var obj = cj('#dsa_days');
+		obj.before( obj.val() );
+		obj.hide();
+		// amount
+		var obj = cj('#dsa_amount');
+		obj.before( obj.val() );
+		obj.hide();
+		// briefing
+		var obj = cj('#dsa_briefing');
+		obj.before( obj.val() );
+		obj.hide();
+		// airport
+		var obj = cj('#dsa_airport');
+		obj.before( obj.val() );
+		obj.hide();
+		// transfer
+		var obj = cj('#dsa_transfer');
+		obj.before( obj.val() );
+		obj.hide();
+		// hotel
+		var obj = cj('#dsa_hotel');
+		obj.before( obj.val() );
+		obj.hide();
+		// visa
+		var obj = cj('#dsa_visa');
+		obj.before( obj.val() );
+		obj.hide();
+		// medical
+		var obj = cj('#dsa_medical');
+		obj.before( obj.val() );
+		obj.hide();
+		// other
+		var obj = cj('#dsa_other');
+		obj.before( obj.val() );
+		obj.hide();
+		var obj = cj('#dsa_other_description');
+		obj.before( obj.val() );
+		obj.hide();
+		// advance
+		var obj = cj('#dsa_advance');
+		obj.before( obj.val() );
+		obj.hide();
+	}
+	if (restrict == '2') {
+		// status
+		var obj = cj('#status_id');
+		obj.before( cj('#status_id option:selected').text() );
+		obj.hide();
+		// submit
+		cj('span.crm-button_qf_Activity_upload').remove();
+		// cancel
+		cj('span.crm-button_qf_Activity_cancel').addClass('crm-button-type-upload').removeClass('crm-button-type-cancel');
+	}
 	
 	function processDSACountryChange(elm) {
 		// exit function if no country is selected

@@ -299,6 +299,20 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				$form->add('hidden', 'dsa_participant_id', NULL, array('id'=> 'dsa_participant_id'));
 				// Add a hidden field to hold the selected participants relationsship_type_id
 				$form->add('hidden', 'dsa_participant_role', NULL, array('id'=> 'dsa_participant_role'));
+				// Add hiddenfields to hold invoice numbers
+				$form->add('hidden', 'invoice_number', NULL, array('id'=> 'invoice_number', 'label'=>ts('Invoice Number')));
+				$form->add('hidden', 'invoice_dsa', NULL, array('id'=> 'invoice_dsa', 'label'=>ts('Invoice code DSA')));
+				$form->add('hidden', 'invoice_briefing', NULL, array('id'=> 'invoice_briefing', 'label'=>ts('Invoice code Briefing')));
+				$form->add('hidden', 'invoice_airport', NULL, array('id'=> 'invoice_airport', 'label'=>ts('Invoice code Airport')));
+				$form->add('hidden', 'invoice_transfer', NULL, array('id'=> 'invoice_transfer', 'label'=>ts('Invoice code Transfer')));
+				$form->add('hidden', 'invoice_hotel', NULL, array('id'=> 'invoice_hotel', 'label'=>ts('Invoice code Hotel')));
+				$form->add('hidden', 'invoice_visa', NULL, array('id'=> 'invoice_visa', 'label'=>ts('Invoice code Visa')));
+				$form->add('hidden', 'invoice_medical', NULL, array('id'=> 'invoice_medical', 'label'=>ts('Invoice code Medical')));
+				$form->add('hidden', 'invoice_other', NULL, array('id'=> 'invoice_other', 'label'=>ts('Invoice code Other')));
+				$form->add('hidden', 'invoice_advance', NULL, array('id'=> 'invoice_advance', 'label'=>ts('Invoice code Advance')));
+				// Add hidden field to control which fields can be edited (jquery, when form is first displayed)
+				$form->add('hidden', 'restrictEdit', NULL, array('id'=> 'restrictEdit'));
+
 				// Add the country field element to the form (standard civi country list)
 				$country = array('' => ts('- select -')) + CRM_Core_PseudoConstant::country();
 				$form->addElement('select', 'dsa_country', ts('DSA Country'), $country);
@@ -473,6 +487,8 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$defaults['dsa_advance'] = '0.00';
 					// Default approval details
 					$defaults['dsa_approval'] = '';
+					// Default flag to allow editing of all fields
+					$defaults['restrictEdit'] = '0';
 					
 				} else {
 					// Defaults for editing an existing DSA record
@@ -531,19 +547,27 @@ WHERE
 					} else {
 						$defaults['dsa_approval'] = 'Approved ' . $dao_defaults->approval_datetime . ' by ' . $dao_defaults->approver_name;
 					}
+					$defaults['invoice_number'] = $dao_defaults->invoice_number;
+					$defaults['invoice_dsa'] = $dao_defaults->invoice_dsa;
+					$defaults['invoice_briefing'] = $dao_defaults->invoice_briefing;
+					$defaults['invoice_airport'] = $dao_defaults->invoice_airport;
+					$defaults['invoice_transfer'] = $dao_defaults->invoice_transfer;
+					$defaults['invoice_hotel'] = $dao_defaults->invoice_hotel;
+					$defaults['invoice_visa'] = $dao_defaults->invoice_visa;
+					$defaults['invoice_medical'] = $dao_defaults->invoice_medical;
+					$defaults['invoice_other'] = $dao_defaults->invoice_other;
+					$defaults['invoice_advance'] = $dao_defaults->invoice_advance;
 				}
 				
-				// Apply default values
-				if (isset($defaults)) {
-					$form->setDefaults($defaults);
-				}
-								
 				// Apply filter on status list
 				// retrieve a complete list of available activity statusses
 				$arStatusLst = _retrieveActivityStatusList();
 				// Find field "status_id" and its value
 				$fldStatus = _findFieldByName($form, 'status_id');
+
 				// Modify the offered activity status list depending on activity_type and current status
+				// and decide which fields should be eitable: 0=edit all (restrict none), 1=edit status only (restrict the rest), 2=edit none (restict all)
+				$restrictEdit = '0';
 				if (!empty($fldStatus)) {
 					if (isset($fldStatus['id'])) {
 						$fldVal = $fldStatus['obj']->_values[0];
@@ -554,17 +578,24 @@ WHERE
 							case 'Scheduled':
 							case 'Cancelled':
 							case 'Not Required':
+								$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
+								$addSelect = TRUE;
+								$restrictEdit = '0';
+								break;
 							case 'dsa_payable':
 								$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
 								$addSelect = TRUE;
+								$restrictEdit = '1';
 								break;
 							case 'dsa_paid':
 								$allowedStatusName = array('dsa_paid');
 								$addSelect = FALSE;
+								$restrictEdit = '2';
 								break;
 							default:
 								$allowedStatusName = array($arStatusLst[$fldVal]);
 								$addSelect = TRUE;
+								$restrictEdit = '0';
 						}
 						
 						// apply modifictions
@@ -572,6 +603,13 @@ WHERE
 						$form->_elements[$fldStatus['id']]->_options = $newOptions;
 					}
 				}
+				$defaults['restrictEdit'] = $restrictEdit;
+				
+				// Apply default values
+				if (isset($defaults)) {
+					$form->setDefaults($defaults);
+				}
+				
 			} else {
 				// CRM_Case_Form_Activity but not type DSA
 				// Apply filter on status list
@@ -632,27 +670,27 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 				if ($fields['dsa_participant'] == '') {
 					$errors['dsa_participant'] = 'Please select a participant';
 				} else {
-				//===========================================================================================================
+					//===========================================================================================================
 
-				// only open DSA activity within case for this dsa_participant_id?
-				$caseId = $form->_caseId;
-				$activityId = $form->_activityId;
-				$participant_id = $fields['dsa_participant_id'];
-				// all current revisions of the current case' activities of type DSA in an unfinished status
-				try {
-					$dao_activities = _dao_findOpenDsaActivities($caseId, $activityId, $participant_id);
-				} catch(Exception $e) {
-					// ignore
-				}
+					// only open DSA activity within case for this dsa_participant_id?
+					$caseId = $form->_caseId;
+					$activityId = $form->_activityId;
+					$participant_id = $fields['dsa_participant_id'];
+					// all current revisions of the current case' activities of type DSA in an unfinished status
+					try {
+						$dao_activities = _dao_findOpenDsaActivities($caseId, $activityId, $participant_id);
+					} catch(Exception $e) {
+						// ignore
+					}
 //echo '<pre>';
 //print_r ($dao_activities);
 //echo '</pre>';
 //exit();
-				if ($dao_activities->N > 0) {
-					$errors['status_id'] = 'Only one \'open\' DSA activity per person allowed.';
-				}
+					if ($dao_activities->N > 0) {
+						$errors['status_id'] = 'Only one \'open\' DSA activity per person allowed.';
+					}
 
-				//===========================================================================================================
+					//===========================================================================================================
 				}
 
 				// days
