@@ -257,7 +257,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				}
 				
 				/* with a known $dsaId, we can find out if additional dsa data is already present
-				 * if so, it should be retreved for presentation
+				 * if so, it should be retrieved for presentation
 				 * if not, we should prepare default values
 				 */
 				if (is_null($dsaId)) {
@@ -291,7 +291,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				// Add a hidden field to hold a complete list of participators in this case 
 				// Retrieve all this cases participants
 				if (isset($form->_caseId)) {
-					$role_ar = _getCaseParticipantList($form->_caseId);
+					$role_ar = _getCaseParticipantList($form->_caseId, $form->_activityId);
 				}
 				$participant_options = array('' => ts('- select -')) + $role_ar;
 				$form->addElement('select', 'dsa_participant', ts('Participant'), $participant_options);
@@ -312,6 +312,10 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				$form->add('hidden', 'invoice_advance', NULL, array('id'=> 'invoice_advance', 'label'=>ts('Invoice code Advance')));
 				// Add hidden field to control which fields can be edited (jquery, when form is first displayed)
 				$form->add('hidden', 'restrictEdit', NULL, array('id'=> 'restrictEdit'));
+				// Add hidden field to store details for creditations
+				$form->add('hidden', 'credit_data', NULL, array('id'=> 'credit_data'));
+				// Add hidden field to store credited activity id
+				$form->add('hidden', 'credit_act_id', NULL, array('id'=> 'credit_act_id'));
 
 				// Add the country field element to the form (standard civi country list)
 				$country = array('' => ts('- select -')) + CRM_Core_PseudoConstant::country();
@@ -489,6 +493,8 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$defaults['dsa_approval'] = '';
 					// Default flag to allow editing of all fields
 					$defaults['restrictEdit'] = '0';
+					// Details for creditation of existing (paid) DSA activities (for jQuery to retrieve and process)
+					$defaults['credit_data'] = _creditationValues($role_ar);
 					
 				} else {
 					// Defaults for editing an existing DSA record
@@ -526,7 +532,12 @@ WHERE
 					$defaults['dsa_location_id'] = $dao_defaults->loc_id;
 					$defaults['dsa_participant_id'] = $dao_defaults->contact_id;
 					$defaults['dsa_participant_role'] = $dao_defaults->relationship_type_id;
-					$defaults['dsa_participant'] = $dao_defaults->contact_id . '|' . $dao_defaults->relationship_type_id . '|' . $dao_defaults->type;
+					if ($dao_defaults->type == 3) {
+						$defaults['dsa_participant'] = $dao_defaults->contact_id . '|' . $dao_defaults->relationship_type_id . '|' . $dao_defaults->type . '|' . $dao_defaults->credited_activity_id;
+					} else {
+						$defaults['dsa_participant'] = $dao_defaults->contact_id . '|' . $dao_defaults->relationship_type_id . '|' . $dao_defaults->type . '|0';
+					}
+					
 //dpm($defaults['dsa_participant'], 'Default participant');
 					$defaults['dsa_type'] = $dao_defaults->type;
 					$defaults['dsa_percentage'] = $dao_defaults->percentage;
@@ -547,6 +558,8 @@ WHERE
 					} else {
 						$defaults['dsa_approval'] = 'Approved ' . $dao_defaults->approval_datetime . ' by ' . $dao_defaults->approver_name;
 					}
+					// Details for creditation of existing (paid) DSA activities (for jQuery to retrieve and process)
+					$defaults['credit_data'] = _creditationValues($role_ar);
 					$defaults['invoice_number'] = $dao_defaults->invoice_number;
 					$defaults['invoice_dsa'] = $dao_defaults->invoice_dsa;
 					$defaults['invoice_briefing'] = $dao_defaults->invoice_briefing;
@@ -557,6 +570,7 @@ WHERE
 					$defaults['invoice_medical'] = $dao_defaults->invoice_medical;
 					$defaults['invoice_other'] = $dao_defaults->invoice_other;
 					$defaults['invoice_advance'] = $dao_defaults->invoice_advance;
+					
 				}
 				
 				// Apply filter on status list
@@ -653,7 +667,7 @@ WHERE
  */
 function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$errors ) {
 //echo '<pre>';
-//dpm($fields, "HOOK_VALIDATEFORM: FIELDS ON ". $formName);
+////dpm($fields, "HOOK_VALIDATEFORM: FIELDS ON ". $formName);
 //echo '================================';
 //print_r ($fields);
 //echo '================================';
@@ -692,55 +706,62 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 
 					//===========================================================================================================
 				}
-
-				// days
-				$fieldValue=trim($fields['dsa_days']);	
-				if ((!CRM_Utils_Type::validate($fieldValue, 'Positive', False)) && (!$fieldValue==0)) {
-					$errors['dsa_days'] = ts('Please enter a valid number of days');
-				}
-				// amounts
-				$fldNames= array(
-					'dsa_amount',
-					'dsa_briefing',
-					'dsa_airport',
-					'dsa_transfer',
-					'dsa_hotel',
-					'dsa_visa',
-					'dsa_medical',
-					'dsa_other',
-					'dsa_advance'); // 'dsa_debriefing',
-				$result = TRUE;
-				foreach($fldNames as $name) {
-					$result = $result and _amountCheck($name, $fields, $errors);
-				}
-				
-				// minimum DSA amount
-				if ( (!array_key_exists('dsa_amount', $errors))  &&	(!array_key_exists('dsa_days', $errors)) ) {
-					$params = array(
-						'version' => 3,
-						'q' => 'civicrm/ajax/rest',
-						'sequential' => 1,
-						'option_group_name' => 'dsa_configuration',
-						'name' => 'minimum_dsa_amount',
-						'return' => 'name,value',
-					);
-					try {
-						$result = civicrm_api('OptionValue', 'getsingle', $params);
-						$minimumAmount = $result['value'];
-					} catch (Exception $e) {
-						$minimumAmount = '0.00';
+				if ($fields['dsa_type'] == 1) {
+					// days
+					$fieldValue=trim($fields['dsa_days']);	
+					if ((!CRM_Utils_Type::validate($fieldValue, 'Positive', False)) && (!$fieldValue==0)) {
+						$errors['dsa_days'] = ts('Please enter a valid number of days');
 					}
-					if ( ($fields['dsa_amount'] / $fields['dsa_days']) < ($minimumAmount * $fields['dsa_percentage'] / 100) ) {
-						$errors['dsa_amount'] = ts('Minimum 100% daily DSA amount is') . ' ' . $minimumAmount;
+					// amounts
+					$fldNames= array(
+						'dsa_amount',
+						'dsa_briefing',
+						'dsa_airport',
+						'dsa_transfer',
+						'dsa_hotel',
+						'dsa_visa',
+						'dsa_medical',
+						'dsa_other',
+						'dsa_advance'); // 'dsa_debriefing',
+					$result = TRUE;
+					foreach($fldNames as $name) {
+						$result = $result and _amountCheck($name, $fields, $errors);
 					}
-				}
 				
+					// minimum DSA amount
+					if ( (!array_key_exists('dsa_amount', $errors))  &&	(!array_key_exists('dsa_days', $errors)) ) {
+						$params = array(
+							'version' => 3,
+							'q' => 'civicrm/ajax/rest',
+							'sequential' => 1,
+							'option_group_name' => 'dsa_configuration',
+							'name' => 'minimum_dsa_amount',
+							'return' => 'name,value',
+						);
+						try {
+							$result = civicrm_api('OptionValue', 'getsingle', $params);
+							$minimumAmount = $result['value'];
+						} catch (Exception $e) {
+							$minimumAmount = '0.00';
+						}
+						if ( ($fields['dsa_amount'] / $fields['dsa_days']) < ($minimumAmount * $fields['dsa_percentage'] / 100) ) {
+							$errors['dsa_amount'] = ts('Minimum 100% daily DSA amount is') . ' ' . $minimumAmount;
+						}
+					}
+					
+					
+					// if 'other' amnount is filled out, a description is required as well
+					if (!array_key_exists('dsa_other', $errors)) {
+						if (($fields['dsa_other']!=0) && (trim($fields['dsa_other_description'])=='')) {
+							$errors['dsa_other_description'] = ts('Please describe Expense Other');
+							$result = FALSE;
+						}
+					}
 				
-				// if 'other' amnount is filled out, a description is required as well
-				if (!array_key_exists('dsa_other', $errors)) {
-					if (($fields['dsa_other']!=0) && (trim($fields['dsa_other_description'])=='')) {
-						$errors['dsa_other_description'] = ts('Please describe Expense Other');
-						$result = FALSE;
+				} else {
+					// $fields['dsa_type'] = 3; creditation
+					if ($fields['credit_act_id'] == '') {
+						$errors['dsa_participant'] = ts('Unexpected error: could not obtain activity id for creditation');
 					}
 				}
 			}
@@ -774,13 +795,13 @@ function _amountCheck($fieldName, $fields, &$errors) {
 function dsa_civicrm_postProcess( $formName, &$form ) {	
 	switch($formName) {
 		case 'CRM_Case_Form_Activity':
-/*
-echo '<pre>';
-print_r($form);
+
+//echo '<pre>';
+//print_r($form);
 //print_r($formName);
-echo '</pre>';
+//echo '</pre>';
 //exit();
-//*/
+
 			
 			// Determine activity id for additional dsa data
 			if (isset($form->_defaultValues['original_id'])) {
@@ -808,85 +829,88 @@ echo '</pre>';
 			} else {
 				$action = 0;
 			}
+
+// -----
+			if ($form->_submitValues['dsa_type'] == 1) {
 			
-			// html fieldname -> column name
-			$required = array(
-				'dsa_type'				=>	array(
-											'column'	=> 'type',
-											'type'		=> 'number',
-											),
-				'dsa_participant_id'	=>	array(
-											'column'	=> 'contact_id',
-											'type'		=> 'text',
-											),
-				'dsa_participant_role'	=>	array(
-											'column'	=> 'relationship_type_id',
-											'type'		=> 'text',
-											),
-				'dsa_location_id'			=>	array(
-											'column'	=> 'loc_id',
-											'type'		=> 'text',
-											),
-				'dsa_percentage'		=>  array(
-											'column'	=> 'percentage',
-											'type'		=> 'number',
-											),
-				'dsa_days'				=>  array(
-											'column'	=> 'days',
-											'type'		=> 'number',
-											),
-				'dsa_amount'			=>  array(
-											'column'	=> 'amount_dsa',
-											'type'		=> 'number',
-											),
-				'dsa_briefing'			=>  array(
-											'column'	=> 'amount_briefing',
-											'type'		=> 'number',
-											),
-				/*
-				'dsa_debriefing'		=>  array(
-											'column'	=> 'amount_debriefing',
-											'type'		=> 'number',
-											),
-				*/
-				'dsa_airport'			=>  array(
-											'column'	=> 'amount_airport',
-											'type'		=> 'number',
-											),
-				'dsa_transfer'			=>  array(
-											'column'	=> 'amount_transfer',
-											'type'		=> 'number',
-											),
-				'dsa_hotel'				=>  array(
-											'column'	=> 'amount_hotel',
-											'type'		=> 'number',
-											),
-				'dsa_visa'				=>  array(
-											'column'	=> 'amount_visa',
-											'type'		=> 'number',
-											),
-				'dsa_medical'			=>  array(
-											'column'	=> 'amount_medical',
-											'type'		=> 'number',
-											),
-				'dsa_other'				=>  array(
-											'column'	=> 'amount_other',
-											'type'		=> 'number',
-											),
-				'dsa_other_description'	=>  array(
-											'column'	=> 'description_other',
-											'type'		=> 'text',
-											),
-				'dsa_advance'			=>  array(
-											'column'	=> 'amount_advance',
-											'type'		=> 'number',
-											),
-				'dsa_ref_dt'			=>	array(
-											'column'	=> 'ref_date',
-											'type'		=> 'text',
-											),
-			);
-	
+				// html fieldname -> column name
+				$required = array(
+					'dsa_type'				=>	array(
+												'column'	=> 'type',
+												'type'		=> 'number',
+												),
+					'dsa_participant_id'	=>	array(
+												'column'	=> 'contact_id',
+												'type'		=> 'text',
+												),
+					'dsa_participant_role'	=>	array(
+												'column'	=> 'relationship_type_id',
+												'type'		=> 'text',
+												),
+					'dsa_location_id'			=>	array(
+												'column'	=> 'loc_id',
+												'type'		=> 'text',
+												),
+					'dsa_percentage'		=>  array(
+												'column'	=> 'percentage',
+												'type'		=> 'number',
+												),
+					'dsa_days'				=>  array(
+												'column'	=> 'days',
+												'type'		=> 'number',
+												),
+					'dsa_amount'			=>  array(
+												'column'	=> 'amount_dsa',
+												'type'		=> 'number',
+												),
+					'dsa_briefing'			=>  array(
+												'column'	=> 'amount_briefing',
+												'type'		=> 'number',
+												),
+					/*
+					'dsa_debriefing'		=>  array(
+												'column'	=> 'amount_debriefing',
+												'type'		=> 'number',
+												),
+					*/
+					'dsa_airport'			=>  array(
+												'column'	=> 'amount_airport',
+												'type'		=> 'number',
+												),
+					'dsa_transfer'			=>  array(
+												'column'	=> 'amount_transfer',
+												'type'		=> 'number',
+												),
+					'dsa_hotel'				=>  array(
+												'column'	=> 'amount_hotel',
+												'type'		=> 'number',
+												),
+					'dsa_visa'				=>  array(
+												'column'	=> 'amount_visa',
+												'type'		=> 'number',
+												),
+					'dsa_medical'			=>  array(
+												'column'	=> 'amount_medical',
+												'type'		=> 'number',
+												),
+					'dsa_other'				=>  array(
+												'column'	=> 'amount_other',
+												'type'		=> 'number',
+												),
+					'dsa_other_description'	=>  array(
+												'column'	=> 'description_other',
+												'type'		=> 'text',
+												),
+					'dsa_advance'			=>  array(
+												'column'	=> 'amount_advance',
+												'type'		=> 'number',
+												),
+					'dsa_ref_dt'			=>	array(
+												'column'	=> 'ref_date',
+												'type'		=> 'text',
+												),
+				);
+		
 /*
 echo '<pre>';
 print_r($required);
@@ -894,18 +918,18 @@ echo '</pre>';
 //exit();
 //*/
 	
-			$input = array();
-			if  (($action & CRM_Core_Action::$_names['add']) || ($action & CRM_Core_Action::$_names['update'])) {
-				$input['activity_id'] = $dsaId;
-				if (isset($form->_caseId)) {
-					$input['case_id'] = $form->_caseId;
-				}
-//				if (isset($form->_pid)) {
-//					$input['pid'] = $form->_pid; // for creditation: parent activity id
-//				}
-				if (isset($form->_cid)) {
-					$input['cid'] = $form->_cid; // experts contact id
-				}
+				$input = array();
+				if  (($action & CRM_Core_Action::$_names['add']) || ($action & CRM_Core_Action::$_names['update'])) {
+					$input['activity_id'] = $dsaId;
+					if (isset($form->_caseId)) {
+						$input['case_id'] = $form->_caseId;
+					}
+//					if (isset($form->_pid)) {
+//						$input['pid'] = $form->_pid; // for creditation: parent activity id
+//					}
+					if (isset($form->_cid)) {
+						$input['cid'] = $form->_cid; // experts contact id
+					}
 /*
 echo '<pre>';
 print_r($input);
@@ -913,60 +937,124 @@ echo '</pre>';
 exit();
 //*/
 
-				if (isset($form->_elements)) {
-					$elm = $form->_elements;
-					// filter dsa fields from the full list of submitted fields
-					foreach($elm as $key=>$def) {
-						if (isset($def->_attributes['name'])) {
-							$name = $def->_attributes['name'];
-							$value = NULL;
-							if (array_key_exists($name, $required)) {
-								if (strpos($name, 'dsa_') === 0) {
-									$column = $required[$name];
-									$type = $def->_type;
-									switch ($type) {
-										case 'textarea':
-											$value=$def->_value;
-											break;
-										case 'select':
-											$value=implode(',', array_values($def->_values));
-											break;
-										case 'text':
-										case 'hidden':
-											if (isset($def->_attributes['value'])) {
-												$value=$def->_attributes['value'];
-											} else {
-												$value='';
-											}
-											break;
-										default:
-											$value = NULL;
-									}
-									if (!is_null($value)) {
-										if ($column['type']=='number') {
-											$value = floatval($value);
-										} else {
-											$value = '\'' . str_ireplace(array('\'', '\"'), array('\\\'', '\\\"'), $value) . '\'';
+					if (isset($form->_elements)) {
+						$elm = $form->_elements;
+						// filter dsa fields from the full list of submitted fields
+						foreach($elm as $key=>$def) {
+							if (isset($def->_attributes['name'])) {
+								$name = $def->_attributes['name'];
+								$value = NULL;
+								if (array_key_exists($name, $required)) {
+									if (strpos($name, 'dsa_') === 0) {
+										$column = $required[$name];
+										$type = $def->_type;
+										switch ($type) {
+											case 'textarea':
+												$value=$def->_value;
+												break;
+											case 'select':
+												$value=implode(',', array_values($def->_values));
+												break;
+											case 'text':
+											case 'hidden':
+												if (isset($def->_attributes['value'])) {
+													$value=$def->_attributes['value'];
+												} else {
+													$value='';
+												}
+												break;
+											default:
+												$value = NULL;
 										}
-									} else {
-										$value = 'NULL';
+										if (!is_null($value)) {
+											if ($column['type']=='number') {
+												$value = floatval($value);
+											} else {
+												$value = _strParseSql($value);
+											}
+										} else {
+											$value = 'NULL';
+										}
+										
+										$input[$column['column']] = $value;
 									}
-									
-									$input[$column['column']] = $value;
 								}
 							}
 						}
 					}
-				}
-				
-				/*
+					
+/*
 echo '<pre>';
 print_r($input);
 //print_r($debug);
 echo '</pre>';
 exit();
 //*/
+				}
+				
+			} else {
+				// $form->_submitValues['dsa_type'] = 3 for creditation
+				// use submitted credit_act_id to collect fields from original payment
+				$sql = '
+SELECT
+  dsa.case_id,
+  dsa.contact_id,
+  dsa.relationship_type_id,
+  dsa.loc_id,
+  dsa.percentage,
+  dsa.days,
+  dsa.amount_dsa,
+  dsa.amount_briefing,
+  dsa.amount_airport,
+  dsa.amount_transfer,
+  dsa.amount_hotel,
+  dsa.amount_visa,
+  dsa.amount_medical,
+  dsa.amount_other,
+  dsa.description_other,
+  dsa.amount_advance,
+  dsa.ref_date,
+  dsa.invoice_number
+FROM
+  civicrm_activity act,
+  civicrm_dsa_compose dsa
+WHERE
+  act.id = ' . $form->_submitValues['credit_act_id'] . ' AND
+  ifnull(act.original_id, act.id) = dsa.activity_id
+				';
+				$dao = CRM_Core_DAO::executeQuery($sql);
+				$result = $dao->fetch();
+				$input = array();
+				if  (($action & CRM_Core_Action::$_names['add']) || ($action & CRM_Core_Action::$_names['update'])) {
+					$input['type'] = $form->_submitValues['dsa_type'];
+					$input['case_id'] = $dao->case_id;
+					$input['activity_id'] = $dsaId;
+					$input['contact_id'] = $dao->contact_id;
+					$input['relationship_type_id'] = $dao->relationship_type_id;
+					$input['loc_id'] = $dao->loc_id;
+					$input['percentage'] = $dao->percentage;
+					$input['days'] = $dao->days;
+					$input['amount_dsa'] = $dao->amount_dsa;
+					$input['amount_briefing'] = $dao->amount_briefing;
+					$input['amount_airport'] = $dao->amount_airport;
+					$input['amount_transfer'] = $dao->amount_transfer;
+					$input['amount_hotel'] = $dao->amount_hotel;
+					$input['amount_visa'] = $dao->amount_visa;
+					$input['amount_medical'] = $dao->amount_medical;
+					$input['amount_other'] = $dao->amount_other;
+					$input['description_other'] = _strParseSql($dao->description_other);
+					$input['amount_advance'] = $dao->amount_advance;
+					if (is_null($dao->ref_date)) {
+						$input['ref_date'] = _strParseSql('NULL');
+					} else {
+						$input['ref_date'] = _strParseSql($dao->ref_date);
+					}
+					// payment_id is added in the payment process
+					$input['invoice_number'] = _strParseSql($dao->invoice_number); // creditations reuse the original invoice numbers
+					$input['credited_activity_id'] = $form->_submitValues['credit_act_id'];
+				}
 			}
+// --------
 			
 			// add / remove approver
 			$approver_id = $form->_currentUserId;
@@ -1019,6 +1107,20 @@ exit();
 	} // switch ($formName)
 //	exit();
 	return;
+}
+
+/*
+ * Helper function to prepare text values for use in sql by
+ * - escaping existing quotes and
+ * - enclosing the text in new quotes
+ * NULL values remain in tact
+ */
+function _strParseSql($value='') {
+	if (is_null($value)) {
+		return NULL;
+	} else {
+		return '\'' . str_ireplace(array('\'', '\"'), array('\\\'', '\\\"'), $value) . '\'';
+	}
 }
 
 function _dao_findOpenDsaActivities($caseId, $activityId=NULL, $participant_id=NULL) {
@@ -1188,7 +1290,241 @@ function _findFieldByName($form, $fldName) {
 	return $result;
 }
 
-function _getCaseParticipantList($case_id) {
+function _getCaseParticipantList($case_id, $activity_id) {
+//dpm($activity_id, 'activity_id');
+
+	// dsa activities could be referenced by $activity_id
+	// in that case the offered participants list is limited to the participant saved earlier (to avoid mixing up payment- and creditation amounts)
+	// however, if the activity is made through case management (defined in XML), we have an activity_id, but no participant yet. In that case: disregard the activity id (set to NULL).
+	// find out by first looking for a participant
+	if (!is_null($activity_id)) {
+		$sql_participant = '
+SELECT
+  act.id,
+  ifnull(act.original_id, act.id) dsa_id,
+  ifnull(dsa.contact_id, 0) contact_id
+FROM
+  civicrm_activity act
+  LEFT JOIN civicrm_dsa_compose dsa
+    ON dsa.activity_id = ifnull(act.original_id, act.id)
+WHERE
+  act.id = ' . $activity_id;
+  
+		$dao_participant = CRM_Core_DAO::executeQuery($sql_participant);
+		$dao_participant->fetch();
+		if ($dao_participant->contact_id == 0) {
+			$activity_id = NULL;
+		}
+	}
+	
+	// 2 scenarios now:
+	// - activity id is (no longer) available -> prepare a participants options based on case members and existing dsa activities
+	// - activity id and participant are known -> prepare a single option list with only that participant
+	
+	$ar_options = array();
+	if (is_null($activity_id)) {
+		// activity_id is not available -> use case_id to build a participant options list based on case roles and existing DSA activities
+		$sql_role = '
+SELECT	rs.contact_id_b as contact_id,
+		rt.label_b_a as role,
+		rs.relationship_type_id as type_id,
+		ct.display_name as name
+FROM	civicrm_relationship rs,
+		civicrm_relationship_type rt,
+		civicrm_contact ct
+WHERE	rs.case_id = ' . $case_id . '
+		  and	rt.id = rs.relationship_type_id
+		  and	rs.contact_id_b = ct.id
+ORDER BY
+		contact_id,
+		role,
+		name
+		';
+		$dao_role = CRM_Core_DAO::executeQuery($sql_role);
+		while($dao_role->fetch()) {
+			// by default, the array is set-up as if no dsa records will be found and can be created
+			if (!array_key_exists($dao_role->contact_id, $ar_options)) {
+				$ar_options[$dao_role->contact_id] = array();
+			}
+			$ar_options[$dao_role->contact_id][$dao_role->type_id] = array(
+				'contact'		=> $dao_role->name,
+				'role'			=> ts($dao_role->role),
+				'dsa_type'		=> '1',
+				'description'	=> 'Payment',
+				'dsa'			=> array(),
+				'dsa_id'		=> 0
+			);
+		}
+		
+		$sql_dsa = '
+SELECT
+  dsa.*,
+  cas.id case_id,
+  act.id activity_id,
+  act.status_id,
+  ogv2.name status_name,
+  con.display_name,
+  ifnull(rst.label_b_a, \'-\') AS role
+FROM
+  civicrm_case cas,
+  civicrm_case_activity cact,
+  civicrm_activity act,
+  civicrm_dsa_compose dsa
+  left join civicrm_relationship_type rst on  rst.id = dsa.relationship_type_id,
+  civicrm_option_value ogv2,
+  civicrm_option_group ogp2,
+  civicrm_contact con
+WHERE
+  cas.id = ' . $case_id . ' AND
+  cact.case_id = cas.id AND
+  act.id = cact.activity_id AND
+  act.is_current_revision = 1 AND
+  ogp2.name = \'activity_status\' AND
+  ogv2.option_group_id = ogp2.id AND
+  act.status_id = ogv2.value AND
+  con.id = dsa.contact_id AND
+  dsa.activity_id = ifnull(
+                      act.original_id,
+                      act.id) AND
+  act.activity_type_id IN (SELECT
+                             ogv1.value
+                           FROM
+                             civicrm_option_value ogv1,
+                             civicrm_option_group ogp1
+                           WHERE
+                             ogv1.option_group_id = ogp1.id AND
+                             ogp1.name = \'activity_type\' AND
+                             ogv1.name = \'DSA\')
+ORDER BY
+  dsa.contact_id,
+  dsa.activity_id
+		';
+		
+		$dao_dsa = CRM_Core_DAO::executeQuery($sql_dsa);
+		while($dao_dsa->fetch()) {
+			$contact = $dao_dsa->contact_id;
+			if (!array_key_exists($contact, $ar_options)) {
+				$ar_options[$contact] = array();
+			}
+			$role = $dao_dsa->relationship_type_id;
+			if (!array_key_exists($role, $ar_options[$contact])) {
+				$ar_options[$contact][$role] = array();
+			}
+			if (!array_key_exists('contact', $ar_options[$contact][$role])) {
+				$ar_options[$contact][$role]['contact'] = $dao_dsa->display_name;
+			}
+			if (!array_key_exists('role', $ar_options[$contact][$role])) {
+				$ar_options[$contact][$role]['role'] = $dao_dsa->role;
+			}
+			
+			// note regarding dsa_type:
+			// 1 indicates a payment,
+			// 3 indicated a creditation
+			// 0 is used below to suppress to suppress any dsa creation (for a participant / contact)
+			// 2 was intended for settlement, but was abandoned while building this extension
+			if ($dao_dsa->activity_id == $activity_id) {
+				$ar_options[$contact][$role]['dsa_type'] = $dao_dsa->type;
+				$ar_options[$contact][$role]['description'] = ($dao_dsa->type==1?'Payment':'Credit');
+				$ar_options[$contact][$role]['dsa_id'] = ($dao_dsa->type==1?'0':$dao_dsa->credited_activity_id);
+			} elseif ($dao_dsa->status_name != 'dsa_paid') {
+				// dsa found, but status not paid -> will have to process existing record before starting a new one
+				$ar_options[$contact][$role]['dsa_type'] = 0;
+				$ar_options[$contact][$role]['description'] = '';
+				$ar_options[$contact][$role]['dsa_id'] = 0;
+			} elseif ($dao_dsa->type == 1) {
+				// payment is paid -> can be credited
+				$ar_options[$contact][$role]['dsa_type'] = 3;
+				$ar_options[$contact][$role]['description'] = 'Credit';
+				$ar_options[$contact][$role]['dsa_id'] = $dao_dsa->activity_id; // on activity: original activity id of earlier payment
+			} elseif ($dao_dsa->type == 3) {
+				// creditation marked paid -> can start new payment
+				$ar_options[$contact][$role]['dsa_type'] = 1;
+				$ar_options[$contact][$role]['description'] = 'Payment';
+				$ar_options[$contact][$role]['dsa_id'] = 0;
+			} else {
+				// should not occur: not paid and an unknown type -> block new DSA until issue is solved
+				$ar_options[$contact][$role]['dsa_type'] = 0;
+				$ar_options[$contact][$role]['description'] = '';
+				$ar_options[$contact][$role]['dsa_id'] = 0;
+			}
+
+			// for creditation: track payment details
+			if ($ar_options[$contact][$role]['dsa_type'] == 3) {
+				$ar_options[$contact][$role]['dsa'] = $dao_dsa;
+			} else {
+				$ar_options[$contact][$role]['dsa'] = array();
+			}
+		}
+	} else {
+		// $activity_id and participant are available: options list should be restricted to that single option
+		// this should avoid showing a participants creditation amounts on other another participants payment activity
+		$sql_dsa = '
+SELECT
+  dsa.*,
+  act.id activity_id,
+  act.status_id,
+  ogv.name status_name,
+  con.display_name,
+  ifnull(rst.label_b_a, \'-\') AS role
+FROM
+  civicrm_activity act,
+  civicrm_dsa_compose dsa
+  left join civicrm_relationship_type rst on  rst.id = dsa.relationship_type_id,
+  civicrm_option_value ogv,
+  civicrm_option_group ogp,
+  civicrm_contact con
+WHERE
+  act.id = ' . $activity_id . ' AND
+  ogp.name = \'activity_status\' AND
+  ogv.option_group_id = ogp.id AND
+  act.status_id = ogv.value AND
+  con.id = dsa.contact_id AND
+  dsa.activity_id = ifnull(
+                      act.original_id,
+                      act.id)
+		';
+		$dao_dsa = CRM_Core_DAO::executeQuery($sql_dsa);
+		while($dao_dsa->fetch()) {
+			$contact = $dao_dsa->contact_id;
+			$ar_options[$contact] = array();
+
+			$role = $dao_dsa->relationship_type_id;
+			$ar_options[$contact][$role] = array();
+
+			$ar_options[$contact][$role]['contact'] = $dao_dsa->display_name;
+			$ar_options[$contact][$role]['role'] = $dao_dsa->role;
+						
+			$ar_options[$contact][$role]['dsa_type'] = $dao_dsa->type;
+			$ar_options[$contact][$role]['description'] = ($dao_dsa->type==1?'Payment':'Credit');
+			$ar_options[$contact][$role]['dsa_id'] = ($dao_dsa->type==1?'0':$dao_dsa->credited_activity_id);
+
+			// for creditation: track payment details
+			if ($ar_options[$contact][$role]['dsa_type'] == 3) {
+				$ar_options[$contact][$role]['dsa'] = $dao_dsa;
+			} else {
+				$ar_options[$contact][$role]['dsa'] = array();
+			}
+		}
+	}
+	
+//dpm($ar_options, '#ar_options');
+	
+	$result = array();
+	foreach($ar_options as $contact=>$contact_data) {
+		foreach($contact_data as $role=>$role_data) {
+//			dpm($role_data, 'role data');
+//		is_null($activity_id)
+			if ( ($role_data['dsa_type']=='1') || ($role_data['dsa_type']=='3') ) {
+				$result[$contact . '|' . $role . '|' . $role_data['dsa_type'] . '|' . $role_data['dsa_id']] = ts($role_data['description']) . ': ' . $role_data['contact'] . ' (' . ts($role_data['role']) . ')';
+			}
+		}
+	}
+	asort($result);
+	
+	return $result; // for creditation: need to add dsa amounts and original activity_id as well
+
+/*	
+	// original code:
 	$sql = '
 		SELECT	rs.contact_id_b as contact_id,
 				rt.label_b_a as role,
@@ -1212,4 +1548,66 @@ function _getCaseParticipantList($case_id) {
 			$role_ar[$dao_role->contact_id . '|' . $dao_role->type_id . '|' . $dao_role->payment_type] = ts($dao_role->payment_description) . ': ' . $dao_role->name . ' (' . ts($dao_role->role) . ')';
 		}
 		return $role_ar;
+*/
+}
+
+function _creditationValues($role_ar) {
+	// Details for creditation of existing (paid) DSA activities (for jQuery to retrieve and process)
+	$activity = array();
+	foreach($role_ar as $role_key=>$role_disp) {
+		$act_details = explode('|', $role_key);
+		if ($act_details[2] == '3') {
+			// creditation option
+			$activity[] = $act_details[3]; // represents the original activity id of the earlier payment
+		}
+	}
+	
+//dpm($activity, 'activity');
+	if (!empty($activity)) {
+//dpm($activity, 'activities for creditation');
+		$sql=' 
+SELECT
+  act.id act_id,
+  act.original_id,
+  ifnull(act.original_id, act.id) dsa_id,
+  act.subject,
+  dsa.*
+FROM
+  civicrm_activity act,
+  civicrm_dsa_compose dsa
+WHERE
+  act.id IN (' . implode(', ', $activity) . ') AND
+  dsa.activity_id = ifnull(act.original_id, act.id)
+		';
+		$dao = CRM_Core_DAO::executeQuery($sql);
+		$credit_data = array();
+		while($dao->fetch()) {
+//dpm($dao, '$dao');
+			$credit_line = array();
+			$credit_line[] = $dao->act_id;
+			$credit_line[] = $dao->dsa_id;
+			$credit_line[] = $dao->invoice_number;
+			$credit_line[] = $dao->loc_id;
+			$credit_line[] = $dao->percentage;
+			$credit_line[] = $dao->days;
+			$credit_line[] = $dao->amount_dsa;
+			$credit_line[] = $dao->amount_briefing;
+			$credit_line[] = $dao->amount_airport;
+			$credit_line[] = $dao->amount_transfer;
+			$credit_line[] = $dao->amount_hotel;
+			$credit_line[] = $dao->amount_visa;
+			$credit_line[] = $dao->amount_medical;
+			$credit_line[] = $dao->amount_other;
+			$credit_line[] = str_replace(
+								array('|', '#'),
+								array('_', '_'),
+								$dao->description_other);
+			$credit_line[] = $dao->amount_advance;
+			$credit_line[] = $dao->ref_date;
+			$credit_data[] = implode('|', $credit_line);
+		}
+		return implode('#', $credit_data);
+	} else {
+		return '';
+	}
 }

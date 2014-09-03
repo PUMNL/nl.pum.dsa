@@ -281,6 +281,22 @@ class DSA_OptionGroup {
 						'description'	=> 'Minimum DSA amount (1 day at 100%)',
 						'default'		=> FALSE,
 					),
+					array(
+						'label'			=> 'Mail FA',
+						'name'			=> 'mail_fa',
+						'value'			=> 'mailto.address@organisation.domain',
+						'weight'		=> 40,
+						'description'	=> 'Email address at financial department to send DSA payment lines to',
+						'default'		=> FALSE,
+					),
+					array(
+						'label'			=> 'Mail From',
+						'name'			=> 'mail_from',
+						'value'			=> 'dsa.paymentprocessor <from.address@organisation.domain>',
+						'weight'		=> 50,
+						'description'	=> 'Defines the from-address when sending a payment email to the financial department',
+						'default'		=> FALSE,
+					),
 				),
 			),
 		);

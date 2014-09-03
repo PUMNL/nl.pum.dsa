@@ -20,6 +20,8 @@
 {$form.invoice_medical.html}
 {$form.invoice_other.html}
 {$form.restrictEdit.html}
+{$form.credit_data.html}
+{$form.credit_act_id.html}
 <table id="dsa-temp">
 	<tr>
 		<td colspan="2">
@@ -176,96 +178,11 @@
 	cj('#dsa_country').trigger('change', ['{$form.dsa_location.value[0]']);
 	// trigger calculation of total amount
 	processTotal();
+	createDisplayFields();
+	displayControl();
+	// trigger onChange on dsa_participant to set dsa_type and credit activity id
+	cj('#dsa_participant').trigger('change');
 	
-	// disable fields depending on status
-	var restrict = cj('#restrictEdit').val();
-	if ((restrict == '1') || (restrict == '2')) {
-		// with client
-		cj('tr#with-clients > td.view-value > br').remove;
-		cj('tr#with-clients > td.view-value > a.crm-with-contact').remove();
-		// reported by
-		var obj = cj('#source_contact_id');
-		obj.before( obj.val() );
-		obj.hide();
-		// date (and time)
-		var obj = cj('#activity_date_time');
-		obj.before( obj.val() );
-		var obj = cj('#activity_date_time_display');
-		obj.hide();
-		var obj = cj('#activity_date_time_time');
-		obj.before( obj.val() );
-		obj.hide();
-		cj('span.crm-clear-link').remove();
-		// participant
-		var obj = cj('#dsa_participant');
-		obj.before( cj('#dsa_participant option:selected').text() );
-		obj.hide();
-		// country
-		var obj = cj('#dsa_country');
-		obj.before( cj('#dsa_country option:selected').text() );
-		obj.hide();
-		// location
-		var obj = cj('#dsa_location');
-		obj.before( cj('#dsa_location option:selected').text() );
-		obj.hide();
-		// percentage
-		var obj = cj('#dsa_percentage');
-		obj.before( cj('#dsa_percentage option:selected').text() );
-		obj.hide();
-		// days
-		var obj = cj('#dsa_days');
-		obj.before( obj.val() );
-		obj.hide();
-		// amount
-		var obj = cj('#dsa_amount');
-		obj.before( obj.val() );
-		obj.hide();
-		// briefing
-		var obj = cj('#dsa_briefing');
-		obj.before( obj.val() );
-		obj.hide();
-		// airport
-		var obj = cj('#dsa_airport');
-		obj.before( obj.val() );
-		obj.hide();
-		// transfer
-		var obj = cj('#dsa_transfer');
-		obj.before( obj.val() );
-		obj.hide();
-		// hotel
-		var obj = cj('#dsa_hotel');
-		obj.before( obj.val() );
-		obj.hide();
-		// visa
-		var obj = cj('#dsa_visa');
-		obj.before( obj.val() );
-		obj.hide();
-		// medical
-		var obj = cj('#dsa_medical');
-		obj.before( obj.val() );
-		obj.hide();
-		// other
-		var obj = cj('#dsa_other');
-		obj.before( obj.val() );
-		obj.hide();
-		var obj = cj('#dsa_other_description');
-		obj.before( obj.val() );
-		obj.hide();
-		// advance
-		var obj = cj('#dsa_advance');
-		obj.before( obj.val() );
-		obj.hide();
-	}
-	if (restrict == '2') {
-		// status
-		var obj = cj('#status_id');
-		obj.before( cj('#status_id option:selected').text() );
-		obj.hide();
-		// submit
-		cj('span.crm-button_qf_Activity_upload').remove();
-		// cancel
-		cj('span.crm-button_qf_Activity_cancel').addClass('crm-button-type-upload').removeClass('crm-button-type-cancel');
-	}
 	
 	function processDSACountryChange(elm) {
 		// exit function if no country is selected
@@ -336,10 +253,17 @@
 	function processDSAParticipantChange(elm) {
 		//CRM.alert('Participant changed');
 		cj('#subject').val(cj('#dsa_participant option:selected').text());
-		var data = (cj('#dsa_participant').val() + '|0|0').split('|');
+		var data = (cj('#dsa_participant').val() + '|0|0|0').split('|');
 		cj('#dsa_participant_id').val(data[0]);
 		cj('#dsa_participant_role').val(data[1]);
 		cj('#dsa_type').val(data[2]);
+		if (data[2]=='3') {
+			cj('#credit_act_id').val(data[3]);
+		} else {
+			cj('#credit_act_id').val('');
+		}
+		//data[2] -> toggle display
+		displayControl();
 		return true;
 	}
 	
@@ -365,6 +289,243 @@
 	function parseNumeric(num) {
 		result = parseFloat(num);
 		return isNaN(result)?0:result;
+	}
+	
+	function createDisplayFields() {
+		cj('#source_contact_id').before( '<span id="source_contact_id_dsp"></span>' );
+		cj('#activity_date_time').before( '<span id="activity_date_time_dsp"></span>' );
+		cj('#activity_date_time_time').before( '<span id="activity_date_time_time_dsp"></span>' );
+		cj('#dsa_participant').before( '<span id="dsa_participant_dsp"></span>' );
+		cj('#dsa_country').before( '<span id="dsa_country_dsp"></span>' );
+		cj('#dsa_location').before( '<span id="#dsa_location_dsp"></span>' );
+		cj('#dsa_percentage').before( '<span id="dsa_percentage_dsp"></span>' );
+		cj('#dsa_days').before( '<span id="dsa_days_dsp"></span>' );
+		cj('#dsa_amount').before( '<span id="dsa_amount_dsp"></span>' );
+		cj('#dsa_briefing').before( '<span id="dsa_briefing_dsp"></span>' );
+		cj('#dsa_airport').before( '<span id="dsa_airport_dsp"></span>' );
+		cj('#dsa_transfer').before( '<span id="dsa_transfer_dsp"></span>' );
+		cj('#dsa_hotel').before( '<span id="dsa_hotel_dsp"></span>' );
+		cj('#dsa_visa').before( '<span id="dsa_visa_dsp"></span>' );
+		cj('#dsa_medical').before( '<span id="dsa_medical_dsp"></span>' );
+		cj('#dsa_other').before( '<span id="dsa_other_dsp"></span>' );
+		cj('#dsa_other_description').before( '<span id="dsa_other_description_dsp"></span>' );
+		cj('#dsa_advance').before( '<span id="dsa_advance_dsp"></span>' );
+		cj('#status_id').before( '<span id="status_id_dsp"></span>' );
+	}
+	
+	function displayControl() {
+		// disable fields depending on status
+		var data = (cj('#dsa_participant').val() + '|0|0|0').split('|');
+		var restrict = cj('#restrictEdit').val();
+		if ((data[2]=='3') && (restrict=='0')) {
+			// no restrictions by status, but creditation
+			restrict = '1';
+		}
+		
+		// update display areas
+		if (data[2]=='3') {
+			// creditation selected: display amounts paid
+			var cr_data = cj('#credit_data').val().split('#');
+			var dsa_data = '';
+			for (var i=0; i<cr_data.length; i++) {
+				if (cr_data[i].split('|')[0] == data[3]) {
+					dsa_data = cr_data[i].split('|');
+				}
+			}
+			if (dsa_data == '') {
+				dsa_data = '0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0'.split('|');
+			}
+			cj('#source_contact_id_dsp').html( cj('#source_contact_id').val() );
+			cj('#activity_date_time_dsp').html( cj('#activity_date_time').val() );
+			cj('#activity_date_time_time_dsp').html( cj('#activity_date_time_time').val() );
+			//cj('#dsa_participant_dsp').html( cj('#dsa_participant option:selected').text() );
+			//cj('#dsa_country_dsp').html( cj('#dsa_country option:selected').text() );
+			//cj('#dsa_location_dsp').html( cj('#dsa_location option:selected').text() );
+			cj('#dsa_percentage_dsp').html( dsa_data[4] );
+			cj('#dsa_days_dsp').html( dsa_data[5] );
+			cj('#dsa_amount_dsp').html( dsa_data[6] );
+			cj('#dsa_briefing_dsp').html( dsa_data[7] );
+			cj('#dsa_airport_dsp').html( dsa_data[8] );
+			cj('#dsa_transfer_dsp').html( dsa_data[9] );
+			cj('#dsa_hotel_dsp').html( dsa_data[10] );
+			cj('#dsa_visa_dsp').html( dsa_data[11] );
+			cj('#dsa_medical_dsp').html( dsa_data[12] );
+			cj('#dsa_other_dsp').html( dsa_data[13] );
+			cj('#dsa_other_description_dsp').html( dsa_data[14] );
+			cj('#dsa_advance_dsp').html( dsa_data[15] );
+			//cj('#status_id_dsp').html( cj('#status_id option:selected').text() );
+			
+		} else if ((restrict == '1') || (restrict == '2')) {
+			// payment selected in a non-editable state: display amounts entered earlier
+			cj('#source_contact_id_dsp').html( cj('#source_contact_id').val() );
+			cj('#activity_date_time_dsp').html( cj('#activity_date_time').val() );
+			cj('#activity_date_time_time_dsp').html( cj('#activity_date_time_time').val() );
+			cj('#dsa_participant_dsp').html( cj('#dsa_participant option:selected').text() );
+			cj('#dsa_country_dsp').html( cj('#dsa_country option:selected').text() );
+			cj('#dsa_location_dsp').html( cj('#dsa_location option:selected').text() );
+			cj('#dsa_percentage_dsp').html( cj('#dsa_percentage option:selected').text() );
+			cj('#dsa_days_dsp').html( cj('#dsa_days').val() );
+			cj('#dsa_amount_dsp').html( cj('#dsa_amount').val() );
+			cj('#dsa_briefing_dsp').html( cj('#dsa_briefing').val() );
+			cj('#dsa_airport_dsp').html( cj('#dsa_airport').val() );
+			cj('#dsa_transfer_dsp').html( cj('#dsa_transfer').val() );
+			cj('#dsa_hotel_dsp').html( cj('#dsa_hotel').val() );
+			cj('#dsa_visa_dsp').html( cj('#dsa_visa').val() );
+			cj('#dsa_medical_dsp').html( cj('#dsa_medical').val() );
+			cj('#dsa_other_dsp').html( cj('#dsa_other').val() );
+			cj('#dsa_other_description_dsp').html( cj('#dsa_other_description').val() );
+			cj('#dsa_advance_dsp').html( cj('#dsa_advance').val() );
+			cj('#status_id_dsp').html( cj('#status_id option:selected').text() );
+		}
+
+		if (restrict == '0') {
+			// with client
+			cj('tr#with-clients > td.view-value > br').show();
+			cj('tr#with-clients > td.view-value > a.crm-with-contact').show();
+			// reported by
+			cj('#source_contact_id').show();
+			cj('#source_contact_id_dsp').hide();
+			// date (and time)
+			cj('#activity_date_time_display').show();
+			cj('#activity_date_time_dsp').hide();
+			cj('#activity_date_time_time').show();
+			cj('#activity_date_time_time_dsp').hide();
+			cj('span.crm-clear-link').show();
+			// participant
+			cj('#dsa_participant').show();
+			cj('#dsa_participant_dsp').hide();
+			// country
+			cj('tr.crm-case-activity-form-block-dsa_country').show();
+			cj('#dsa_country').show();
+			cj('#dsa_country_dsp').hide();
+			// location
+			cj('tr.crm-case-activity-form-block-dsa_location').show();
+			cj('#dsa_location').show();
+			cj('#dsa_location_dsp').show();
+			// percentage
+			cj('#dsa_percentage').show();
+			cj('#dsa_percentage_dsp').hide();
+			// days
+			cj('#dsa_days').show();
+			cj('#dsa_days_dsp').hide();
+			// amount
+			cj('#dsa_amount').show();
+			cj('#dsa_amount_dsp').hide();
+			// briefing
+			cj('#dsa_briefing').show();
+			cj('#dsa_briefing_dsp').hide();
+			// airport
+			cj('#dsa_airport').show();
+			cj('#dsa_airport_dsp').hide();
+			// transfer
+			cj('#dsa_transfer').show();
+			cj('#dsa_transfer_dsp').hide();
+			// hotel
+			cj('#dsa_hotel').show();
+			cj('#dsa_hotel_dsp').hide();
+			// visa
+			cj('#dsa_visa').show();
+			cj('#dsa_visa_dsp').hide();
+			// medical
+			cj('#dsa_medical').show();
+			cj('#dsa_medical_dsp').hide();
+			// other
+			cj('#dsa_other').show();
+			cj('#dsa_other_dsp').hide();
+			cj('#dsa_other_description').show();
+			cj('#dsa_other_description_dsp').hide();
+			cj('#dsa_other_description ~ .grippie').show();
+			// advance
+			cj('#dsa_advance').show();
+			cj('#dsa_advance_dsp').hide();
+			// status
+			cj('#status_id').show();
+			cj('#status_id_dsp').hide();
+			// submit
+			//cj('span.crm-button_qf_Activity_upload').remove();
+			// cancel
+			//cj('span.crm-button_qf_Activity_cancel').addClass('crm-button-type-upload').removeClass('crm-button-type-cancel');
+		}
+		
+		if ((restrict == '1') || (restrict == '2')) {
+			// with client
+			cj('tr#with-clients > td.view-value > br').hide();
+			cj('tr#with-clients > td.view-value > a.crm-with-contact').hide();
+			// reported by
+			cj('#source_contact_id').hide();
+			cj('#source_contact_id_dsp').show();
+			// date (and time)
+			cj('#activity_date_time_display').hide();
+			cj('#activity_date_time_dsp').show();
+			cj('#activity_date_time_time').hide();
+			cj('#activity_date_time_time_dsp').show();
+			cj('span.crm-clear-link').hide();
+			// participant
+			cj('#dsa_participant').hide();
+			cj('#dsa_participant').show();
+			if (data[2]=='3') {
+				cj('tr.crm-case-activity-form-block-dsa_country').hide();
+				cj('tr.crm-case-activity-form-block-dsa_location').hide();
+			} else {
+				// country
+				cj('tr.crm-case-activity-form-block-dsa_country').show();
+				cj('#dsa_country').hide();
+				cj('#dsa_country_dsp').show();
+				// location
+				cj('tr.crm-case-activity-form-block-dsa_location').show();
+				cj('#dsa_location').hide();
+				cj('#dsa_location_dsp').hide();
+			}
+			
+			// percentage
+			cj('#dsa_percentage').hide();
+			cj('#dsa_percentage_dsp').show();
+			// days
+			cj('#dsa_days').hide();
+			cj('#dsa_days_dsp').show();
+			// amount
+			cj('#dsa_amount').hide();
+			cj('#dsa_amount_dsp').show();
+			// briefing
+			cj('#dsa_briefing').hide();
+			cj('#dsa_briefing_dsp').show();
+			// airport
+			cj('#dsa_airport').hide();
+			cj('#dsa_airport_dsp').show();
+			// transfer
+			cj('#dsa_transfer').hide();
+			cj('#dsa_transfer_dsp').show();
+			// hotel
+			cj('#dsa_hotel').hide();
+			cj('#dsa_hotel_dsp').show();
+			// visa
+			cj('#dsa_visa').hide();
+			cj('#dsa_visa_dsp').show();
+			// medical
+			cj('#dsa_medical').hide();
+			cj('#dsa_medical_dsp').show();
+			// other
+			cj('#dsa_other').hide();
+			cj('#dsa_other_dsp').show();
+			cj('#dsa_other_description').hide();
+			cj('#dsa_other_description_dsp').show();
+			cj('#dsa_other_description ~ .grippie').hide();
+			// advance
+			cj('#dsa_advance').hide();
+			cj('#dsa_advance_dsp').show();
+		}
+		
+		if (restrict == '2') {
+			// status
+			cj('#status_id').hide();
+			cj('#status_id_dsp').show();
+			// submit
+			//cj('span.crm-button_qf_Activity_upload').remove();
+			// cancel
+			//cj('span.crm-button_qf_Activity_cancel').addClass('crm-button-type-upload').removeClass('crm-button-type-cancel');
+		}
+		
+		return true;
 	}
 	
 </script>

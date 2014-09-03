@@ -145,24 +145,39 @@ function civicrm_api3_dsa_processpayments($params) {
 			$finrec_act['OmschrijvingB']		= $daoDsa->case_sequence;						// description fragment: main activity number
 			$finrec_act['OmschrijvingC']		= $daoDsa->case_country;						// description fragment: country
 			$finrec_act['FactuurNrYear']		= '';											// 14 for 2014; date of "preparation", not dsa payment!
-			$params = array(
-				'version' => 3,
-				'q' => 'civicrm/ajax/rest',
-				'sequential' => 1,
-				'name' => 'invoice_number',
-			);
-			try {
-				$result = civicrm_api('Sequence', 'nextval', $params);
-				$nextVal = $result['values'];
-			} catch (Exception $e) {
-				throw new Exception('Sequence \'invoice_number\' is not available.');
-			}
 
-			$finrec_act['FactuurNr']			= $nextVal;										// sequence based: "123456" would return "2345", "12" would return "0001"
-			$recSql_DsaCompose['invoice_number'] = 
-				_dsaSize($finrec_act['FactuurNrRunType'],	1, ' ', TRUE,  FALSE) .	// D for DSA
-				_dsaSize($finrec_act['FactuurNrYear'],		2, ' ', TRUE,  FALSE) .	// 14 for 2014; date of "preparation", not dsa payment!
-				_dsaSize($finrec_act['FactuurNr'],			4, '0', FALSE, FALSE); 	// sequence based: "123456" would return "2345", "12" would return "0001";
+			// payments vs. creditation
+			if ($daoDsa->type == '1') {
+			
+				// payments: create a new invoice number 
+				$params = array(
+					'version' => 3,
+					'q' => 'civicrm/ajax/rest',
+					'sequential' => 1,
+					'name' => 'invoice_number',
+				);
+				try {
+					$result = civicrm_api('Sequence', 'nextval', $params);
+					$nextVal = $result['values'];
+				} catch (Exception $e) {
+					throw new Exception('Sequence \'invoice_number\' is not available.');
+				}
+				$finrec_act['FactuurNr']			= $nextVal;									// sequence based: "123456" would return "2345", "12" would return "0001"
+	
+				$recSql_DsaCompose['invoice_number'] = 
+					_dsaSize($finrec_act['FactuurNrRunType'],	1, ' ', TRUE,  FALSE) .			// D for DSA
+					_dsaSize($finrec_act['FactuurNrYear'],		2, ' ', TRUE,  FALSE) .			// 14 for 2014; date of "preparation", not dsa payment!
+					_dsaSize($finrec_act['FactuurNr'],			4, '0', FALSE, FALSE); 			// sequence based: "123456" would return "2345", "12" would return "0001";
+
+					} else {
+			
+				// creditation: reuse the original invoice number 
+				$invoice_number = $daoDsa->invoice_number;
+				$finrec_act['FactuurNrRunType'] = substr($invoice_number, 0, 1);				// expected: stored D for DSA
+				$finrec_act['FactuurNrYear'] = substr($invoice_number, 1, 2);					// expected stored 14 for 2014
+				$finrec_act['FactuurNr']  = substr($invoice_number, -4); 						// expected: stored sequence number
+				
+			} // payments vs. creditation 
 			
 			$finrec_act['FactuurDatum']			= '';											// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
 			$finrec_act['Kenmerk']				= trim(implode(
@@ -196,25 +211,25 @@ function civicrm_api3_dsa_processpayments($params) {
 			for ($n=1; $n<36; $n++) {
 				// skip if amount = 0
 				// add amount specific details ============================================================
-				// fields not yet in the right order!
+				// fields not yet in the right order: that's handeled by _dsa_concatValues()
 				// based on (extension of / copy of) the activity specific details $finrec_act
 				
 				$finrec_amt = $finrec_act;
 				switch ($daoDsa->type) {
 					case '1':
-						$finrec_amt['DC']				= 'D';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
-						$finrec_amt['PlusMin']			= '+';									// + for payment, - for creditation
-						$finrec_amt['FactuurPlusMin']	= '+';									// + for payment, - for creditation
+						$finrec_amt['DC']				= 'D';									// D for payment
+						$finrec_amt['PlusMin']			= '+';									// + for payment
+						$finrec_amt['FactuurPlusMin']	= '+';									// + for payment
 						break;
 					case '2':
-						$finrec_amt['DC']				= 'X';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
-						$finrec_amt['PlusMin']			= '-';									// + for payment, - for creditation
-						$finrec_amt['FactuurPlusMin']	= '-';									// + for payment, - for creditation
+						$finrec_amt['DC']				= 'X';									// X for settlement (earlier called 'Debriefing DSA') - the desire to have this option implemented was abandoned while building this extension
+						$finrec_amt['PlusMin']			= '-';									// - for creditation
+						$finrec_amt['FactuurPlusMin']	= '-';									// - for creditation
 						break;
 					case '3':
-						$finrec_amt['DC']				= 'C';									// D for payment, C for full creditation, X for settlement(Debriefing DSA)?
-						$finrec_amt['PlusMin']			= '-';									// + for payment, - for creditation
-						$finrec_amt['FactuurPlusMin']	= '-';									// + for payment, - for creditation
+						$finrec_amt['DC']				= 'C';									// C for full creditation
+						$finrec_amt['PlusMin']			= '-';									// - for creditation
+						$finrec_amt['FactuurPlusMin']	= '-';									// - for creditation
 						break;
 				}
 				
@@ -307,7 +322,7 @@ function civicrm_api3_dsa_processpayments($params) {
 						break;
 					
 					case 'D': // Debriefing settlement
-						$amt = 0; // ===============================================================================
+						$amt = 0;
 						$column = '';
 						$gl_key = '';
 						break;
@@ -407,33 +422,89 @@ function civicrm_api3_dsa_processpayments($params) {
   fclose($exportFin);
 	
   try {
+    // store
 	$sql = 'UPDATE civicrm_dsa_payment SET filename=\'' . $fileName . '\', filesize=' . filesize($fileName) . ', filetype=\'text/plain\', content=\'' . $contentFin . '\' WHERE id=' . $paymentId;
 	$dao = CRM_Core_DAO::executeQuery($sql);
 	
+	// retrieve FA mail address
+	$dsa_config = array();
+	$params = array(
+		'version' => 3,
+		'q' => 'civicrm/ajax/rest',
+		'sequential' => 1,
+		'option_group_name' => 'dsa_configuration',
+		'return' => 'name,value',
+	);
 	try {
-		unlink($fileName);
+		$result = civicrm_api('OptionValue', 'get', $params);
+		foreach($result['values'] as $value) {
+			$dsa_config[$value['name']] = $value['value'];
+		}
+		$mailto = $dsa_config['mail_fa'];
+		$subject = 'DSA payment: ' . $fileName;
+		$mailfrom = $dsa_config['mail_from'];
+		$message = '';
+		$attachment = chunk_split(base64_encode($contentFin));
+		// send email
+		// http://stackoverflow.com/questions/12301358/send-attachments-with-php-mail (Ragnesh Chauhan)
+		try {
+			// a random hash will be necessary to send mixed content
+			$separator = md5(time());
+			
+			// carriage return type (we use a PHP end of line constant)
+			$eol = PHP_EOL;
+			
+			// main header (multipart mandatory)
+			$headers = 'From: ' . $mailfrom . $eol;
+			$headers .= 'MIME-Version: 1.0' . $eol;
+			$headers .= 'Content-Type: multipart/mixed; boundary=\"' . $separator . '\"' . $eol . $eol;
+			$headers .= 'Content-Transfer-Encoding: 7bit' . $eol;
+			$headers .= 'This is a MIME encoded message.' . $eol . $eol;
+			
+			// message
+			$headers .= '--' . $separator . $eol;
+			$headers .= 'Content-Type: text/plain; charset=\"iso-8859-1\"' . $eol;
+			$headers .= 'Content-Transfer-Encoding: 8bit' . $eol . $eol;
+			$headers .= $message . $eol . $eol;
+			
+			// attachment
+			$headers .= '--' . $separator . $eol;
+			$headers .= 'Content-Type: application/octet-stream; name=\"' . $fileName . '\"' . $eol;
+			$headers .= 'Content-Transfer-Encoding: base64' . $eol;
+			$headers .= 'Content-Disposition: attachment' . $eol . $eol;
+			$headers .= $attachment . $eol . $eol;
+			$headers .= '--' . $separator . '--';
+			
+			// send mail
+			if (!mail($mailto, $subject, "", $headers)) {
+				throw new Exception('Failed sending email/attachment to FA');
+			}
+			
+//dpm($headers, 'headers');
+			
+			// it is now safe to delete the file
+			try {
+				//unlink($fileName);
+			} catch (Exception $e) {
+				throw new Exception('Could not delete file ' . $fileName);
+			}
+		} catch (Exception $e) {
+			$warnings[] = $e->getMessage();
+		}
 	} catch (Exception $e) {
-		$warnings[] = 'Could not delete ' . $fileName;
+		$warnings[] = 'Value(s) missing in option group \'dsa_configuration\'';
 	}
-	
   } catch (Exception $e) {
 		$warnings[] = $e->getMessage() . ' (while storing file ' . $fileName . ')';
   }
   
-	
-dpm($warnings, 'Warnings'); // ================================================================================
+  
+dpm($warnings, 'Warnings'); // should be handled differently when running as scheduled job ==================================================
 
   
-  // files:
-  // - export for FA
+  // to do:
   // - overall payment details
   // - message per expert
-  //
-  // store file in node
-  // ....  
-  // mail FA
-  // ....
-  // delete file
 
 }
 
@@ -688,6 +759,7 @@ SELECT
 	dsa.amount_advance,
 	dsa.approval_datetime,
 	dsa.ref_date,
+	dsa.invoice_number,
 	\'--APPROVER-->\' AS \'_APPROVER\',
 	apr.display_name AS approver_name,
 	\'--PARTICIPANT->\' AS \'_PARTICIPANT\',

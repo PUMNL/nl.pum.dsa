@@ -24,6 +24,17 @@ DSA submenu contains 3 buttons for DSA-rate control
 Adds a page "DSAimport"
 This page can be called using ?action=convert, upload, result or read:
 
+Adds following option groups:
+- "dsa_percentage" (names/values non-critical),
+- "general_ledger" (names for the values are mandatory in the code) and
+- "dsa_configuration" (names for the values are mandatory in the code)
+Please review these added option values anter install / upgrade
+
+Adds additional actiovity statusses to option_group "activity_status":
+- "dsa_payable" (name is mandatory in the code)
+- "dsa_paid" (name is mandatory in the code)
+
+
 "convert"
 imports the original UN locations and rates files (country in ICSC format, rate in USD) into civicrm_dsa_convert and
 presents the data as CSV in a return field (country in ISO2 format, rate in USD)
@@ -44,7 +55,7 @@ This set of fields is stored in civicrm_dsa_compose. If present, the field "orig
 A user is offered to add a DSA activity (if defined in xml).
 On the activity the user is supposes to select a participant (implicit selection of payment type and participant role).
 Only one DSA activity per participant (!) will be allowed in any status other than 'dsa_paid', 'Cancelled' or 'Not Required'.
-Once processed (status is automatically set to 'dsa_paid', another DSA activity (likely for creditation or additional payment) can be made.
+Once processed (status is automatically set to 'dsa_paid', another DSA activity can be made for creditation of the very same amounts.
 If multiple DSA activities are being edited into a state that would lead to having more than one 'open' DSA activity, for a single participant, validation will block the ones causing a violation.
 
 
@@ -53,11 +64,15 @@ If multiple DSA activities are being edited into a state that would lead to havi
 * test install process
 * scheduled export of DSA activities / promotion to status "dsa_paid"
 * control feature to export only on certain days on/after a specified date
-* form adjustments regarding creditation
 * white overlay screens for activity, status change etc.
 * batch management (filling out start- / end dates)
 * disable move to case, copy to case, delete / conditional disabling edit.
 * maintenance option for civicrm_pum_country: create / remove / edit additional country info (unless fully replaced by a country card feature)
+* amount overviews (screen, B.I. purposes?)
+* payment overview per expert (mail)
+* payment overview per payment run (mail)
+* fill out missing columns (e.g. account number, account holder details, bank details, 'FactuurNumberYear')
+* auto-creation of a scheduled job to trigger ProcessPayment. Currently we rely on manual creation / manual trigger
 ***
 
 
@@ -67,4 +82,4 @@ As of release 1008, the term "outfit allowance" is no longer used and replaced m
 
 KNOWN ISSUES:
 Expected upload directory: <site root>/upload (like <site root>/modules)
-
+Any errors raised in ProcessPayment are displayed on the screen, using dpm() (drupal: Devel module).

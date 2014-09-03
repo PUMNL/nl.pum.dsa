@@ -150,6 +150,28 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		return TRUE;
 	}
 	
+	/**
+	 * Upgrade 1010 - additional column in civicrm_dsa_compose to track the activity_id of the credited DSA
+	 * @date 28 August 2014
+	 */
+	public function upgrade_1010() {
+		$this->ctx->log->info('Applying update 1010 (alter table civicrm_dsa_compose)');
+		// alter table civicrm_dsa_compose
+		$this->executeSqlFile('sql/civicrm_dsa_compose_1010.sql');
+		return TRUE;
+	}
+	
+	/**
+	 * Upgrade 1011 - add option values for dsa_configuration
+	 * @date 3 September 2014
+	 */
+	public function upgrade_1011() {
+		$this->ctx->log->info('Applying update 1011 (additional values for \'dsa_configuration\')');
+		// re-run option group installer
+		DSA_OptionGroup::install();
+		return TRUE;
+	}
+	
   /**
    * Example: Run an external SQL script when the module is uninstalled
    *
