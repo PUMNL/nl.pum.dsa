@@ -323,7 +323,7 @@
 		}
 		
 		// update display areas
-		if (data[2]=='3') {
+		if ((data[2]=='3') && (restrict != '1') && (restrict != '2')) {
 			// creditation selected: display amounts paid
 			var cr_data = cj('#credit_data').val().split('#');
 			var dsa_data = '';
@@ -462,7 +462,7 @@
 			cj('span.crm-clear-link').hide();
 			// participant
 			cj('#dsa_participant').hide();
-			cj('#dsa_participant').show();
+			cj('#dsa_participant_dsp').show();
 			if (data[2]=='3') {
 				cj('tr.crm-case-activity-form-block-dsa_country').hide();
 				cj('tr.crm-case-activity-form-block-dsa_location').hide();
