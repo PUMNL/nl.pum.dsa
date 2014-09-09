@@ -795,141 +795,140 @@ function _amountCheck($fieldName, $fields, &$errors) {
 function dsa_civicrm_postProcess( $formName, &$form ) {	
 	switch($formName) {
 		case 'CRM_Case_Form_Activity':
-
+			if ($form->getVar('_activityTypeName')=='DSA') {
 //echo '<pre>';
 //print_r($form);
 //print_r($formName);
 //echo '</pre>';
 //exit();
-
 			
-			// Determine activity id for additional dsa data
-			if (isset($form->_defaultValues['original_id'])) {
-				// >=3rd save: original id is maintained
-				$dsaId = $form->_defaultValues['original_id'];
-			} elseif (isset($form->_defaultValues['activity_id'])) {
-				// 2nd save: no original_id known yet, use activity_id
-				$dsaId = $form->_defaultValues['activity_id'];
-			} else {
-				// 1st save: no known id at all: retrieve activity_id by activity_type_id
-				if (isset($form->_activityTypeId)) {
-					$activityTypeId = $form->_activityTypeId;
-					$sql = 'SELECT MAX(id) AS max_id FROM civicrm_activity WHERE activity_type_id=' . $activityTypeId;
+				// Determine activity id for additional dsa data
+				if (isset($form->_defaultValues['original_id'])) {
+					// >=3rd save: original id is maintained
+					$dsaId = $form->_defaultValues['original_id'];
+				} elseif (isset($form->_defaultValues['activity_id'])) {
+					// 2nd save: no original_id known yet, use activity_id
+					$dsaId = $form->_defaultValues['activity_id'];
 				} else {
-					$sql = 'SELECT MAX(id) AS max_id FROM civicrm_activity';
+					// 1st save: no known id at all: retrieve activity_id by activity_type_id
+					if (isset($form->_activityTypeId)) {
+						$activityTypeId = $form->_activityTypeId;
+						$sql = 'SELECT MAX(id) AS max_id FROM civicrm_activity WHERE activity_type_id=' . $activityTypeId;
+					} else {
+						$sql = 'SELECT MAX(id) AS max_id FROM civicrm_activity';
+					}
+					$dao = CRM_Core_DAO::executeQuery($sql);
+					$dao->fetch();
+					$dsaId = $dao->max_id;
 				}
-				$dao = CRM_Core_DAO::executeQuery($sql);
-				$dao->fetch();
-				$dsaId = $dao->max_id;
-			}
-			
-			// Determine action (number: add or update)
-			if (isset($form->_action)) {
-				$action = $form->_action;
-			} else {
-				$action = 0;
-			}
+				
+				// Determine action (number: add or update)
+				if (isset($form->_action)) {
+					$action = $form->_action;
+				} else {
+					$action = 0;
+				}
 
 // -----
-			if ($form->_submitValues['dsa_type'] == 1) {
+				if ($form->_submitValues['dsa_type'] == 1) {
+				
+					// html fieldname -> column name
+					$required = array(
+						'dsa_type'				=>	array(
+													'column'	=> 'type',
+													'type'		=> 'number',
+													),
+						'dsa_participant_id'	=>	array(
+													'column'	=> 'contact_id',
+													'type'		=> 'text',
+													),
+						'dsa_participant_role'	=>	array(
+													'column'	=> 'relationship_type_id',
+													'type'		=> 'text',
+													),
+						'dsa_location_id'			=>	array(
+													'column'	=> 'loc_id',
+													'type'		=> 'text',
+													),
+						'dsa_percentage'		=>  array(
+													'column'	=> 'percentage',
+													'type'		=> 'number',
+													),
+						'dsa_days'				=>  array(
+													'column'	=> 'days',
+													'type'		=> 'number',
+													),
+						'dsa_amount'			=>  array(
+													'column'	=> 'amount_dsa',
+													'type'		=> 'number',
+													),
+						'dsa_briefing'			=>  array(
+													'column'	=> 'amount_briefing',
+													'type'		=> 'number',
+													),
+						/*
+						'dsa_debriefing'		=>  array(
+													'column'	=> 'amount_debriefing',
+													'type'		=> 'number',
+													),
+						*/
+						'dsa_airport'			=>  array(
+													'column'	=> 'amount_airport',
+													'type'		=> 'number',
+													),
+						'dsa_transfer'			=>  array(
+													'column'	=> 'amount_transfer',
+													'type'		=> 'number',
+													),
+						'dsa_hotel'				=>  array(
+													'column'	=> 'amount_hotel',
+													'type'		=> 'number',
+													),
+						'dsa_visa'				=>  array(
+													'column'	=> 'amount_visa',
+													'type'		=> 'number',
+													),
+						'dsa_medical'			=>  array(
+													'column'	=> 'amount_medical',
+													'type'		=> 'number',
+													),
+						'dsa_other'				=>  array(
+													'column'	=> 'amount_other',
+													'type'		=> 'number',
+													),
+						'dsa_other_description'	=>  array(
+													'column'	=> 'description_other',
+													'type'		=> 'text',
+													),
+						'dsa_advance'			=>  array(
+													'column'	=> 'amount_advance',
+													'type'		=> 'number',
+													),
+						'dsa_ref_dt'			=>	array(
+													'column'	=> 'ref_date',
+													'type'		=> 'text',
+													),
+					);
 			
-				// html fieldname -> column name
-				$required = array(
-					'dsa_type'				=>	array(
-												'column'	=> 'type',
-												'type'		=> 'number',
-												),
-					'dsa_participant_id'	=>	array(
-												'column'	=> 'contact_id',
-												'type'		=> 'text',
-												),
-					'dsa_participant_role'	=>	array(
-												'column'	=> 'relationship_type_id',
-												'type'		=> 'text',
-												),
-					'dsa_location_id'			=>	array(
-												'column'	=> 'loc_id',
-												'type'		=> 'text',
-												),
-					'dsa_percentage'		=>  array(
-												'column'	=> 'percentage',
-												'type'		=> 'number',
-												),
-					'dsa_days'				=>  array(
-												'column'	=> 'days',
-												'type'		=> 'number',
-												),
-					'dsa_amount'			=>  array(
-												'column'	=> 'amount_dsa',
-												'type'		=> 'number',
-												),
-					'dsa_briefing'			=>  array(
-												'column'	=> 'amount_briefing',
-												'type'		=> 'number',
-												),
-					/*
-					'dsa_debriefing'		=>  array(
-												'column'	=> 'amount_debriefing',
-												'type'		=> 'number',
-												),
-					*/
-					'dsa_airport'			=>  array(
-												'column'	=> 'amount_airport',
-												'type'		=> 'number',
-												),
-					'dsa_transfer'			=>  array(
-												'column'	=> 'amount_transfer',
-												'type'		=> 'number',
-												),
-					'dsa_hotel'				=>  array(
-												'column'	=> 'amount_hotel',
-												'type'		=> 'number',
-												),
-					'dsa_visa'				=>  array(
-												'column'	=> 'amount_visa',
-												'type'		=> 'number',
-												),
-					'dsa_medical'			=>  array(
-												'column'	=> 'amount_medical',
-												'type'		=> 'number',
-												),
-					'dsa_other'				=>  array(
-												'column'	=> 'amount_other',
-												'type'		=> 'number',
-												),
-					'dsa_other_description'	=>  array(
-												'column'	=> 'description_other',
-												'type'		=> 'text',
-												),
-					'dsa_advance'			=>  array(
-												'column'	=> 'amount_advance',
-												'type'		=> 'number',
-												),
-					'dsa_ref_dt'			=>	array(
-												'column'	=> 'ref_date',
-												'type'		=> 'text',
-												),
-				);
-		
 /*
 echo '<pre>';
 print_r($required);
 echo '</pre>';
 //exit();
 //*/
-	
-				$input = array();
-				if  (($action & CRM_Core_Action::$_names['add']) || ($action & CRM_Core_Action::$_names['update'])) {
-					$input['activity_id'] = $dsaId;
-					if (isset($form->_caseId)) {
-						$input['case_id'] = $form->_caseId;
-					}
-//					if (isset($form->_pid)) {
-//						$input['pid'] = $form->_pid; // for creditation: parent activity id
-//					}
-					if (isset($form->_cid)) {
-						$input['cid'] = $form->_cid; // experts contact id
-					}
+		
+					$input = array();
+					if  (($action & CRM_Core_Action::$_names['add']) || ($action & CRM_Core_Action::$_names['update'])) {
+						$input['activity_id'] = $dsaId;
+						if (isset($form->_caseId)) {
+							$input['case_id'] = $form->_caseId;
+						}
+//						if (isset($form->_pid)) {
+//							$input['pid'] = $form->_pid; // for creditation: parent activity id
+//						}
+						if (isset($form->_cid)) {
+							$input['cid'] = $form->_cid; // experts contact id
+						}
 /*
 echo '<pre>';
 print_r($input);
@@ -937,52 +936,52 @@ echo '</pre>';
 exit();
 //*/
 
-					if (isset($form->_elements)) {
-						$elm = $form->_elements;
-						// filter dsa fields from the full list of submitted fields
-						foreach($elm as $key=>$def) {
-							if (isset($def->_attributes['name'])) {
-								$name = $def->_attributes['name'];
-								$value = NULL;
-								if (array_key_exists($name, $required)) {
-									if (strpos($name, 'dsa_') === 0) {
-										$column = $required[$name];
-										$type = $def->_type;
-										switch ($type) {
-											case 'textarea':
-												$value=$def->_value;
-												break;
-											case 'select':
-												$value=implode(',', array_values($def->_values));
-												break;
-											case 'text':
-											case 'hidden':
-												if (isset($def->_attributes['value'])) {
-													$value=$def->_attributes['value'];
-												} else {
-													$value='';
-												}
-												break;
-											default:
-												$value = NULL;
-										}
-										if (!is_null($value)) {
-											if ($column['type']=='number') {
-												$value = floatval($value);
-											} else {
-												$value = _strParseSql($value);
+						if (isset($form->_elements)) {
+							$elm = $form->_elements;
+							// filter dsa fields from the full list of submitted fields
+							foreach($elm as $key=>$def) {
+								if (isset($def->_attributes['name'])) {
+									$name = $def->_attributes['name'];
+									$value = NULL;
+									if (array_key_exists($name, $required)) {
+										if (strpos($name, 'dsa_') === 0) {
+											$column = $required[$name];
+											$type = $def->_type;
+											switch ($type) {
+												case 'textarea':
+													$value=$def->_value;
+													break;
+												case 'select':
+													$value=implode(',', array_values($def->_values));
+													break;
+												case 'text':
+												case 'hidden':
+													if (isset($def->_attributes['value'])) {
+														$value=$def->_attributes['value'];
+													} else {
+														$value='';
+													}
+													break;
+												default:
+													$value = NULL;
 											}
-										} else {
-											$value = 'NULL';
+											if (!is_null($value)) {
+												if ($column['type']=='number') {
+													$value = floatval($value);
+												} else {
+													$value = _strParseSql($value);
+												}
+											} else {
+												$value = 'NULL';
+											}
+											
+											$input[$column['column']] = $value;
 										}
-										
-										$input[$column['column']] = $value;
 									}
 								}
 							}
 						}
-					}
-					
+						
 /*
 echo '<pre>';
 print_r($input);
@@ -990,12 +989,12 @@ print_r($input);
 echo '</pre>';
 exit();
 //*/
-				}
-				
-			} else {
-				// $form->_submitValues['dsa_type'] = 3 for creditation
-				// use submitted credit_act_id to collect fields from original payment
-				$sql = '
+					}
+					
+				} else {
+					// $form->_submitValues['dsa_type'] = 3 for creditation
+					// use submitted credit_act_id to collect fields from original payment
+					$sql = '
 SELECT
   dsa.case_id,
   dsa.contact_id,
@@ -1021,89 +1020,90 @@ FROM
 WHERE
   act.id = ' . $form->_submitValues['credit_act_id'] . ' AND
   ifnull(act.original_id, act.id) = dsa.activity_id
-				';
-				$dao = CRM_Core_DAO::executeQuery($sql);
-				$result = $dao->fetch();
-				$input = array();
-				if  (($action & CRM_Core_Action::$_names['add']) || ($action & CRM_Core_Action::$_names['update'])) {
-					$input['type'] = $form->_submitValues['dsa_type'];
-					$input['case_id'] = $dao->case_id;
-					$input['activity_id'] = $dsaId;
-					$input['contact_id'] = $dao->contact_id;
-					$input['relationship_type_id'] = $dao->relationship_type_id;
-					$input['loc_id'] = $dao->loc_id;
-					$input['percentage'] = $dao->percentage;
-					$input['days'] = $dao->days;
-					$input['amount_dsa'] = $dao->amount_dsa;
-					$input['amount_briefing'] = $dao->amount_briefing;
-					$input['amount_airport'] = $dao->amount_airport;
-					$input['amount_transfer'] = $dao->amount_transfer;
-					$input['amount_hotel'] = $dao->amount_hotel;
-					$input['amount_visa'] = $dao->amount_visa;
-					$input['amount_medical'] = $dao->amount_medical;
-					$input['amount_other'] = $dao->amount_other;
-					$input['description_other'] = _strParseSql($dao->description_other);
-					$input['amount_advance'] = $dao->amount_advance;
-					if (is_null($dao->ref_date)) {
-						$input['ref_date'] = _strParseSql('NULL');
-					} else {
-						$input['ref_date'] = _strParseSql($dao->ref_date);
+					';
+					$dao = CRM_Core_DAO::executeQuery($sql);
+					$result = $dao->fetch();
+					$input = array();
+					if  (($action & CRM_Core_Action::$_names['add']) || ($action & CRM_Core_Action::$_names['update'])) {
+						$input['type'] = $form->_submitValues['dsa_type'];
+						$input['case_id'] = $dao->case_id;
+						$input['activity_id'] = $dsaId;
+						$input['contact_id'] = $dao->contact_id;
+						$input['relationship_type_id'] = $dao->relationship_type_id;
+						$input['loc_id'] = $dao->loc_id;
+						$input['percentage'] = $dao->percentage;
+						$input['days'] = $dao->days;
+						$input['amount_dsa'] = $dao->amount_dsa;
+						$input['amount_briefing'] = $dao->amount_briefing;
+						$input['amount_airport'] = $dao->amount_airport;
+						$input['amount_transfer'] = $dao->amount_transfer;
+						$input['amount_hotel'] = $dao->amount_hotel;
+						$input['amount_visa'] = $dao->amount_visa;
+						$input['amount_medical'] = $dao->amount_medical;
+						$input['amount_other'] = $dao->amount_other;
+						$input['description_other'] = _strParseSql($dao->description_other);
+						$input['amount_advance'] = $dao->amount_advance;
+						if (is_null($dao->ref_date)) {
+							$input['ref_date'] = _strParseSql('NULL');
+						} else {
+							$input['ref_date'] = _strParseSql($dao->ref_date);
+						}
+						// payment_id is added in the payment process
+						$input['invoice_number'] = _strParseSql($dao->invoice_number); // creditations reuse the original invoice numbers
+						$input['credited_activity_id'] = $form->_submitValues['credit_act_id'];
 					}
-					// payment_id is added in the payment process
-					$input['invoice_number'] = _strParseSql($dao->invoice_number); // creditations reuse the original invoice numbers
-					$input['credited_activity_id'] = $form->_submitValues['credit_act_id'];
 				}
-			}
 // --------
-			
-			// add / remove approver
-			$approver_id = $form->_currentUserId;
-			$statusList = _retrieveActivityStatusList();
-			switch ($statusList[$form->_submitValues['status_id']]['name']) {
-			case 'dsa_payable':
-				// set approver
-				$input['approval_cid'] = $approver_id;
-				$input['approval_datetime'] = 'now()';
-				break;
-			case 'dsa-paid':
-				// lease as is
-				break;
-			default:
-				// reset approver
-				$input['approval_cid'] = 'NULL';
-				$input['approval_datetime'] = 'NULL';
-			};
+				
+				// add / remove approver
+				$approver_id = $form->_currentUserId;
+				$statusList = _retrieveActivityStatusList();
+				switch ($statusList[$form->_submitValues['status_id']]['name']) {
+				case 'dsa_payable':
+					// set approver
+					$input['approval_cid'] = $approver_id;
+					$input['approval_datetime'] = 'now()';
+					break;
+				case 'dsa-paid':
+					// lease as is
+					break;
+				default:
+					// reset approver
+					$input['approval_cid'] = 'NULL';
+					$input['approval_datetime'] = 'NULL';
+				};
 /*
 echo '=statusList======================================';
 echo '<pre>';
 print_r($statusList);
 echo '</pre>';
 */
-			
-			// update or insert? =====================================
-			$sqlDsaRecord = 'SELECT count(case_id) as recCount FROM civicrm_dsa_compose WHERE activity_id = ' . $dsaId;
-			$daoDsaRecord = CRM_Core_DAO::executeQuery($sqlDsaRecord);
-			$daoDsaRecord->fetch();
-			$dsaIsDefined = ($daoDsaRecord->recCount>0); // FALSE if recCount==0, otherwise TRUE
+				
+				// update or insert? =====================================
+				$sqlDsaRecord = 'SELECT count(case_id) as recCount FROM civicrm_dsa_compose WHERE activity_id = ' . $dsaId;
+				$daoDsaRecord = CRM_Core_DAO::executeQuery($sqlDsaRecord);
+				$daoDsaRecord->fetch();
+				$dsaIsDefined = ($daoDsaRecord->recCount>0); // FALSE if recCount==0, otherwise TRUE
 
-			//if  ($action & CRM_Core_Action::$_names['add']) {
-			if (!$dsaIsDefined) {
-				$sql = 'INSERT INTO civicrm_dsa_compose (' . implode(',', array_keys($input)) . ') VALUES (' . implode(',', array_values($input)) . ')';
-			} elseif ($action & CRM_Core_Action::$_names['update']) {
-				foreach($input as $fldNm=>$fldVal) {
-					$input[$fldNm] = $fldNm . '=' . $fldVal;
+				//if  ($action & CRM_Core_Action::$_names['add']) {
+				if (!$dsaIsDefined) {
+					$sql = 'INSERT INTO civicrm_dsa_compose (' . implode(',', array_keys($input)) . ') VALUES (' . implode(',', array_values($input)) . ')';
+				} elseif ($action & CRM_Core_Action::$_names['update']) {
+					foreach($input as $fldNm=>$fldVal) {
+						$input[$fldNm] = $fldNm . '=' . $fldVal;
+					}
+					$sql = 'UPDATE civicrm_dsa_compose SET ' . implode(',', array_values($input)) . ' WHERE ' . $input['activity_id'];
 				}
-				$sql = 'UPDATE civicrm_dsa_compose SET ' . implode(',', array_values($input)) . ' WHERE ' . $input['activity_id'];
-			}
-			$result = CRM_Core_DAO::executeQuery($sql);
+				$result = CRM_Core_DAO::executeQuery($sql);
 /*
 echo '<pre>';
 print_r($sql);
 echo '</pre>';
 exit();
 //*/
-			
-			break;
+				
+				break;
+		} // _activityTypeName=='DSA'
 	} // switch ($formName)
 //	exit();
 	return;
