@@ -484,7 +484,7 @@ function civicrm_api3_dsa_processpayments($params) {
 			
 			// it is now safe to delete the file
 			try {
-				//unlink($fileName);
+				//unlink($fileName); <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 			} catch (Exception $e) {
 				throw new Exception('Could not delete file ' . $fileName);
 			}

@@ -144,6 +144,9 @@
 	// hide details and spacer row below it
 	cj('tr.crm-case-activity-form-block-details').hide();
 	cj('tr.crm-case-activity-form-block-details').next('tr').hide
+	// hide tag
+	cj('tr.crm-case-activity-form-block-tag').hide();
+	
 	// process invoice number
 	var obj=cj('#invoice_number');
 	if (obj.val() == '') {
@@ -314,6 +317,14 @@
 	}
 	
 	function displayControl() {
+		/* note:
+		 * data[2] = '1' for normal payments
+		 * data[2] = '3' for creditation
+		 * data[2] = '2' for settlement is abandoned
+		 * restrict = 0 when all fields can be edited (no restriction)
+		 * restrict = 1 when only status can be edited (status dsa_payable, or creditation)
+		 * restrict = 2 when no fields can be edited (status dsa_paid)
+		 */
 		// disable fields depending on status
 		var data = (cj('#dsa_participant').val() + '|0|0|0').split('|');
 		var restrict = cj('#restrictEdit').val();
@@ -515,7 +526,11 @@
 			cj('#dsa_advance_dsp').show();
 		}
 		
-		if (restrict == '2') {
+		if (restrict == '1') {
+			// status
+			cj('#status_id').show();
+			cj('#status_id_dsp').hide();
+		} else if (restrict == '2') {
 			// status
 			cj('#status_id').hide();
 			cj('#status_id_dsp').show();
