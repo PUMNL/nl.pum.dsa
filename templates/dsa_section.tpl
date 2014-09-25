@@ -300,7 +300,7 @@
 		cj('#activity_date_time_time').before( '<span id="activity_date_time_time_dsp"></span>' );
 		cj('#dsa_participant').before( '<span id="dsa_participant_dsp"></span>' );
 		cj('#dsa_country').before( '<span id="dsa_country_dsp"></span>' );
-		cj('#dsa_location').before( '<span id="#dsa_location_dsp"></span>' );
+		cj('#dsa_location').before( '<span id="dsa_location_dsp"></span>' );
 		cj('#dsa_percentage').before( '<span id="dsa_percentage_dsp"></span>' );
 		cj('#dsa_days').before( '<span id="dsa_days_dsp"></span>' );
 		cj('#dsa_amount').before( '<span id="dsa_amount_dsp"></span>' );
@@ -485,7 +485,7 @@
 				// location
 				cj('tr.crm-case-activity-form-block-dsa_location').show();
 				cj('#dsa_location').hide();
-				cj('#dsa_location_dsp').hide();
+				cj('#dsa_location_dsp').show();
 			}
 			
 			// percentage

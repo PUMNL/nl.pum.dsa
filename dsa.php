@@ -656,6 +656,7 @@ WHERE
 	if ($loadJs) {
 		//CRM_Core_Resources::singleton()->addScriptFile('nl.pum.dsa', 'js/dsa.js');
 	}
+dpm($form, '$form');
 	return;
 }
 
