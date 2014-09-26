@@ -557,11 +557,11 @@ function _dsa_concatValues($ar) {
 		_dsaSize($ar['RekeninghouderLand'],		20, ' ', TRUE,  FALSE) .	// bank account holder: country
 		_dsaSize($ar['RekeninghouderAdres1'],	35, ' ', TRUE,  FALSE) .	// bank account holder: street + number
 		_dsaSize($ar['RekeninghouderAdres2'],	35, ' ', TRUE,  FALSE) .	// bank account holder: zip + city
-		_dsaSize($ar['IBAN'],					34, ' ', TRUE,  FALSE) .	// bank account: IBAN
+		_dsaSize(strtoupper($ar['IBAN']),		34, ' ', TRUE,  FALSE) .	// bank account: IBAN
 		_dsaSize($ar['Banknaam'],				35, ' ', TRUE,  FALSE) .	// bank name
 		_dsaSize($ar['BankPlaats'],				35, ' ', TRUE,  FALSE) .	// bank city
 		_dsaSize($ar['BankLand'],				 3, ' ', TRUE,  FALSE) .	// bank country
-		_dsaSize($ar['BIC'],					11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
+		_dsaSize(strtoupper($ar['BIC']),		11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
 }
 
 function _getCustomDefinitions() {

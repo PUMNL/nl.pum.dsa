@@ -9,12 +9,15 @@
     <email>helpdesk@pum.nl</email>
   </maintainer>
   <releaseDate>2014-04-02</releaseDate>
-  <version>1.0</version>
+  <version>1.1</version>
   <develStage>alpha</develStage>
   <compatibility>
     <ver>4.2</ver>
   </compatibility>
-  <comments>This module is new and under construction</comments>
+  <comments>
+    This module is new and under construction.
+	As of version 1.1 this extension requires the privileges "create DSA activity", "edit DSA activity" and "approve DSA activity" to be set
+  </comments>
   <civix>
     <namespace>CRM/Dsa</namespace>
   </civix>

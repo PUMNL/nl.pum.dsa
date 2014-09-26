@@ -197,10 +197,29 @@ function dsa_civicrm_navigationMenu( &$params ) {
  */
 function dsa_civicrm_buildForm($formName, &$form) {
 //dpm($form, 'Pre DSA mod form data ' . $formName);
+//dpm(CRM_Core_Permission::check('create DSA activity'), 'Permission create DSA activity');
 
 	$loadJs = false;
 	switch($formName) {
 		case 'CRM_Case_Form_CaseView':
+			// avoid creation of DSA by unauthorised people
+			if (!CRM_Core_Permission::check('create DSA activity')) {
+				foreach($form->_elements as $key=>$value) {
+					if ($value->_attributes) {
+						if ($value->_attributes['name']) {
+							if ($value->_attributes['name']=='activity_type_id') {
+								foreach($value->_options as $opt_key=>$opt_val) {
+									if ($opt_val['text']=='DSA') {
+										unset($form->_elements[$key]->_options[$opt_key]);
+										//$form->_elements[$key]->_options[$opt_key]
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		
 			// avoid creation of a 2nd DSA activity in a status other than "Paid"
 			// DISABLED as additional DSA activities can be made for other 'roles' (can't tell yet which participant will be selected)
 		/*
@@ -254,6 +273,12 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$dsaId = $originalId;
 				} else {
 					$dsaId = $activityId; // could still be NULL
+				}
+
+				if (is_null($dsaId)) {
+					$allowEdit = CRM_Core_Permission::check('create DSA activity');
+				} else {
+					$allowEdit = CRM_Core_Permission::check('edit DSA activity');
 				}
 				
 				/* with a known $dsaId, we can find out if additional dsa data is already present
@@ -592,12 +617,20 @@ WHERE
 							case 'Scheduled':
 							case 'Cancelled':
 							case 'Not Required':
-								$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
+								if (CRM_Core_Permission::check('approve DSA activity')) {
+									$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
+								} else {
+									$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required');
+								}
 								$addSelect = TRUE;
 								$restrictEdit = '0';
 								break;
 							case 'dsa_payable':
-								$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
+								if (CRM_Core_Permission::check('approve DSA activity')) {
+									$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
+								} else {
+									$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required');
+								}
 								$addSelect = TRUE;
 								$restrictEdit = '1';
 								break;
@@ -610,6 +643,11 @@ WHERE
 								$allowedStatusName = array($arStatusLst[$fldVal]);
 								$addSelect = TRUE;
 								$restrictEdit = '0';
+						}
+						
+						// if creation / editing was not allowed, then present read mode
+						if (!$allowEdit) {
+							$restrictEdit = '2';
 						}
 						
 						// apply modifictions
@@ -1611,3 +1649,37 @@ WHERE
 		return '';
 	}
 }
+
+/**
+ * Implementation of hook_civicrm_permission
+ *
+ * Adds a privilege DSA creation
+ */
+function dsa_civicrm_permission( &$permissions ) {
+	$prefix = ts('CiviCRM DSA') . ': '; // name of extension or module
+	$permissions = array(
+		'create DSA activity' => $prefix . ts('create DSA activity'),
+		'edit DSA activity' => $prefix . ts('edit DSA activity'),
+		'approve DSA activity' => $prefix . ts('approve DSA activity'),
+		//'delete DSA activity' => $prefix . ts('delete DSA activity'),
+	); // NB: note the convention of using delete in ComponentName, plural for edits
+}
+
+/**
+ * Alter fields for an event registration to make them into a demo form.
+ */
+
+//function dsa_civicrm_alterContent( &$content, $context, $tplName, &$object ) {
+//dpm($content, 'content');
+//dpm($context, 'context');
+/*  if($context == "form") {
+    if($tplName == "CRM/Event/Form/Registration/Register.tpl") {
+      if($object->_eventId == 1) {
+        $content = "<p>Below is an example of an event registration.</p>".$content;
+        $content = str_replace("<input ","<input disabled='disabled' ",$content);
+        $content = str_replace("<select ","<select disabled='disabled' ",$content);
+        $content = $content."<p>Above is an example of an event registration</p>";
+      }
+    }
+  }*/
+//}

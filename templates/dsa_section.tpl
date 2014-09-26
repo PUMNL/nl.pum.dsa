@@ -535,7 +535,7 @@
 			cj('#status_id').hide();
 			cj('#status_id_dsp').show();
 			// submit
-			//cj('span.crm-button_qf_Activity_upload').remove();
+			cj('span.crm-button_qf_Activity_upload').remove();
 			// cancel
 			//cj('span.crm-button_qf_Activity_cancel').addClass('crm-button-type-upload').removeClass('crm-button-type-cancel');
 		}
