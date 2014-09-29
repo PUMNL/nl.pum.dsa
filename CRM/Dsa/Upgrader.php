@@ -40,6 +40,27 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 	if (CRM_Core_DAO::checkTableExists('civicrm_country_pum')) {
 		$this->executeSqlFile('sql/civicrm_country_pum_data.sql');
 	}
+	// upgrade 1001
+	$this->executeSqlFile('sql/civicrm_dsa_compose_1001.sql');
+	// upgrade 1002
+	$this->executeSqlFile('sql/civicrm_dsa_compose_1002.sql');
+	// upgrade 1003
+	$this->executeSqlFile('sql/civicrm_dsa_payment_1003.sql');
+	// upgrade 1004: n.a.
+	// upgrade 1005
+	$this->executeSqlFile('sql/civicrm_dsa_compose_1005.sql');
+	// upgrade 1006
+	$this->executeSqlFile('sql/civicrm_dsa_compose_1006.sql');
+	// upgrade 1007
+	$this->executeSqlFile('sql/civicrm_dsa_compose_1007.sql');
+	// upgrade 1008
+	DSA_OptionGroup::install();
+	$this->executeSqlFile('sql/civicrm_dsa_compose_1008.sql');
+	// upgrade 1009
+	$this->executeSqlFile('sql/civicrm_dsa_compose_1009.sql');
+	// upgrade 1010
+	$this->executeSqlFile('sql/civicrm_dsa_compose_1010.sql');
+	// upgrade 1011: n.a.
   }
   
 	/**
