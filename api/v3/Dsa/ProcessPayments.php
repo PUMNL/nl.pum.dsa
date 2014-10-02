@@ -144,7 +144,8 @@ function civicrm_api3_dsa_processpayments($params) {
 			$finrec_act['OmschrijvingA']		= $daoDsa->last_name;							// description fragment: surname
 			$finrec_act['OmschrijvingB']		= $daoDsa->case_sequence;						// description fragment: main activity number
 			$finrec_act['OmschrijvingC']		= $daoDsa->case_country;						// description fragment: country
-			$finrec_act['FactuurNrYear']		= '';											// 14 for 2014; date of "preparation", not dsa payment!
+			$finrec_act['FactuurNrYear']		= date('y', strtotime($daoDsa->original_date_time));		// 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
+			$finrec_act['FactuurDatum']			= date('d-m-Y', strtotime($daoDsa->original_date_time));	// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation") :=> civi: date of original activity
 
 			// payments vs. creditation
 			if ($daoDsa->type == '1') {
@@ -166,7 +167,7 @@ function civicrm_api3_dsa_processpayments($params) {
 	
 				$recSql_DsaCompose['invoice_number'] = 
 					_dsaSize($finrec_act['FactuurNrRunType'],	1, ' ', TRUE,  FALSE) .			// D for DSA
-					_dsaSize($finrec_act['FactuurNrYear'],		2, ' ', TRUE,  FALSE) .			// 14 for 2014; date of "preparation", not dsa payment!
+					_dsaSize($finrec_act['FactuurNrYear'],		2, ' ', TRUE,  FALSE) .			// 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
 					_dsaSize($finrec_act['FactuurNr'],			4, '0', FALSE, FALSE); 			// sequence based: "123456" would return "2345", "12" would return "0001";
 
 					} else {
@@ -179,7 +180,6 @@ function civicrm_api3_dsa_processpayments($params) {
 				
 			} // payments vs. creditation 
 			
-			$finrec_act['FactuurDatum']			= '';											// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
 			$finrec_act['Kenmerk']				= trim(implode(
 													array($daoDsa->case_sequence, $daoDsa->case_country),
 													''));										// project number NNNNNCC (number, country)
@@ -194,16 +194,19 @@ function civicrm_api3_dsa_processpayments($params) {
 			$finrec_act['Adres2']				= trim(implode(
 													array( $daoDsa->postal_code, $daoDsa->postal_code_suffix, $daoDsa->city), 
 													' '));				;						// extperts zip + city
-			$finrec_act['BankRekNr']			= ltrim($daoDsa->Account_number, '0');			// experts bank account: number (not IBAN)
+			$finrec_act['BankRekNr']			= ltrim($daoDsa->Bank_Account_Number, '0');		// experts bank account: number (not IBAN)
 			$finrec_act['Soort']				= $daoDsa->case_type;							// main activity (case) type (1 character)
-			$finrec_act['Rekeninghouder']		= 'rh';											// bank account holder: name
-			$finrec_act['RekeninghouderLand']	= 'xx';											// bank account holder: country
-			$finrec_act['RekeninghouderAdres1']	= $finrec_act['Adres1'];						// bank account holder: street + number
-			$finrec_act['RekeninghouderAdres2']	= $finrec_act['Adres2'];						// bank account holder: zip + city
-			$finrec_act['IBAN']					= $daoDsa->IBAN_number;							// bank account: IBAN
-			$finrec_act['Banknaam']				= 'nm';											// bank name
-			$finrec_act['BankPlaats']			= 'pl';											// bank city
-			$finrec_act['BankLand']				= 'yy';											// bank country
+			$finrec_act['Rekeninghouder']		= $daoDsa->Accountholder_name;					// bank account holder: name
+			$finrec_act['RekeninghouderLand']	= $country[$daoDsa->Accountholder_country]['iso_code'];
+																								// bank account holder: country (ISO2)
+			$finrec_act['RekeninghouderAdres1']	= $daoDsa->Accountholder_address;				// bank account holder: street + number
+			$finrec_act['RekeninghouderAdres2']	= $daoDsa->Accountholder_postal_code . ' '
+													.  $daoDsa->Accountholder_city;				// bank account holder: zip + city
+			$finrec_act['IBAN']					= $daoDsa->IBAN_nummer;							// bank account: IBAN
+			$finrec_act['Banknaam']				= $daoDsa->Bank_Name;							// bank name
+			$finrec_act['BankPlaats']			= $daoDsa->Bank_City;							// bank city
+			$finrec_act['BankLand']				= $country[$daoDsa->Bank_Country_ISO_Code]['iso_code'];
+																								// bank country (ISO2)
 			$finrec_act['BIC']					= $daoDsa->BIC_Swiftcode;						// experts bank account: BIC/Swift code
 			
 			// loop through the individual payment amounts for this activity
@@ -444,10 +447,49 @@ function civicrm_api3_dsa_processpayments($params) {
 		$subject = 'DSA payment: ' . $fileName;
 		$mailfrom = $dsa_config['mail_from'];
 		$message = '';
-		$attachment = chunk_split(base64_encode($contentFin));
+		//$attachment = chunk_split(base64_encode($contentFin));
 		// send email
 		// http://stackoverflow.com/questions/12301358/send-attachments-with-php-mail (Ragnesh Chauhan)
 		try {
+			//create a boundary string. It must be unique so we use the MD5 algorithm to generate a random hash
+			$random_hash = md5(date('r', time()));
+			//define the headers we want passed. Note that they are separated with \r\n
+			$headers = "From: noreply@pum.nl\r\nReply-To: noreply@pum.nl";
+			//add boundary string and mime type specification
+			$headers .= "\r\nContent-Type: multipart/mixed; boundary=\"PHP-mixed-".$random_hash."\"";
+			//read the atachment file contents into a string, encode it with MIME base64 and split it into smaller chunks
+			$attachment = chunk_split(base64_encode(file_get_contents($fileName))); // ?????????????????????????????????
+			//define the body of the message.
+			ob_start(); //Turn on output buffering
+			?>
+--PHP-mixed-<?php echo $random_hash; ?> 
+Content-Type: multipart/alternative; boundary="PHP-alt-<?php echo $random_hash; ?>"
+
+--PHP-alt-<?php echo $random_hash; ?> 
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+
+DSA Payments file:
+
+--PHP-alt-<?php echo $random_hash; ?>--
+
+--PHP-mixed-<?php echo $random_hash; ?> 
+Content-Type: application/txt; name="<?php echo $fileName; ?>" 
+Content-Transfer-Encoding: base64 
+Content-Disposition: attachment 
+
+<?php echo $attachment; ?>
+--PHP-mixed-<?php echo $random_hash; ?>--
+<?php
+			//copy current buffer contents into $message variable and delete current output buffer
+			$message = ob_get_clean();
+			//send the email
+			$mail_sent = mail( $mailto, $subject, $message, $headers );
+			if (!$mail_sent) {
+				throw new Exception('Failed sending email/attachment to FA');
+			}
+
+			/*
 			// a random hash will be necessary to send mixed content
 			$separator = md5(time());
 			
@@ -479,6 +521,7 @@ function civicrm_api3_dsa_processpayments($params) {
 			if (!mail($mailto, $subject, "", $headers)) {
 				throw new Exception('Failed sending email/attachment to FA');
 			}
+			*/
 			
 //dpm($headers, 'headers');
 			
@@ -536,10 +579,10 @@ function _dsa_concatValues($ar) {
 		_dsaSize($ar['OmschrijvingC'],			 3, ' ', TRUE,  FALSE) .	// description fragment: country ("CC ")
 		_dsaSize($ar['Filler2'],				13, ' ', TRUE,  FALSE) .	// not in use: 13 spaces
 		_dsaSize($ar['FactuurNrRunType'],		 1, ' ', TRUE,  FALSE) .	// D for DSA
-		_dsaSize($ar['FactuurNrYear'],			 2, ' ', TRUE,  FALSE) .	// 14 for 2014; date of "preparation", not dsa payment!
+		_dsaSize($ar['FactuurNrYear'],			 2, ' ', TRUE,  FALSE) .	// 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
 		_dsaSize($ar['FactuurNr'],				 4, '0', FALSE, FALSE) .	// sequence based: "123456" would return "2345", "12" would return "0001"
 		_dsaSize($ar['FactuurNrAmtType'],		 1, ' ', TRUE,  FALSE) .	// represents type of amount in a single character: 1-9, A-Z
-		_dsaSize($ar['FactuurDatum'],			10, ' ', TRUE,  FALSE) .	// currently: creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation")
+		_dsaSize($ar['FactuurDatum'],			10, ' ', TRUE,  FALSE) .	// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation") :=> civi: date of original activity
 		_dsaSize($ar['FactuurBedrag'],			11, '0', FALSE, FALSE) .	// payment amount in EUR cents (123,456 -> 12346)
 		_dsaSize($ar['FactuurPlusMin'],			 1, ' ', TRUE,  TRUE)  .	// + for payment, - for creditation
 		_dsaSize($ar['Kenmerk'],				12, ' ', TRUE,  FALSE) .	// project number NNNNNCC (number, country)
@@ -554,20 +597,21 @@ function _dsa_concatValues($ar) {
 		_dsaSize($ar['Soort'],					 1, ' ', TRUE,  FALSE) .	// main activity (case) type (1 character)
 		_dsaSize($ar['Shortname'],				 8, ' ', TRUE,  FALSE) .	// experts shortname (8 char)
 		_dsaSize($ar['Rekeninghouder'],			35, ' ', TRUE,  FALSE) .	// bank account holder: name
-		_dsaSize($ar['RekeninghouderLand'],		20, ' ', TRUE,  FALSE) .	// bank account holder: country
+		_dsaSize($ar['RekeninghouderLand'],		20, ' ', TRUE,  FALSE) .	// bank account holder: country (ISO2)
 		_dsaSize($ar['RekeninghouderAdres1'],	35, ' ', TRUE,  FALSE) .	// bank account holder: street + number
 		_dsaSize($ar['RekeninghouderAdres2'],	35, ' ', TRUE,  FALSE) .	// bank account holder: zip + city
 		_dsaSize(strtoupper($ar['IBAN']),		34, ' ', TRUE,  FALSE) .	// bank account: IBAN
 		_dsaSize($ar['Banknaam'],				35, ' ', TRUE,  FALSE) .	// bank name
 		_dsaSize($ar['BankPlaats'],				35, ' ', TRUE,  FALSE) .	// bank city
-		_dsaSize($ar['BankLand'],				 3, ' ', TRUE,  FALSE) .	// bank country
+		_dsaSize($ar['BankLand'],				 3, ' ', TRUE,  FALSE) .	// bank country (ISO2)
 		_dsaSize(strtoupper($ar['BIC']),		11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
 }
 
 function _getCustomDefinitions() {
 	// prepare result array
 	$result = array();
-	// retrieve table name for custom group "Additional Data"
+	// custom field group "Additional Data" ---------------------------------------------------------------------------
+	// retrieve table name for custom group
 	$sql = "SELECT id, name, table_name FROM civicrm_custom_group WHERE name = 'Additional_Data'";
 	$dao = CRM_Core_DAO::executeQuery($sql);
 	if (!$dao->N == 1) {
@@ -583,7 +627,39 @@ function _getCustomDefinitions() {
 		'columns' => '',
 		'fields' => array(),
 	);
-	// retrieve fieldnames for custom group "Additional Data"
+	// retrieve fieldnames for custom fields
+	$sql = "SELECT name, label, column_name FROM civicrm_custom_field WHERE custom_group_id = " . $group_id;
+	$dao = CRM_Core_DAO::executeQuery($sql);
+	if (!$dao >= 1) {
+		return NULL;
+	}
+	while ($dao->fetch()) {
+		$result[$group_name]['columns'] .= 
+			($result[$group_name]['columns'] == '' ? '' : (', ' . PHP_EOL)) .
+			($tbl . '.' . $dao->column_name . ' as ' . $dao->name);
+		$result[$group_name]['fields'][$dao->name] = array(
+			'label' => $dao->label,
+			'column_name' => $dao->column_name,
+		);
+	}
+	// custom field group "Bank_Information" --------------------------------------------------------------------------
+	// retrieve table name for custom group
+	$sql = "SELECT id, name, table_name FROM civicrm_custom_group WHERE name = 'Bank_Information'";
+	$dao = CRM_Core_DAO::executeQuery($sql);
+	if (!$dao->N == 1) {
+		return NULL;
+	}
+	$dao->fetch();
+	$group_name = $dao->name;
+	$tbl = $dao->table_name;
+	$group_id = $dao->id;
+	$result[$group_name] = array(
+		'table' => $tbl,
+		'group_id' => $group_id,
+		'columns' => '',
+		'fields' => array(),
+	);
+	// retrieve fieldnames for custom fields
 	$sql = "SELECT name, label, column_name FROM civicrm_custom_field WHERE custom_group_id = " . $group_id;
 	$dao = CRM_Core_DAO::executeQuery($sql);
 	if (!$dao >= 1) {
@@ -742,6 +818,8 @@ SELECT
 	num.case_country ,
 	\'--ACTIVITY-->\' AS \'_ACTIVITY\',
 	act.*,
+	\'--ORG_ACTIVITY-->\' AS \'_ORG_ACTIVITY\',
+	org.activity_date_time as original_date_time,
 	\'--DSA-->\' AS \'_DSA\',
 	dsa.type,
 	dsa.loc_id,
@@ -786,11 +864,13 @@ SELECT
 	adr.usps_adc,
 	adr.country_id,
 	\'--CUSTOM-->\' AS \'_CUSTOM\',
-	' . $custom['Additional_Data']['columns'] . '
+	' . $custom['Additional_Data']['columns'] . ',
+	' . $custom['Bank_Information']['columns'] . '
 FROM
 	civicrm_option_group ogp1,
 	civicrm_option_value ovl1,
 	civicrm_activity act,
+	civicrm_activity org,
 	civicrm_dsa_compose dsa
 		LEFT JOIN civicrm_contact apr
 		ON apr.id = dsa.approval_cid,
@@ -803,7 +883,8 @@ FROM
 		LEFT JOIN civicrm_address adr
 		ON adr.contact_id = con.id AND
        adr.is_primary = 1,
-	' . $custom['Additional_Data']['table'] . '
+	' . $custom['Additional_Data']['table'] . ',
+	' . $custom['Bank_Information']['table'] . '
 WHERE
 	ogp1.name = \'activity_type\' AND
 	ovl1.option_group_id = ogp1.id AND
@@ -822,6 +903,7 @@ WHERE
 			ovl2.option_group_id = ogp2.id AND
 			ovl2.name = \'dsa_payable\') AND /* ready for payment */
 	dsa.activity_id = ifnull(act.original_id, act.id) AND /* join data in civicrm_dsa_compose table */
+	org.id = ifnull(act.original_id, act.id) AND /* join data from original (first created) activity */
 	cac.activity_id = act.id AND
 	cas.id = cac.case_id AND /* join case data through case activities */
 	num.entity_id = cas.id AND /* join main activity (case) numbering */
@@ -829,7 +911,8 @@ WHERE
 	ovl3.option_group_id = ogp3.id AND
 	ovl3.value = cas.case_type_id AND /* join case type name */
 	con.id = dsa.contact_id AND /* join contact data - will drop DSA if not found */
-	' . $custom['Additional_Data']['table'] . '.entity_id = con.id /* additional custom data for contact */
+	' . $custom['Additional_Data']['table'] . '.entity_id = con.id AND /* additional custom data for contact */
+	' . $custom['Bank_Information']['table'] . '.entity_id = con.id /* additional custom data for bank information */
 ORDER BY
 	con.id
 	';
