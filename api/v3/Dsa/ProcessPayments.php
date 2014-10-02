@@ -47,12 +47,12 @@ function civicrm_api3_dsa_processpayments($params) {
   $result = $dao->fetch();
   $paymentId = $dao->id; // all -dsa_compose records should be marked with this id when processed
   
-  // cache countryname vs ISO code
+  // cache countryname vs ISO code (limit set to 5000 as civi 4.4.4 appears not process limit=0 as "unlimited"; expected result is roughly 250 countries)
   $params = array(
 	'version' => 3,
 	'q' => 'civicrm/ajax/rest',
 	'options' => array(
-		'limit' => 0,
+		'limit' => 5000,
 	),
 	'return' => 'iso_code,name',
   );
