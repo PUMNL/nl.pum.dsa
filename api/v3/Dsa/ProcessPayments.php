@@ -359,7 +359,7 @@ function civicrm_api3_dsa_processpayments($params) {
 					// no action
 				} elseif (!array_key_exists($gl_key, $gl)) {
 					// a controlled way out: raise an error causing the code to skip the entire payment record
-					throw exception ('Unknown key for General Ledger: ' . $gl_key);
+					throw new Exception ('Unknown key for General Ledger: ' . $gl_key);
 				} else {
 					// continue construction of payment line
 					$finrec_amt['GrootboekNr']		= $gl[$gl_key];								// code from _dsa_generalLedgerCodes() - amount specific
