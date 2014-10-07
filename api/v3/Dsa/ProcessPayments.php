@@ -934,7 +934,7 @@ function _dsa_generalLedgerCodes() {
 		'option_group_name' => 'general_ledger',
 		'return' => 'name,value',
 		'options' => array(
-			'limit' => 0,
+			'limit' => 1000,
 		),
 	);
 	$result = civicrm_api('OptionValue', 'get', $params);
