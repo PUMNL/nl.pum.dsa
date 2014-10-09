@@ -627,15 +627,17 @@ WHERE
 								break;
 							case 'dsa_payable':
 								if (CRM_Core_Permission::check('approve DSA activity')) {
-									$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
+									$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable'); // allow status payable for approver
+								} elseif (CRM_Core_Permission::check('edit DSA activity')) {
+									$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable'); // allow status payable for editor as that is the current status
 								} else {
-									$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required');
+									$allowedStatusName = array('dsa_payable'); // current status only
 								}
 								$addSelect = TRUE;
 								$restrictEdit = '1';
 								break;
 							case 'dsa_paid':
-								$allowedStatusName = array('dsa_paid');
+								$allowedStatusName = array('dsa_paid'); // current status only
 								$addSelect = FALSE;
 								$restrictEdit = '2';
 								break;
@@ -831,6 +833,7 @@ function _amountCheck($fieldName, $fields, &$errors) {
  * Stores added fields in civicrm_dsa_compose
  */
 function dsa_civicrm_postProcess( $formName, &$form ) {	
+	$dao = NULL;
 	switch($formName) {
 		case 'CRM_Case_Form_Activity':
 			if ($form->getVar('_activityTypeName')=='DSA') {
@@ -869,7 +872,39 @@ function dsa_civicrm_postProcess( $formName, &$form ) {
 
 // -----
 				if ($form->_submitValues['dsa_type'] == 1) {
-				
+					
+					// use submitted credit_act_id to collect data from original payment (if available)
+					$sql = '
+SELECT
+  dsa.case_id,
+  dsa.contact_id,
+  dsa.relationship_type_id,
+  dsa.loc_id,
+  dsa.percentage,
+  dsa.days,
+  dsa.amount_dsa,
+  dsa.amount_briefing,
+  dsa.amount_airport,
+  dsa.amount_transfer,
+  dsa.amount_hotel,
+  dsa.amount_visa,
+  dsa.amount_medical,
+  dsa.amount_other,
+  dsa.description_other,
+  dsa.amount_advance,
+  dsa.ref_date,
+  dsa.invoice_number,
+  dsa.approval_cid,
+  dsa.approval_datetime
+FROM
+  civicrm_activity act,
+  civicrm_dsa_compose dsa
+WHERE
+  act.id = ' . $dsaId . ' AND
+  ifnull(act.original_id, act.id) = dsa.activity_id
+					';
+					$dao = CRM_Core_DAO::executeQuery($sql);
+					$result = $dao->fetch();
 					// html fieldname -> column name
 					$required = array(
 						'dsa_type'				=>	array(
@@ -1051,7 +1086,9 @@ SELECT
   dsa.description_other,
   dsa.amount_advance,
   dsa.ref_date,
-  dsa.invoice_number
+  dsa.invoice_number,
+  dsa.approval_cid,
+  dsa.approval_datetime
 FROM
   civicrm_activity act,
   civicrm_dsa_compose dsa
@@ -1092,18 +1129,22 @@ WHERE
 					}
 				}
 // --------
-				
+
 				// add / remove approver
 				$approver_id = $form->_currentUserId;
 				$statusList = _retrieveActivityStatusList();
 				switch ($statusList[$form->_submitValues['status_id']]['name']) {
 				case 'dsa_payable':
-					// set approver
-					$input['approval_cid'] = $approver_id;
-					$input['approval_datetime'] = 'now()';
+					// set approver - but only when not set yet
+					if (!isset($dao->approval_cid)) {
+						$input['approval_cid'] = $approver_id;
+						$input['approval_datetime'] = 'now()';
+					} else {
+						// leave as is
+					}
 					break;
-				case 'dsa-paid':
-					// lease as is
+				case 'dsa_paid':
+					// leave as is
 					break;
 				default:
 					// reset approver
