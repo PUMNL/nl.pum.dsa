@@ -22,6 +22,8 @@
 {$form.restrictEdit.html}
 {$form.credit_data.html}
 {$form.credit_act_id.html}
+{$form.main_date.html}
+{$form.main_days.html}
 <table id="dsa-temp">
 	<tr>
 		<td colspan="2">
@@ -47,7 +49,7 @@
 	<tr class="crm-case-activity-form-block-dsa_days">
         <td class="label">{$form.dsa_days.label}</td>
 		<td class="view-value">{$form.dsa_days.html}</td>
-	</tr>
+	</tr> 
 	<tr class="crm-case-activity-form-block-dsa_amount">
         <td class="label">{$form.dsa_amount.label}</td>
 		<td class="view-value">{$form.dsa_amount.html}</td>
@@ -303,6 +305,7 @@
 		cj('#dsa_location').before( '<span id="dsa_location_dsp"></span>' );
 		cj('#dsa_percentage').before( '<span id="dsa_percentage_dsp"></span>' );
 		cj('#dsa_days').before( '<span id="dsa_days_dsp"></span>' );
+		cj('#dsa_days').after( '<div class="description">' + cj('#main_days').val() + cj('#main_dates').val() + '</div>');
 		cj('#dsa_amount').before( '<span id="dsa_amount_dsp"></span>' );
 		cj('#dsa_briefing').before( '<span id="dsa_briefing_dsp"></span>' );
 		cj('#dsa_airport').before( '<span id="dsa_airport_dsp"></span>' );
@@ -314,6 +317,9 @@
 		cj('#dsa_other_description').before( '<span id="dsa_other_description_dsp"></span>' );
 		cj('#dsa_advance').before( '<span id="dsa_advance_dsp"></span>' );
 		cj('#status_id').before( '<span id="status_id_dsp"></span>' );
+		//cj('tr.crm-case-activity-form-block-dsa_days').after( '<tr class="crm-case-activity-form-block-dsa_madays"><td class="label">&nbsp;</td><td class="view-value"></td></tr>' );
+		//cj('tr.crm-case-activity-form-block-dsa_madays td.view-value').text( cj('#main_days').val() + cj('#main_dates').val() );
+		
 	}
 	
 	function displayControl() {

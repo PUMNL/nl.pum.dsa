@@ -294,6 +294,70 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					$dsaIsDefined = ($daoDsaRecord->recCount>0); // FALSE if recCount==0, otherwise TRUE
 				}
 				
+				// main activity (case) contains start- and enddate as custom field
+				$ma = array(
+					'start' => NULL,
+					'end' => NULL,
+					'days' => 0,
+				);
+				// prepare result array for custom data
+				$result = array();
+				// custom field group "main_activity_info" ---------------------------------------------------------------------------
+				// retrieve table name for custom group
+				$sql = "SELECT id, name, table_name FROM civicrm_custom_group WHERE name = 'main_activity_info'";
+				$dao = CRM_Core_DAO::executeQuery($sql);
+				if (!$dao->N == 1) {
+					// leave main_start and main_end empty; leave main_days to 0
+				} else {
+					$dao->fetch();
+					$group_name = $dao->name;
+					$tbl = $dao->table_name;
+					$group_id = $dao->id;
+					$result[$group_name] = array(
+						'table' => $tbl,
+						'group_id' => $group_id,
+						'columns' => '',
+						'fields' => array(),
+					);
+					// retrieve fieldnames for custom fields
+					$sql = "SELECT name, label, column_name FROM civicrm_custom_field WHERE custom_group_id = " . $group_id;
+					$dao = CRM_Core_DAO::executeQuery($sql);
+					if (!$dao >= 1) {
+						// leave main_start and main_end empty; leave main_days to 0
+					}
+					while ($dao->fetch()) {
+						$result[$group_name]['columns'] .= 
+							($result[$group_name]['columns'] == '' ? '' : (', ' . PHP_EOL)) .
+							($tbl . '.' . $dao->column_name . ' as ' . $dao->name);
+						$result[$group_name]['fields'][$dao->name] = array(
+							'label' => $dao->label,
+							'column_name' => $dao->column_name,
+						);
+					}
+					$sql = 'SELECT ' . $result[$group_name]['columns'] . ' FROM ' . $result[$group_name]['table'] . ' WHERE entity_id=' . $form->_caseId;
+					$dao = CRM_Core_DAO::executeQuery($sql);
+//dpm($dao);
+					if (!$dao->N == 1) {
+						// leave main_start and main_end empty; leave main_days to 0
+					} else {
+						$dao->fetch();
+//dpm($dao);
+						if (!is_null($dao->main_activity_start_date)) {
+							$ma['start'] = date_create($dao->main_activity_start_date);
+						}
+						if (!is_null($dao->main_activity_end_date)) {
+							$ma['end'] = date_create($dao->main_activity_end_date);
+						}
+					}
+				}
+				if (is_null($ma['start']) || is_null($ma['end'])) {
+					// leave main_days to 0
+				} else {
+					$ma['days'] = date_diff($ma['end'], $ma['start']);
+					$ma['days'] = $ma['days']->days + 1;
+				}
+//dpm($result, '$result');
+//dpm($ma);
 				
 				// DSA fields are displayed using a custom .tpl-file
 				// assume templates are in a templates folder relative to this file
@@ -324,6 +388,9 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				$form->add('hidden', 'dsa_participant_id', NULL, array('id'=> 'dsa_participant_id'));
 				// Add a hidden field to hold the selected participants relationsship_type_id
 				$form->add('hidden', 'dsa_participant_role', NULL, array('id'=> 'dsa_participant_role'));
+				// Add a hidden fields to hold main activity startdate, enddate and no. of days (i.e. end - start + 1)
+				$form->add('hidden', 'main_dates', NULL, array('id'=> 'main_dates'));
+				$form->add('hidden', 'main_days', NULL, array('id'=> 'main_days'));
 				// Add hiddenfields to hold invoice numbers
 				$form->add('hidden', 'invoice_number', NULL, array('id'=> 'invoice_number', 'label'=>ts('Invoice Number')));
 				$form->add('hidden', 'invoice_dsa', NULL, array('id'=> 'invoice_dsa', 'label'=>ts('Invoice code DSA')));
@@ -411,6 +478,14 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				// - creditation save
 				
 				// Default field values =======================================
+				// apply default values for details from the case record, regardless of create/edit/read/validate mode
+				if (is_null($ma['start']) || is_null($ma['end'])) {
+					$defaults['main_dates'] = ' (' . ts('no start date or no end date available') . ')';
+					$defaults['main_days'] = 0;
+				} else {
+					$defaults['main_dates'] = ' ' . ts('days from start date') . ' ' . $ma['start']->format('Y-m-d') . ' ' . ts('to end date') . ' ' . $ma['end']->format('Y-m-d');
+					$defaults['main_days'] = $ma['days'];
+				}
 				/* For most of the form, there are three scenario's here:
 				   - manual creation of a new activity,
 				   - editing an existing activity without additional dsa data present (automatically generated ones),
@@ -477,7 +552,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					}
 					// Default DSA days
 					if (!is_null($percentageDefault)) {
-						$defaults['dsa_days'] = 0;
+						$defaults['dsa_days'] = $ma['days'];
 					}
 					// Default DSA amount
 					if (!is_null($percentageDefault)) {
@@ -1706,21 +1781,3 @@ function dsa_civicrm_permission( &$permissions ) {
 	); // NB: note the convention of using delete in ComponentName, plural for edits
 }
 
-/**
- * Alter fields for an event registration to make them into a demo form.
- */
-
-//function dsa_civicrm_alterContent( &$content, $context, $tplName, &$object ) {
-//dpm($content, 'content');
-//dpm($context, 'context');
-/*  if($context == "form") {
-    if($tplName == "CRM/Event/Form/Registration/Register.tpl") {
-      if($object->_eventId == 1) {
-        $content = "<p>Below is an example of an event registration.</p>".$content;
-        $content = str_replace("<input ","<input disabled='disabled' ",$content);
-        $content = str_replace("<select ","<select disabled='disabled' ",$content);
-        $content = $content."<p>Above is an example of an event registration</p>";
-      }
-    }
-  }*/
-//}
