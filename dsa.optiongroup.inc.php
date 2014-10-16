@@ -299,75 +299,149 @@ class DSA_OptionGroup {
 					),
 				),
 			),
+			array(
+				'group_name'	=>	'rep_payment_configuration',
+				'group_label'	=>	'Representative Payment Configuration',
+				'enable_level'	=>	'value',
+				'values'		=>	array(
+					array(
+						'label'			=> 'Default payment amount',
+						'name'			=> 'default_payment_amount',
+						'value'			=> '400.00',
+						'weight'		=> 10,
+						'description'	=> 'Default amount for Representative Payment (e.g. \'400.00\')',
+						'default'		=> FALSE,
+					),
+					array(
+						'label'			=> 'Mail FA',
+						'name'			=> 'mail_fa',
+						'value'			=> 'mailto.address@organisation.domain',
+						'weight'		=> 40,
+						'description'	=> 'Email address at financial department to send DSA payment lines to',
+						'default'		=> FALSE,
+					),
+					array(
+						'label'			=> 'Mail From',
+						'name'			=> 'mail_from',
+						'value'			=> 'representative.paymentprocessor <from.address@organisation.domain>',
+						'weight'		=> 50,
+						'description'	=> 'Defines the from-address when sending a payment email to the financial department',
+						'default'		=> FALSE,
+					),
+				),
+			),
+			array(
+				'group_name'	=>	'rep_payment_relationships',
+				'group_label'	=>	'Representative Payment Relationships',
+				'enable_level'	=>	'value',
+				'values'		=>	array(
+					array(
+						'label'			=> 'Representative for',
+						'name'			=> 'Representative for',
+						'value'			=> 'Representative for',
+						'weight'		=> 10,
+						'description'	=> '',
+						'default'		=> FALSE,
+					),
+				),
+			),
 		);
 	}
 	
 	/*
 	 * handler for hook_civicrm_install
+	 * option groups are built in 2 cycles: (1) the groups themselves and (2) their values
+	 * attempts to build the values in the same cycle as the groups often failed, possibly due to transactional processing
 	 */
 	static function install() {
 		$created = array();
+		$message = '';
 		$required = self::required();
 		
+		// cycle 1:  create option groups
 		foreach ($required as $optionGroup) {
 			$optionGroupId = NULL;
 			
 			// verify if group exists
 			$params = array(
-				'version'		=> 3,
 				'sequential'	=> 1,
 				'name'			=> $optionGroup['group_name'],
 			);
-			$result = civicrm_api('OptionGroup', 'getsingle', $params);
-
-			if (in_array('is_error', $result)) {
-				// optiongroup not found: $optionGroupId remains NULL
-			} else {
-				// optiongroup found: use id
+			try {
+				$result = civicrm_api3('OptionGroup', 'getsingle', $params);
 				$optionGroupId = $result['id'];
+			} catch (Exception $e) {
+				// optiongroup not found: $optionGroupId remains NULL
 			}
 		
 			// if group was not found: create it
 			if (is_null($optionGroupId)) {
 				$params = array(
-					'version'		=> 3,
 					'sequential'	=> 1,
 					'name'			=> $optionGroup['group_name'],
 					'title'			=> $optionGroup['group_label'],
 					'is_active'		=> 1,
 					'description'	=> 'nl.pum.dsa',
 				);
-				$result = civicrm_api('OptionGroup', 'create', $params);
-				
-				if($result['is_error'] == 1) {
+				try {
+					$result = civicrm_api3('OptionGroup', 'create', $params);
+					// group created: retrieve $customGroupId (perform an intentional new db request)
+					$params = array(
+						'sequential'	=> 1,
+						'name'			=> $optionGroup['group_name'],
+					);
+					try {
+						$result = civicrm_api3('OptionGroup', 'getsingle', $params);
+						$optionGroupId = $result['id'];
+						$created[] = $optionGroup['group_label'];
+					} catch (Exception $e) {
+						// optiongroup not found: $optionGroupId remains NULL
+					}
+				} catch (Exception $e) {
 					// group not created: $optionGroupId remains NULL
-					CRM_Utils_System::setUFMessage('Error creating Option Group "' . $optionGroup['group_name'] . '": ' . $result['error_message']);
-				} else {
-					// group created: retrieve $customGroupId
-					$value = array_pop($result['values']);
-					$optionGroupId = $value['id'];
-					$created[] = $optionGroup['group_name'];
 				}
+			}
+		} // next $optionGroup
+		
+		if (count($created) > 0) {
+			$message = "Option group ".implode(", ", $created)." succesfully created";
+			CRM_Utils_System::setUFMessage($message);
+		}
+		
+		usleep(1000);
+		
+		// cycle 2:  create option values
+		foreach ($required as $optionGroup) {
+			$created = array();
+			$optionGroupId = NULL;
+			
+			// verify if group exists
+			$params = array(
+				'sequential'	=> 1,
+				'name'			=> $optionGroup['group_name'],
+			);
+			try {
+				$result = civicrm_api3('OptionGroup', 'getsingle', $params);
+				$optionGroupId = $result['id'];
+			} catch (Exception $e) {
+				// optiongroup not found: $optionGroupId remains NULL
 			}
 			
 			// create optionvalues (if option group exists)
-			if (is_null($optionGroupId)) {
-				// message was raised earlier, when group was not created - no further action here
-			} else {
+			if (!is_null($optionGroupId)) {
 				foreach ($optionGroup['values'] as $optionValue) {
 					// verify if option value exists
 					$params = array(
-						'version'			=> 3,
 						'sequential'		=> 1,
 						'option_group_id'	=> $optionGroupId,
-						'label'				=> $optionValue['label'],
+						'name'				=> $optionValue['name'],
 					);
-					$result = civicrm_api('OptionValue', 'getsingle', $params);
-					
-					if (in_array('is_error', $result)) {
-						// create optionvalue
+					try {
+						$result = civicrm_api3('OptionValue', 'getsingle', $params);
+						// option value found
+					} catch (Exception $e) {
+						// option value NOT found
 						$params = array(
-							'version'			=> 3,
 							'sequential'		=> 1,
 							'option_group_id'	=> $optionGroupId,
 							'label'				=> $optionValue['label'],
@@ -379,20 +453,25 @@ class DSA_OptionGroup {
 							'is_active'			=> TRUE,
 							'is_default'		=> $optionValue['default'],
 						);
-						$result = civicrm_api('OptionValue', 'create', $params);
-CRM_Utils_System::setUFMessage($optionValue['name']);
-						// result could be checked / reported here
-					} else {
-						// optiongroup exists - no further action
+						try {
+							$result_val = civicrm_api3('OptionValue', 'create', $params);
+							$created[] = $optionValue['label'];
+						} catch (Exception $e) {
+						}
 					}
-				}
+					
+					//CRM_Utils_System::setUFMessage($optionValue['name']);
+				} // next option value
+			}
+			
+			if (count($created) > 0) {
+				$message = 'Option group ' . $optionGroup['group_label'] . ': value(s) ' . implode(', ', $created) . ' succesfully created';
+				CRM_Utils_System::setUFMessage($message);
 			}
 			
 		} // next $optionGroup
-		
-		$message = "Option group ".implode(", ", $created)." succesfully created";
-		CRM_Utils_System::setUFMessage($message);
 	}
+	
 	
 	/*
 	 * handler for hook_civicrm_enable
@@ -402,11 +481,10 @@ CRM_Utils_System::setUFMessage($optionValue['name']);
 		// set all option groups to enabled
 		foreach ($required as $optionGroup) {
 			$params = array(
-				'version' => 3,
 				'sequential' => 1,
 				'name' => $optionGroup['group_name'],
 			);
-			$result = civicrm_api('OptionGroup', 'getsingle', $params);
+			$result = civicrm_api3('OptionGroup', 'getsingle', $params);
 			if (!array_key_exists('id', $result)) {
 				// optiongroup not found: cannot enable
 				$group_id = NULL;
@@ -438,11 +516,10 @@ CRM_Utils_System::setUFMessage($optionValue['name']);
 		// set all option groups to enabled
 		foreach ($required as $optionGroup) {
 			$params = array(
-				'version' => 3,
 				'sequential' => 1,
 				'name' => $optionGroup['group_name'],
 			);
-			$result = civicrm_api('OptionGroup', 'getsingle', $params);
+			$result = civicrm_api3('OptionGroup', 'getsingle', $params);
 			if (!array_key_exists('id', $result)) {
 				// optiongroup not found: cannot enable
 				$group_id = NULL;

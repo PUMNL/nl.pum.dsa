@@ -34,8 +34,8 @@ function civicrm_api3_dsa_processpayments($params) {
   
   // create new payment record and retrieve its id
   $runTime = time();
-  $fileName = 'dsa_' . date("Ymd_Hms", $runTime) . '.txt'; //===== need to add a path; is not root folder of CMS ========================================
-  $sqlTime = '\'' . date('Y-m-d H:m:s', $runTime) . '\'';
+  $fileName = 'dsa_' . date("Ymd_His", $runTime) . '.txt'; //===== need to add a path; is not root folder of CMS ========================================
+  $sqlTime = '\'' . date('Y-m-d H:i:s', $runTime) . '\'';
   $sql = "INSERT INTO civicrm_dsa_payment (timestamp) VALUES (" . $sqlTime . ")";
   $dao = CRM_Core_DAO::executeQuery($sql);
   
@@ -454,9 +454,9 @@ function civicrm_api3_dsa_processpayments($params) {
 			//create a boundary string. It must be unique so we use the MD5 algorithm to generate a random hash
 			$random_hash = md5(date('r', time()));
 			//define the headers we want passed. Note that they are separated with \r\n
-			$headers = "From: noreply@pum.nl\r\nReply-To: noreply@pum.nl";
+			$headers = "From: " . $mailfrom . "\r\nReply-To: " . $mailfrom;
 			//add boundary string and mime type specification
-			$headers .= "\r\nContent-Type: multipart/mixed; boundary=\"PHP-mixed-".$random_hash."\"";
+			$headers .= "\r\nContent-Type: multipart/mixed; boundary=\"PHP-mixed-" . $random_hash . "\"";
 			//read the atachment file contents into a string, encode it with MIME base64 and split it into smaller chunks
 			$attachment = chunk_split(base64_encode(file_get_contents($fileName))); // ?????????????????????????????????
 			//define the body of the message.
@@ -488,42 +488,6 @@ Content-Disposition: attachment
 			if (!$mail_sent) {
 				throw new Exception('Failed sending email/attachment to FA');
 			}
-
-			/*
-			// a random hash will be necessary to send mixed content
-			$separator = md5(time());
-			
-			// carriage return type (we use a PHP end of line constant)
-			$eol = PHP_EOL;
-			
-			// main header (multipart mandatory)
-			$headers = 'From: ' . $mailfrom . $eol;
-			$headers .= 'MIME-Version: 1.0' . $eol;
-			$headers .= 'Content-Type: multipart/mixed; boundary=\"' . $separator . '\"' . $eol . $eol;
-			$headers .= 'Content-Transfer-Encoding: 7bit' . $eol;
-			$headers .= 'This is a MIME encoded message.' . $eol . $eol;
-			
-			// message
-			$headers .= '--' . $separator . $eol;
-			$headers .= 'Content-Type: text/plain; charset=\"iso-8859-1\"' . $eol;
-			$headers .= 'Content-Transfer-Encoding: 8bit' . $eol . $eol;
-			$headers .= $message . $eol . $eol;
-			
-			// attachment
-			$headers .= '--' . $separator . $eol;
-			$headers .= 'Content-Type: application/octet-stream; name=\"' . $fileName . '\"' . $eol;
-			$headers .= 'Content-Transfer-Encoding: base64' . $eol;
-			$headers .= 'Content-Disposition: attachment' . $eol . $eol;
-			$headers .= $attachment . $eol . $eol;
-			$headers .= '--' . $separator . '--';
-			
-			// send mail
-			if (!mail($mailto, $subject, "", $headers)) {
-				throw new Exception('Failed sending email/attachment to FA');
-			}
-			*/
-			
-//dpm($headers, 'headers');
 			
 			// it is now safe to delete the file
 			try {

@@ -164,7 +164,7 @@
 	cj('#dsa_location_lst').remove(); // avoids submitting JSON data, causing the infamous IDS->kick error. DOWNSIDE: location list is lost in validation failures
 	//cj('#dsa_location_lst').val(json_encode(cj('#dsa_location_lst').val(), JSON_HEX_TAG));
 	
-	// add onChange event to dsa_country field to build a list of selectable locations
+	// add onChange event to dsa_participant field to build a list of selectable locations
 	cj('#dsa_participant').change(function() { processDSAParticipantChange(this) });
 	// add onChange event to dsa_country field to build a list of selectable locations
 	cj('#dsa_country').change(function() { processDSACountryChange(this) });
@@ -291,6 +291,25 @@
 		return true;
 	}
 	
+	function processTotal_dsp() {
+		//CRM.alert('Recalculating total');
+		cj('#dsa_total').html(
+			(
+			parseNumeric(cj('#dsa_amount_dsp').html()) +
+			parseNumeric(cj('#dsa_briefing_dsp').html()) +
+			//parseNumeric(cj('#dsa_debriefing_dsp').html()) +
+			parseNumeric(cj('#dsa_airport_dsp').html()) +
+			parseNumeric(cj('#dsa_transfer_dsp').html()) +
+			parseNumeric(cj('#dsa_hotel_dsp').html()) +
+			parseNumeric(cj('#dsa_visa_dsp').html()) +
+			parseNumeric(cj('#dsa_medical_dsp').html()) +
+			parseNumeric(cj('#dsa_other_dsp').html()) +
+			parseNumeric(cj('#dsa_advance_dsp').html())
+			).toFixed(2)
+		);
+		return true;
+	}
+	
 	function parseNumeric(num) {
 		result = parseFloat(num);
 		return isNaN(result)?0:result;
@@ -340,7 +359,7 @@
 		}
 		
 		// update display areas
-		if ((data[2]=='3') && (restrict != '1') && (restrict != '2')) {
+		if ((data[2]=='3') && (restrict != '2')) { // && (restrict != '1')
 			// creditation selected: display amounts paid
 			var cr_data = cj('#credit_data').val().split('#');
 			var dsa_data = '';
@@ -355,7 +374,7 @@
 			cj('#source_contact_id_dsp').html( cj('#source_contact_id').val() );
 			cj('#activity_date_time_dsp').html( cj('#activity_date_time').val() );
 			cj('#activity_date_time_time_dsp').html( cj('#activity_date_time_time').val() );
-			//cj('#dsa_participant_dsp').html( cj('#dsa_participant option:selected').text() );
+			cj('#dsa_participant_dsp').html( cj('#dsa_participant option:selected').text() );
 			//cj('#dsa_country_dsp').html( cj('#dsa_country option:selected').text() );
 			//cj('#dsa_location_dsp').html( cj('#dsa_location option:selected').text() );
 			cj('#dsa_percentage_dsp').html( dsa_data[4] );
@@ -371,6 +390,7 @@
 			cj('#dsa_other_description_dsp').html( dsa_data[14] );
 			cj('#dsa_advance_dsp').html( dsa_data[15] );
 			//cj('#status_id_dsp').html( cj('#status_id option:selected').text() );
+			processTotal_dsp();
 			
 		} else if ((restrict == '1') || (restrict == '2')) {
 			// payment selected in a non-editable state: display amounts entered earlier

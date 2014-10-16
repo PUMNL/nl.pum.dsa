@@ -1,6 +1,7 @@
 <?php
 
 require_once 'dsa.optiongroup.inc.php';
+require_once 'dsa.activitytype.inc.php';
 
 /**
  * Collection of upgrade steps
@@ -14,53 +15,15 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
    * Example: Run an external SQL script when the module is installed
    */
   public function install() {
-	// tables for storage of DSA base details
-	if (!CRM_Core_DAO::checkTableExists('civicrm_dsa_batch')) {
-		$this->executeSqlFile('sql/civicrm_dsa_batch.sql');
-	}
-	if (!CRM_Core_DAO::checkTableExists('civicrm_dsa_rate')) {
-		$this->executeSqlFile('sql/civicrm_dsa_rate.sql');
-	}
-	// table for conversion of UN DSA guidelines
-	if (!CRM_Core_DAO::checkTableExists('civicrm_dsa_convert')) {
-		$this->executeSqlFile('sql/civicrm_dsa_convert.sql');
-	}
-	// table for conversion of UN country codes (alpha 3) to ISO (alpha 2)
-	if (!CRM_Core_DAO::checkTableExists('civicrm_country_pum')) {
-		$this->executeSqlFile('sql/civicrm_country_pum.sql');
-	}
-	// tables for controlling scheduled tasks (DSA and  Representative Renumeration)
-	if (!CRM_Core_DAO::checkTableExists('civicrm_pum_scheduling_group')) {
-		$this->executeSqlFile('sql/civicrm_pum_scheduling_group.sql');
-	}
-	if (!CRM_Core_DAO::checkTableExists('civicrm_pum_scheduling_value')) {
-		$this->executeSqlFile('sql/civicrm_pum_scheduling_value.sql');
-	}
+	// WARNING: reinstall may fail due to several ALTER TABLE updates, which cannot be intercepted by try/catch!!
+	// build tables for storage of DSA data
+	$this->executeSqlFile('sql/build_tables.sql');
+	
 	// fill civicrm_country_pum table with additional country codes
 	if (CRM_Core_DAO::checkTableExists('civicrm_country_pum')) {
 		$this->executeSqlFile('sql/civicrm_country_pum_data.sql');
 	}
-	// upgrade 1001
-	$this->executeSqlFile('sql/civicrm_dsa_compose_1001.sql');
-	// upgrade 1002
-	$this->executeSqlFile('sql/civicrm_dsa_compose_1002.sql');
-	// upgrade 1003
-	$this->executeSqlFile('sql/civicrm_dsa_payment_1003.sql');
-	// upgrade 1004: n.a.
-	// upgrade 1005
-	$this->executeSqlFile('sql/civicrm_dsa_compose_1005.sql');
-	// upgrade 1006
-	$this->executeSqlFile('sql/civicrm_dsa_compose_1006.sql');
-	// upgrade 1007
-	$this->executeSqlFile('sql/civicrm_dsa_compose_1007.sql');
-	// upgrade 1008
-	DSA_OptionGroup::install();
-	$this->executeSqlFile('sql/civicrm_dsa_compose_1008.sql');
-	// upgrade 1009
-	$this->executeSqlFile('sql/civicrm_dsa_compose_1009.sql');
-	// upgrade 1010
-	$this->executeSqlFile('sql/civicrm_dsa_compose_1010.sql');
-	// upgrade 1011: n.a.
+	// up-to-date to version 1012
   }
   
 	/**
@@ -190,6 +153,21 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->ctx->log->info('Applying update 1011 (additional values for \'dsa_configuration\')');
 		// re-run option group installer
 		DSA_OptionGroup::install();
+		return TRUE;
+	}
+
+	/**
+	 * Upgrade 1012 - implementation of representative payments
+	 * @date 11 Oktober 2014
+	 */
+	public function upgrade_1012() {
+		$this->ctx->log->info('Applying update 1012 (implementation of representative payments)');
+		// create table civicrm_representative_compose
+		$this->executeSqlFile('sql/civicrm_representative_compose_1012.sql');
+		// re-run option group installer
+		DSA_OptionGroup::install();
+		// re-run activity type installer
+		DSA_ActivityType::install();
 		return TRUE;
 	}
 	

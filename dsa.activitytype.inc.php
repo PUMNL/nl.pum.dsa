@@ -11,7 +11,12 @@ class DSA_ActivityType {
 				'component' => 'CiviCase',
 				'label' => 'DSA',
 				'description' => 'Use this activity to calculate and prepare DSA payments and creditations.'
-				),
+			),
+			array(
+				'component' => 'CiviCase',
+				'label' => 'Representative payment',
+				'description' => 'Use this activity to prepare payments to representatives.'
+			),
 		);
 	}
 	
@@ -65,7 +70,7 @@ class DSA_ActivityType {
 						'value'				=> $new_value,
 						'description'		=> 'nl.pum.dsa - ' . $activityType['description'],
 						'is_reserved'		=> TRUE,
-						'is_active'			=> FALSE,
+						'is_active'			=> TRUE,
 					);
 					$result = civicrm_api('OptionValue', 'create', $params);
 					// result could be checked / reported here
