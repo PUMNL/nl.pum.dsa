@@ -348,48 +348,35 @@ function _dsa_buildform_dsa($formName, &$form) {
 		'end' => NULL,
 		'days' => 0,
 	);
-	// prepare result array for custom data
-	$result = array();
-	// custom field group "main_activity_info" ---------------------------------------------------------------------------
-	// retrieve table name for custom group
-	$sql = "SELECT id, name, table_name FROM civicrm_custom_group WHERE name = 'main_activity_info'";
+
+	// retrieve table names and columns for custom groups
+	$tbl = array();
+	$tbl['main_activity_info'] = _getCustomTableInfo('main_activity_info'); // sitiation prior to the introduction of Travel case
+	$tbl['Info_for_DSA'] = _getCustomTableInfo('Info_for_DSA'); // situation intended for Travel case
+//dpm($tbl);	
+	$sql = "
+SELECT
+  cas.id,
+  " . $tbl['main_activity_info']['sql_columns'] . ",
+  " . $tbl['Info_for_DSA']['sql_columns'] . "
+FROM
+  civicrm_case cas
+  LEFT JOIN " . $tbl['main_activity_info']['group_table'] . "
+    ON " . $tbl['main_activity_info']['group_table'] . ".entity_id = cas.id
+  LEFT JOIN " . $tbl['Info_for_DSA']['group_table'] . "
+    ON " . $tbl['Info_for_DSA']['group_table'] . ".entity_id = cas.id
+WHERE
+  cas.id = " . $form->_caseId . "
+	";
 	$dao = CRM_Core_DAO::executeQuery($sql);
 	if (!$dao->N == 1) {
 		// leave main_start and main_end empty; leave main_days to 0
 	} else {
 		$dao->fetch();
-		$group_name = $dao->name;
-		$tbl = $dao->table_name;
-		$group_id = $dao->id;
-		$result[$group_name] = array(
-			'table' => $tbl,
-			'group_id' => $group_id,
-			'columns' => '',
-			'fields' => array(),
-		);
-		// retrieve fieldnames for custom fields
-		$sql = "SELECT name, label, column_name FROM civicrm_custom_field WHERE custom_group_id = " . $group_id;
-		$dao = CRM_Core_DAO::executeQuery($sql);
-		if (!$dao >= 1) {
-			// leave main_start and main_end empty; leave main_days to 0
-		}
-		while ($dao->fetch()) {
-			$result[$group_name]['columns'] .= 
-				($result[$group_name]['columns'] == '' ? '' : (', ' . PHP_EOL)) .
-				($tbl . '.' . $dao->column_name . ' as ' . $dao->name);
-			$result[$group_name]['fields'][$dao->name] = array(
-				'label' => $dao->label,
-				'column_name' => $dao->column_name,
-			);
-		}
-		$sql = 'SELECT ' . $result[$group_name]['columns'] . ' FROM ' . $result[$group_name]['table'] . ' WHERE entity_id=' . $form->_caseId;
-		$dao = CRM_Core_DAO::executeQuery($sql);
-//dpm($dao);
-		if (!$dao->N == 1) {
-			// leave main_start and main_end empty; leave main_days to 0
+		if (!is_null($dao->Start_date) && !is_null($dao->End_date)) {
+			$ma['start'] = date_create($dao->Start_date);
+			$ma['end'] = date_create($dao->End_date);
 		} else {
-			$dao->fetch();
-//dpm($dao);
 			if (!is_null($dao->main_activity_start_date)) {
 				$ma['start'] = date_create($dao->main_activity_start_date);
 			}
@@ -2640,4 +2627,50 @@ function dsa_civicrm_permission( &$permissions ) {
 		'approve Representative payment activity' => $prefix . ts('approve Representative payment activity'),
 		//'delete Representative payment activity' => $prefix . ts('delete Representative payment activity'),
 	); // NB: note the convention of using delete in ComponentName, plural for edits
+}
+
+/*
+ * helper function to supply table- column names for custom fields
+ */
+function _getCustomTableInfo($customGroupName) {
+	// default return value
+	$customTable = array(
+		'group_id' => NULL,
+		'group_name' => NULL,
+		'group_table' => NULL,
+		'columns' => array(),
+		'sql_columns' => '',
+	);
+	
+	// retrieve table name for custom group
+	$sql = 'SELECT id, name, table_name FROM civicrm_custom_group WHERE name = \'' . $customGroupName . '\'';
+	$dao = CRM_Core_DAO::executeQuery($sql);
+	if (!$dao->N == 1) {
+		// leave empty
+	} else {
+		$dao->fetch();
+		$customTable['group_id'] = $dao->id;
+		$customTable['group_name'] = $dao->name;
+		$customTable['group_table'] = $dao->table_name;
+		// retrieve fieldnames for custom fields
+		$sql = "SELECT name, label, column_name FROM civicrm_custom_field WHERE custom_group_id = " . $customTable['group_id'];
+		$dao = CRM_Core_DAO::executeQuery($sql);
+		if ($dao->N >= 1) {
+			$sql_cols = array();
+			while ($dao->fetch()) {
+				$customTable['columns'][$dao->name] = array(
+					'name' => $dao->name,
+					'label' => $dao->label,
+					'column_name' => $dao->column_name,
+				);
+				$sql_cols[] = $customTable['group_table'] . '.' . $dao->column_name . ' AS \'' . $dao->name . '\'';
+			}
+		} else {
+			// leave columns empty
+		}
+		if (!empty($sql_cols)) {
+			$customTable['sql_columns'] = implode(',' . PHP_EOL, $sql_cols);
+		}
+	}
+	return $customTable;
 }
