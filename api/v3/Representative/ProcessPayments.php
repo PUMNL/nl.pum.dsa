@@ -502,7 +502,7 @@ Content-Disposition: attachment
   }
   
   
-dpm($warnings, 'Warnings'); // should be handled differently when running as scheduled job ==================================================
+//dpm($warnings, 'Warnings'); // should be handled differently when running as scheduled job ==================================================
 
   
   // to do:
