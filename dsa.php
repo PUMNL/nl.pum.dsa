@@ -256,6 +256,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 			}
 		*/
 			break;
+
 		case 'CRM_Case_Form_Activity':
 			if ($form->getVar('_activityTypeName')=='DSA') {
 				_dsa_buildform_dsa($formName, $form);
@@ -288,6 +289,36 @@ function dsa_civicrm_buildForm($formName, &$form) {
 			
 //dpm($form, 'Post dsa-mod form data for ' . $formName);
 			break;
+
+		case 'CRM_Case_Form_ActivityChangeStatus':
+			/* 
+			// debugging to block status modification in cases activity list
+dpm($form, $formName);
+dpm($_GET, '$_GET');
+dpm($_POST, '$_POST');
+dpm($_REQUEST, '$_REQUEST');
+			$key = CRM_Core_DAO::escapeString(CIVICRM_SITE_KEY);
+dpm($key, 'site key');
+			$actId = 702;
+			$sql = "select SHA1(CONCAT('" . $key . "', '" . $actId . "'))";
+dpm($sql, '$sql');
+			$dao = CRM_Core_DAO::executeQuery($sql);
+dpm($dao, 'dao1');
+			$dao->fetch();
+dpm($dao, 'dao2');
+			*/
+//dpm(CRM_Utils_Recent::get());
+/*
+SELECT
+  SUBSTR(SHA1(CONCAT('b68bfcc3cd3d99c0a33725a836cd82e6',act.id)), 1, 7) AS 'SHA1',
+  act.*
+FROM
+  civicrm_activity act
+*/
+			break;
+
+//			default:
+//dpm($formName, $form);
 		}
 	
 	if ($loadJs) {

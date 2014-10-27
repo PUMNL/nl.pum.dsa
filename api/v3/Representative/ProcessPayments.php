@@ -180,8 +180,8 @@ function civicrm_api3_representative_processpayments($params) {
 			$finrec_act['Kenmerk']				= trim(implode(
 													array($daoDsa->case_sequence, $daoDsa->case_country),
 													''));										// project number NNNNNCC (number, country)
-			$finrec_act['CrediteurNr']			= 'sh2';										// experts shortname (8 char)
-			$finrec_act['Shortname']			= 'sh1';										// experts shortname (8 char)
+			$finrec_act['CrediteurNr']			= $daoDsa->Shortname;							// experts shortname (8 char)
+			$finrec_act['Shortname']			= $daoDsa->Shortname;							// experts shortname (8 char)
 			$finrec_act['NaamOrganisatie']		= trim(implode(
 													array( $daoDsa->middle_name, $daoDsa->last_name, $daoDsa->Initials),
 													' '));										// experts name (e.g. van Oranje-Nassau W.A.)
