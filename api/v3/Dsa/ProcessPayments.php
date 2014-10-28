@@ -641,8 +641,9 @@ WHERE
 	ovl3.option_group_id = ogp3.id AND
 	ovl3.value = cas.case_type_id AND /* join case type name */
 	con.id = dsa.contact_id AND /* join contact data - will drop DSA if not found */
+	' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id ADD /* additional custom data for bank information */
 	' . $tbl['Additional_Data']['group_table'] . '.entity_id = con.id AND /* additional custom data for contact */
-	' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id /* additional custom data for bank information */
+	length(ifnull(' . $tbl['Additional_Data']['group_table'] . '.Shortname, \'\')) = 8 /* shortname is mandatory, 8 chars */
 ORDER BY
 	con.id,
 	num.case_sequence
