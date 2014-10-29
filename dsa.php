@@ -198,6 +198,7 @@ function dsa_civicrm_navigationMenu( &$params ) {
 function dsa_civicrm_buildForm($formName, &$form) {
 //dpm($form, 'Pre DSA mod form data ' . $formName);
 //dpm(CRM_Core_Permission::check('create DSA activity'), 'Permission create DSA activity');
+//CRM_Core_Error::debug('START DEBUG -> ' . $formName, $form);
 
 	$loadJs = false;
 	switch($formName) {
@@ -291,8 +292,9 @@ function dsa_civicrm_buildForm($formName, &$form) {
 			break;
 
 		case 'CRM_Case_Form_ActivityChangeStatus':
-			/* 
 			// debugging to block status modification in cases activity list
+//CRM_Core_Error::debug($formName, $form);
+/*
 dpm($form, $formName);
 dpm($_GET, '$_GET');
 dpm($_POST, '$_POST');
@@ -1214,6 +1216,58 @@ function _amountCheck($fieldName, $fields, &$errors) {
 }
 
 /**
+ * Implementation of hook_civicrm_pre
+ *
+ * Restores the status of an activity when changed using the status link in a cases activity list (formName = 'CRM_Case_Form_ActivityChangeStatus')
+ */
+function dsa_civicrm_pre( $op, $objectName, $id, &$params ) {
+	switch ($objectName) {
+		case 'Activity':
+			// notes:
+			// 'new activity' from case obviously results in $op = 'create'
+			// 'edit' activity from a case results in $op = 'create'
+			// hopefully 'status change' from case / activity view is the only time that $op=='edit' occurs
+			if ($op == 'edit') {
+				/* at this point a new version of the activity is being built
+				 * in the new version we need to deny an uncontrolled / odd status change
+				 * i.e. restore the original status
+				 */
+				// determine original status
+				$params = array(
+					'q' => 'civicrm/ajax/rest',
+					'sequential' => 1,
+					'id' => $params['original_id'],
+				);
+				$result = civicrm_api3('Activity', 'getsingle', $params);
+				// set old status to new version (i.e. deny status change)
+				$params['status_id'] = $result['status_id'];
+/*				$session = CRM_Core_Session::singleton();
+				$session::setStatus(ts('Status change denied - please use Edit instead'), ts('Access denied'), 'info', array('expires'=>0));
+				// reload screen to get the message displayed
+				CRM_Utils_System::redirect(CRM_Utils_System::refererPath());
+*/
+			}
+			break;
+			
+		default:
+	}
+}
+
+function dsa_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
+/*
+	if ($objectName=='Activity') {
+		if ($op=='edit') {
+			// add message
+			$session = CRM_Core_Session::singleton();
+			$session::setStatus(ts('Status change denied - please use Edit instead'), ts('Access denied'), 'info', array('expires'=>0));
+			// reload screen to get the message displayed
+			CRM_Utils_System::redirect(CRM_Utils_System::refererPath());
+		}
+	}
+*/
+}
+
+/**
  * Implementation of hook_civicrm_postProcess
  *
  * Stores added fields in civicrm_dsa_compose
@@ -1229,12 +1283,13 @@ function dsa_civicrm_postProcess( $formName, &$form ) {
 				case 'Representative payment':
 					_dsa_postprocess_representative_payment( $formName, $form );
 					break;
-					
+						
 			} // switch activityTypeName
 			break;
 			
+		default:
+			
 	} // switch ($formName)
-//	exit();
 	return;
 }
 
@@ -2705,3 +2760,5 @@ function _getCustomTableInfo($customGroupName) {
 	}
 	return $customTable;
 }
+
+
