@@ -1225,32 +1225,60 @@ function dsa_civicrm_pre( $op, $objectName, $id, &$params ) {
 		case 'Activity':
 			// notes:
 			// 'new activity' from case obviously results in $op = 'create'
-			// 'edit' activity from a case results in $op = 'create'
+			// 'edit' activity from a case results in $op = 'edit'
+			// when an activity is generated from a webform (case), $op = 'edit'
 			// hopefully 'status change' from case / activity view is the only time that $op=='edit' occurs
+			$give_warning = FALSE;
 			if (isset($params['original_id'])) {
 				if ($op == 'edit') {
 					/* at this point a new version of the activity is being built
 					 * in the new version we need to deny an uncontrolled / odd status change
 					 * i.e. restore the original status
 					 */
-					// determine original status
-					$params = array(
+					// determine original status and activity type
+					$api_params = array(
 						'q' => 'civicrm/ajax/rest',
 						'sequential' => 1,
 						'id' => $params['original_id'],
 					);
-					$result = civicrm_api3('Activity', 'getsingle', $params);
-					// set old status to new version (i.e. deny status change)
-					$params['status_id'] = $result['status_id'];
-/*					$session = CRM_Core_Session::singleton();
-					$session::setStatus(ts('Status change denied - please use Edit instead'), ts('Access denied'), 'info', array('expires'=>0));
-					// reload screen to get the message displayed
-					CRM_Utils_System::redirect(CRM_Utils_System::refererPath());
-*/
+					$result = civicrm_api3('Activity', 'getsingle', $api_params);
+					$type_id = $result['activity_type_id'];
+					$status_id = $result['status_id'];
+					// determine activity name
+					$api_params = array(
+						'q' => 'civicrm/ajax/rest',
+						'sequential' => 1,
+						'option_group_name' => 'activity_type',
+						'value' => $type_id,
+					);
+					$result = civicrm_api3('OptionValue', 'get', $api_params);
+					$activity_name = $result['values'][0]['name'];
+
+					if (($activity_name=='DSA') || ($activity_name=='Representative payment')) {
+						// revert to former status (i.e. deny status change)
+						$params['status_id'] = $status_id;
+						$give_warning = TRUE;
+					} else {
+						// retrieve a complete list of available activity statusses
+						$arStatusLst = _retrieveActivityStatusList();
+						// do not allow status to be changed to payable or paid for this non-paymane activity
+						if (($arStatusLst[$params['status_id']]['name'] == 'dsa_payable') || ($arStatusLst[$params['status_id']]['name'] == 'dsa_paid')) {
+							// revert to former status (i.e. deny status change)
+							$params['status_id'] = $status_id;
+							$give_warning = TRUE;
+						}
+					}
+					if ($give_warning) {
+						/* can't get this to work in any way
+						$session = CRM_Core_Session::singleton();
+						$session::setStatus(ts('Status change denied - please use Edit instead'), ts('Access denied'), 'info', array('expires'=>0));
+						// reload screen to get the message displayed
+						CRM_Utils_System::redirect(CRM_Utils_System::refererPath());
+						*/
+					}
 				}
 			} else {
-				// original_id is not defined
-				// $op is either 'new' (no need to supress status change, or $op = 'edit' (likely: new case is created from webform)
+				// original_id is not defined -> no intervention
 			}
 			break;
 			
