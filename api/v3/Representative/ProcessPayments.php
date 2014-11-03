@@ -82,7 +82,6 @@ function civicrm_api3_representative_processpayments($params) {
   // general ledger ("grootboek') codes
   $gl = _dsa_generalLedgerCodes();
   
-  
   // standard record set (keys in dutch) containing run-specific details ==========================
   // fields not yet in the right order!
   $finrec_std = array(
@@ -94,35 +93,43 @@ function civicrm_api3_representative_processpayments($params) {
 	'Filler1'				=> ' ',															// not in use (9 * " ")
 	'Filler2'				=> '',															// not in use (13 * " ")
 	'FactuurNrRunType'		=> 'L',															// L for Representative payments
-	
-/*	
-	'Shortname'				=> _dsaSize('', 1, ' ', TRUE),
-	'Rekeninghouder'		=> _dsaSize('', 1, ' ', TRUE),
-	'RekeninghouderLand'	=> _dsaSize('', 1, ' ', TRUE),
-	'RekeninghouderAdres1'	=> _dsaSize('', 1, ' ', TRUE),
-	'RekeninghouderAdres2'	=> _dsaSize('', 1, ' ', TRUE),
-	'IBAN'					=> _dsaSize('', 1, ' ', TRUE),
-	'Banknaam'				=> _dsaSize('', 1, ' ', TRUE),
-	'BankPlaats'			=> _dsaSize('', 1, ' ', TRUE),
-	'BankLand'				=> _dsaSize('', 1, ' ', TRUE),
-	'BIC'					=> _dsaSize('', 1, ' ', TRUE),
-*/
   );
   
   // fetch payable representative payments
   $daoDsa = _dao_retrievePayableRepresentatives($statusLst);
 
-    // loop: dsa payments
+    // loop: representative payments
   $warnings = array();
   while ($daoDsa->fetch()) {
 	try {
 //dpm($daoDsa, 'dsa record');
+		$process_record=TRUE;
 		// check if address (country id), approver id and approval date are available
 		if (is_null($daoDsa->country_id)) {
-			$warnings[] = 'No primary address found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
-		} elseif (is_null($daoDsa->approval_datetime) || empty($daoDsa->approver_name)){
-			$warnings[] = 'DSA approval details missing (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
-		} else {
+			$warnings[] = 'No primary address found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
+			$process_record=FALSE;
+		}
+		if (is_null($daoDsa->Shortname)) {
+			$warnings[] = 'No shortname found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
+			$process_record=FALSE;
+		}
+		if (is_null($daoDsa->Bank_Account_Number) || is_null($daoDsa->Bank_Country_ISO_Code)) {
+			$warnings[] = 'No bank account details found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
+			$process_record=FALSE;
+		}
+		if (is_null($daoDsa->approval_datetime) || empty($daoDsa->approver_name)) {
+			$warnings[] = 'No DSA approval details found (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
+			$process_record=FALSE;
+		}
+		if (is_null($daoDsa->case_sequence) || empty($daoDsa->case_type) || empty($daoDsa->case_country)) {
+			$warnings[] = 'No PUM main activity number found (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
+			$process_record=FALSE;
+		}
+		if (is_null($daoDsa->Donor_code)) {
+			$warnings[] = 'No donor code found (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
+			$process_record=FALSE;
+		}
+		if ($process_record) {
 			// prepare an empty array to collect all payment lines for a single record (export only complete record)
 			$recExportFin = array();
 			
@@ -137,12 +144,14 @@ function civicrm_api3_representative_processpayments($params) {
 			$finrec_act['Kostenplaats']			= trim(implode(
 													array($daoDsa->case_country, $daoDsa->case_sequence, $daoDsa->case_type),
 													''));										// project number CCNNNNNT (country, number, type)
-			$finrec_act['Sponsorcode']			= 's';											// sponsor code ("10   " for DGIS, where "600  " would be preferred)
+			$finrec_act['Sponsorcode']			= $daoDsa->Donor_code;							// sponsor code ("10   " for DGIS, where "600  " would be preferred)
 			$finrec_act['OmschrijvingA']		= $daoDsa->last_name;							// description fragment: surname
 			$finrec_act['OmschrijvingB']		= $daoDsa->case_sequence;						// description fragment: main activity number
 			$finrec_act['OmschrijvingC']		= $daoDsa->case_country;						// description fragment: country
-			$finrec_act['FactuurNrYear']		= date('y', strtotime($daoDsa->original_date_time));		// 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
-			$finrec_act['FactuurDatum']			= date('d-m-Y', strtotime($daoDsa->original_date_time));	// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation") :=> civi: date of original activity
+			$finrec_act['FactuurNrYear']		= date('y', strtotime($daoDsa->original_date_time));
+																								// 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
+			$finrec_act['FactuurDatum']			= date('d-m-Y', strtotime($daoDsa->original_date_time));
+																								// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation") :=> civi: date of original activity
 
 			// payments vs. creditation
 			if ($daoDsa->type == '1') {
@@ -487,7 +496,7 @@ Content-Disposition: attachment
 			
 			// it is now safe to delete the file
 			try {
-				//unlink($fileName); <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+				unlink($fileName);
 			} catch (Exception $e) {
 				throw new Exception('Could not delete file ' . $fileName);
 			}
@@ -501,7 +510,10 @@ Content-Disposition: attachment
 		$warnings[] = $e->getMessage() . ' (while storing file ' . $fileName . ')';
   }
   
-  
+  $msg_prefix = 'Processing representative payments - ';
+  foreach($warnings as $msg) {
+	CRM_Core_Error::debug_log_message($msg_prefix . $msg);
+  }
 //dpm($warnings, 'Warnings'); // should be handled differently when running as scheduled job ==================================================
 
   
@@ -511,123 +523,153 @@ Content-Disposition: attachment
   
   
 }
-  
 
-  
+
 /*
  * Function to query for payable dsa records along with the experts' details
  * Returns dao-object from which records can be fetched
  */
 function _dao_retrievePayableRepresentatives($statusLst) {
-	// tables/columns defititions for custom fields for contact type Staff (e.g. Representative)
+	// tables/columns definitions for custom fields for contact type Staff (e.g. Representative)
 	// custom data table and columns are added to the basic query to fetch payment details along with the representatives' details
 	$tbl = array(
 		'Additional_Data'	=> _getCustomTableInfo('Additional_Data'),	// contains field "Initials"
 		'Bank_Information'	=> _getCustomTableInfo('Bank_Information'),	// contains several fields related to bankaccounts
+		'Donor_details_FA'  => _getCustomTableInfo('Donor_details_FA'),	// contains donor (sponsor) code
 	);
 		
 	// query for all active Representative payment activities in status Payable
 	// the original limitation skip payments when the cases end date is exceeded by 9 mnd + 7 days is NOT included
 	$sql = '
 SELECT
-	\'--META-->\' AS \'_META\',
-	cac.case_id AS case_id,
-	act.id AS act_id,
-	con.id AS participant_id,
-	dsa.approval_cid AS approver_id,
-	dsa.id AS dsa_id,
-	\'--CASE-->\' as \'_CASE\',
-/*	cas.* */
-	ovl3.name as case_name,
-	num.case_sequence,
-	num.case_type,
-	num.case_country ,
-	\'--ACTIVITY-->\' AS \'_ACTIVITY\',
-	act.*,
-	\'--ORG_ACTIVITY-->\' AS \'_ORG_ACTIVITY\',
-	org.activity_date_time as original_date_time,
-	\'--DSA-->\' AS \'_DSA\',
-	dsa.type,
-	dsa.amount_rep,
-	dsa.approval_datetime,
-	dsa.invoice_number,
-	\'--APPROVER-->\' AS \'_APPROVER\',
-	apr.display_name AS approver_name,
-	\'--PARTICIPANT->\' AS \'_PARTICIPANT\',
-	con.first_name,
-	con.middle_name,
-	con.last_name,
-	con.prefix_id,
-	con.suffix_id,
-	con.email_greeting_id,
-	con.email_greeting_custom,
-	con.sort_name,
-	con.display_name,
-	con.legal_name,
-	\'--ADDRESS-->\' AS \'_ADDRESS\',
-	adr.street_address,
-	adr.supplemental_address_1,
-	adr.supplemental_address_2,
-	adr.supplemental_address_3,
-	adr.city,
-	adr.country_id,
-	adr.state_province_id,
-	adr.postal_code_suffix,
-	adr.postal_code,
-	adr.usps_adc,
-	\'--CUSTOM-->\' AS \'_CUSTOM\',
-	' . $tbl['Additional_Data']['sql_columns'] . ',
-	' . $tbl['Bank_Information']['sql_columns'] . '
+      \'--META-->\' AS \'_META\',
+      cac.case_id AS case_id,
+      act.id AS act_id,
+      con.id AS participant_id,
+      dsa.approval_cid AS approver_id,
+      dsa.id AS dsa_id,
+      \'--CASE-->\' AS \'_CASE\',
+      ovl3.name AS case_name,
+      num.case_sequence,
+      num.case_type,
+      num.case_country,
+      \'--DONOR-->\' AS \'_DONOR\',
+      dnr.display_name as donor_name,
+      \'--ACTIVITY-->\' AS \'_ACTIVITY\',
+      act.*,
+      \'--ORG_ACTIVITY-->\' AS \'_ORG_ACTIVITY\',
+      org.activity_date_time AS original_date_time,
+      \'--REP-->\' AS \'_REP\',
+      dsa.type,
+      dsa.amount_rep,
+      dsa.approval_datetime,
+      dsa.invoice_number,
+      \'--APPROVER-->\' AS \'_APPROVER\',
+      apr.display_name AS approver_name,
+      \'--PARTICIPANT->\' AS \'_PARTICIPANT\',
+      con.first_name,
+      con.middle_name,
+      con.last_name,
+      con.prefix_id,
+      con.suffix_id,
+      con.email_greeting_id,
+      con.email_greeting_custom,
+      con.sort_name,
+      con.display_name,
+      con.legal_name,
+      \'--ADDRESS-->\' AS \'_ADDRESS\',
+      adr.street_address,
+      adr.supplemental_address_1,
+      adr.supplemental_address_2,
+      adr.supplemental_address_3,
+      adr.city,
+      adr.country_id,
+      adr.state_province_id,
+      adr.postal_code_suffix,
+      adr.postal_code,
+      adr.usps_adc,
+      \'--CUSTOM-->\' AS \'_CUSTOM\',
+      ' . $tbl['Additional_Data']['sql_columns'] . ',
+      ' . $tbl['Bank_Information']['sql_columns'] . ',
+	  ' . $tbl['Donor_details_FA']['sql_columns'] . ',
+	  \'--END--\' AS \'_END\'
 FROM
-	civicrm_option_group ogp1,
-	civicrm_option_value ovl1,
-	civicrm_activity act,
-	civicrm_activity org,
-	civicrm_representative_compose dsa
-		LEFT JOIN civicrm_contact apr
-		ON apr.id = dsa.approval_cid,
-	civicrm_case_activity cac,
-	civicrm_case cas,
-	civicrm_case_pum num,
-	civicrm_option_group ogp3,
-	civicrm_option_value ovl3,
-	civicrm_contact con
-		LEFT JOIN civicrm_address adr
-		ON adr.contact_id = con.id AND
-       adr.is_primary = 1,
-	' . $tbl['Additional_Data']['group_table'] . ',
-	' . $tbl['Bank_Information']['group_table'] . '
+      civicrm_activity                 act,
+      civicrm_activity                 org,
+      civicrm_case_activity            cac
+      LEFT JOIN (
+         SELECT
+            s_dlk.entity,
+            s_dlk.entity_id,
+            min(s_dlk.donation_entity_id) as donation_entity_id
+         FROM
+            civicrm_donor_link s_dlk
+         GROUP BY
+            s_dlk.entity,
+            s_dlk.entity_id
+         ) dlk
+             ON dlk.entity_id = cac.case_id
+            AND dlk.entity = \'Case\' /* joins and singles out the 1st donor linked to a case */
+      LEFT JOIN civicrm_contribution   ctr
+             ON ctr.id = dlk.donation_entity_id
+      LEFT JOIN civicrm_contact        dnr
+             ON dnr.id = ctr.contact_id
+      LEFT JOIN ' . $tbl['Donor_details_FA']['group_table'] . '
+             ON ' . $tbl['Donor_details_FA']['group_table'] . '.entity_id = dnr.id /* join case donor to case activity */
+      ,
+      civicrm_case                     cas
+      LEFT JOIN civicrm_case_pum       num
+             ON num.entity_id = cas.id /* join main activity (case) numbering */
+      ,
+      civicrm_representative_compose   dsa
+      LEFT JOIN civicrm_contact        con
+             ON con.id = dsa.contact_id
+      LEFT JOIN civicrm_address        adr
+    		    ON adr.contact_id = con.id
+            AND adr.is_primary = 1
+      LEFT JOIN civicrm_contact        apr
+             ON apr.id = dsa.approval_cid
+      LEFT JOIN ' . $tbl['Additional_Data']['group_table'] . '
+             ON ' . $tbl['Additional_Data']['group_table'] . '.entity_id = con.id /* additional custom data for contact */
+      LEFT JOIN ' . $tbl['Bank_Information']['group_table'] . '
+             ON ' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id /* additional custom data for bank information */
+      ,
+      civicrm_option_group             ogp3,
+      civicrm_option_value             ovl3
 WHERE
-	ogp1.name = \'activity_type\' AND
-	ovl1.option_group_id = ogp1.id AND
-	ovl1.name = \'Representative payment\' AND
-	act.activity_type_id = ovl1.value AND
-	act.is_current_revision = 1 AND /* all `current` activities */
-	act.status_id IN (
-		SELECT
-			ovl2.value
-		FROM
-			civicrm_option_group ogp2,
-			civicrm_option_value ovl2
-		WHERE
-			ogp2.name = \'activity_status\' AND
-			ovl2.option_group_id = ogp2.id AND
-			ovl2.name = \'dsa_payable\') AND /* ready for payment */
-	dsa.activity_id = ifnull(act.original_id, act.id) AND /* join data in civicrm_dsa_compose table */
-	org.id = ifnull(act.original_id, act.id) AND /* join data from original (first created) activity */
-	cac.activity_id = act.id AND
-	cas.id = cac.case_id AND /* join case data through case activities */
-	num.entity_id = cas.id AND /* join main activity (case) numbering */
-	ogp3.name = \'case_type\' AND
-	ovl3.option_group_id = ogp3.id AND
-	ovl3.value = cas.case_type_id AND /* join case type name */
-	con.id = dsa.contact_id AND /* join contact data - will drop payments if not found */
-	' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id ADD /* additional custom data for bank information */
-	' . $tbl['Additional_Data']['group_table'] . '.entity_id = con.id AND /* additional custom data for contact */
-	length(ifnull(' . $tbl['Additional_Data']['group_table'] . '.Shortname, \'\')) = 8 /* shortname is mandatory, 8 chars */
+      act.is_current_revision = 1
+  AND dsa.activity_id = ifnull(act.original_id, act.id)
+  AND org.id = ifnull(act.original_id, act.id)
+  AND act.activity_type_id IN (
+         SELECT
+               ovl1.value
+         FROM
+               civicrm_option_group ogp1,
+               civicrm_option_value ovl1
+         WHERE
+               ogp1.name = \'activity_type\'
+           AND ovl1.option_group_id = ogp1.id
+           AND ovl1.name = \'Representative payment\'
+         )
+  AND act.status_id IN (
+         SELECT
+               ovl2.value
+         FROM
+               civicrm_option_group ogp2,
+               civicrm_option_value ovl2
+         WHERE
+               ogp2.name = \'activity_status\'
+           AND ovl2.option_group_id = ogp2.id
+           AND ovl2.name = \'dsa_payable\'
+         )
+  AND cac.activity_id = act.id
+  AND cas.id = cac.case_id /* join case data through case activities */
+  AND ogp3.name = \'case_type\'
+  AND ovl3.option_group_id = ogp3.id
+  AND ovl3.value = cas.case_type_id /* join case type name */
 ORDER BY
-	con.id,
-	num.case_sequence
+  con.id,
+  num.case_sequence
 	';
 	
 //dpm($tbl, 'Details custom tables');
@@ -637,4 +679,3 @@ ORDER BY
 	
 	return $dao;
 }
-
