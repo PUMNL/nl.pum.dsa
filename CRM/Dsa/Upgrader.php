@@ -171,6 +171,51 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		return TRUE;
 	}
 	
+	/**
+	 * Upgrade 1013 - additional column in civicrm_dsa_compose to track the donor (for creditation)
+	 * @date 13 November 2014
+	 */
+	public function upgrade_1013() {
+		$this->ctx->log->info('Applying update 1013 (alter table civicrm_dsa_compose)');
+		// alter table civicrm_dsa_compose
+		$this->executeSqlFile('sql/civicrm_dsa_compose_1013.sql');
+		return TRUE;
+	}
+	
+	
+	/* *********************************************************************************
+	 *
+	 * future upgrade should implement nl.pum.roster for advanced payment scheduling
+	 * $params = array(
+	 *   'version' => 3,
+	 *   'q' => 'civicrm/ajax/rest',
+	 *   'sequential' => 1,
+	 *   'name' => 'DSA payment',
+	 *   'type' => 'w',
+	 *   'value' => '2,4',
+	 *   'min_interval' => 1,
+	 *   'next_run' => '2014-11-12',
+	 *   'privilege' => 'edit schedule for DSA payment',
+	 * );
+	 * $result = civicrm_api('Roster', 'set', $params);
+	 * 
+	 * 
+	 * $params = array(
+	 *   'version' => 3,
+	 *   'q' => 'civicrm/ajax/rest',
+	 *   'sequential' => 1,
+	 *   'name' => 'Representative payment',
+	 *   'type' => 'm',
+	 *   'value' => 1,
+	 *   'min_interval' => 90,
+	 *   'next_run' => '2015-1-1',
+	 *   'privilege' => 'edit schedule for Representative payment',
+	 * );
+	 * $result = civicrm_api('Roster', 'set', $params);
+	 * 
+	 ***********************************************************************************/
+
+	
   /**
    * Example: Run an external SQL script when the module is uninstalled
    *

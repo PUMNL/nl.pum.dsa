@@ -291,33 +291,6 @@ function dsa_civicrm_buildForm($formName, &$form) {
 //dpm($form, 'Post dsa-mod form data for ' . $formName);
 			break;
 
-		case 'CRM_Case_Form_ActivityChangeStatus':
-			// debugging to block status modification in cases activity list
-//CRM_Core_Error::debug($formName, $form);
-/*
-dpm($form, $formName);
-dpm($_GET, '$_GET');
-dpm($_POST, '$_POST');
-dpm($_REQUEST, '$_REQUEST');
-			$key = CRM_Core_DAO::escapeString(CIVICRM_SITE_KEY);
-dpm($key, 'site key');
-			$actId = 702;
-			$sql = "select SHA1(CONCAT('" . $key . "', '" . $actId . "'))";
-dpm($sql, '$sql');
-			$dao = CRM_Core_DAO::executeQuery($sql);
-dpm($dao, 'dao1');
-			$dao->fetch();
-dpm($dao, 'dao2');
-			*/
-//dpm(CRM_Utils_Recent::get());
-/*
-SELECT
-  SUBSTR(SHA1(CONCAT('b68bfcc3cd3d99c0a33725a836cd82e6',act.id)), 1, 7) AS 'SHA1',
-  act.*
-FROM
-  civicrm_activity act
-*/
-			break;
 
 //			default:
 //dpm($formName, $form);
@@ -384,8 +357,9 @@ function _dsa_buildform_dsa($formName, &$form) {
 
 	// retrieve table names and columns for custom groups
 	$tbl = array();
-	$tbl['main_activity_info'] = _getCustomTableInfo('main_activity_info'); // sitiation prior to the introduction of Travel case
+	$tbl['main_activity_info'] = _getCustomTableInfo('main_activity_info'); // situation prior to the introduction of Travel case
 	$tbl['Info_for_DSA'] = _getCustomTableInfo('Info_for_DSA'); // situation intended for Travel case
+	$tbl['PUM_Case_number'] = _getCustomTableInfo('PUM_Case_number'); // contains country ISO code: used as default country in location selection
 //dpm($tbl);	
 	$sql = "
 SELECT
@@ -570,44 +544,33 @@ WHERE
 		
 	} elseif (!$dsaIsDefined) { //(is_null($dsaId)) {
 		// Defaults for new DSA creation (and for automatically generated DSA activities without additional data in civicrm_dsa_compose)
-		// Default DSA country (part 1): retrieve contacts primary adress' country (id)
-		$params = array(
-			'version' => 3,
-			'q' => 'civicrm/ajax/rest',
-			'sequential' => 1,
-			'is_pimary' => 1,
-			'contact_id' => $form->_currentlyViewedContactId,
-		);
-		try {
-			$result = civicrm_api('Address', 'get', $params);
-			foreach($result['values'] as $key=>$value) {
-				if ($result['values'][$key]['is_primary']=='1') {
-					$defaults['dsa_country'] = $result['values'][$key]['country_id'];
-				}
-			}
-		} catch(Exception $e) {
-			// just continue without default value
+		
+		// participant
+		if (count($role_ar) == 1) {
+			// only 1 participant to choose
+			reset($role_ar); // set pointer to start of array containing participants
+			$key = key($role_ar);
+			$value = explode('|', $key);
+			$defaults['dsa_participant'] = $key;
+			$defaults['dsa_participant_id'] = $value[0];
+			$defaults['dsa_participant_role'] = $value[1];
 		}
-		// Default DSA country (part 2): no country derived from primary address: possibly a country project
-		if (!isset($defaults['dsa_country'])) {
-			$params = array(
-				'version' => 3,
-				'q' => 'civicrm/ajax/rest',
-				'sequential' => 1,
-				'contact_id' => $form->_currentlyViewedContactId,
-			);
-			try {
-				$result = civicrm_api('Contact', 'get', $params);
-				if (($result['values']['0']['contact_type'] == 'Organization') && ($result['values']['0']['contact_sub_type'][0] == 'Country')) {
-					foreach(CRM_Core_PseudoConstant::country() as $key=>$value) {
-						if ($value == $result['values']['0']['organization_name']) {
-							$defaults['dsa_country'] = $key;
-						}
-					}
-				}
-			} catch(Exception $e) {
-				// just continue without default value
-			}
+		
+		// retrieve default country (id) from country code in cases PUM Case number
+		$sql = '
+SELECT
+  country.*
+FROM
+  civicrm_country country,
+  ' . $tbl['PUM_Case_number']['group_table'] . ' casnum
+WHERE
+  casnum.entity_id = ' . $form->_caseId . ' AND
+  casnum.' . $tbl['PUM_Case_number']['columns']['Case_country']['column_name'] . ' = country.iso_code
+		';
+		$dao_country = CRM_Core_DAO::executeQuery($sql);
+		if ($dao_country->N>0) {
+			$dao_country->fetch();
+			$defaults['dsa_country'] = $dao_country->id;
 		}
 		
 		// Retieve all available locations / rates for the specified reference date (if any)
@@ -663,7 +626,7 @@ WHERE
 		$defaults['restrictEdit'] = '0';
 		// Details for creditation of existing (paid) DSA activities (for jQuery to retrieve and process)
 		$defaults['credit_data'] = _creditationValues($role_ar);
-		
+
 	} else {
 		// Defaults for editing an existing DSA record
 		// get DSACompose met activity_id = $activityId
@@ -738,7 +701,7 @@ WHERE
 		$defaults['invoice_medical'] = $dao_defaults->invoice_medical;
 		$defaults['invoice_other'] = $dao_defaults->invoice_other;
 		$defaults['invoice_advance'] = $dao_defaults->invoice_advance;
-		
+//dpm($defaults, 'defaults');		
 	}
 	
 	// Apply filter on status list
@@ -1582,6 +1545,7 @@ SELECT
   org.invoice_number,
   org.approval_cid,
   org.approval_datetime,
+  org.donor_id,
   dsa.approval_cid as my_approval_cid,
   dsa.approval_datetime as my_approval_datetime
 FROM
@@ -1621,7 +1585,8 @@ WHERE
 			}
 			// payment_id is added in the payment process
 			$input['invoice_number'] = _strParseSql($dao->invoice_number); // creditations reuse the original invoice numbers
-			$input['credited_activity_id'] = $form->_submitValues['credit_act_id'];
+			$input['credited_activity_id'] = $form->_submitValues['credit_act_id'];	
+			$input['donor_id'] = $dao->donor_id;
 		}
 	}
 // --------
@@ -2153,13 +2118,43 @@ WHERE
 	}
 	
 	// 2 scenarios now:
-	// - activity id is (no longer) available -> prepare a participants options based on case members and existing dsa activities
+	// - activity id is not / no longer available -> prepare a participants options based on the (travel)cases client case members and existing dsa activities
 	// - activity id and participant are known -> prepare a single option list with only that participant
 	
 	$ar_options = array();
 	if (is_null($activity_id)) {
 		// activity_id is not available -> use case_id to build a participant options list based on case roles and existing DSA activities
-		$sql_role = '
+		$params = array(
+			'version' => 3,
+			'q' => 'civicrm/ajax/rest',
+			'sequential' => 1,
+			'case_id' => $case_id,
+			);
+		$result = civicrm_api('Case', 'get', $params);
+//dpm($result, 'result');
+		$contacts = $result['values'][0]['contacts'];
+		$client = NULL;
+		foreach($contacts as $contact) {
+			if (is_null($client) && ($contact['role']=='Client')) {
+				$client = $contact;
+			}
+		}
+//dpm($client, 'client');
+		if (!array_key_exists($client['contact_id'], $ar_options)) {
+			$ar_options[$client['contact_id']] = array();
+		}
+		$ar_options[$client['contact_id']][0] = array(
+			'contact'		=> $client['display_name'],
+			'role'			=> $client['role'],
+			'dsa_type'		=> '1',
+			'description'	=> 'Payment',
+			'dsa'			=> array(),
+			'dsa_id'		=> 0
+		);
+//dpm($ar_options, 'ar_options');
+		
+		// ============================================================
+/*		$sql_role = '
 SELECT	rs.contact_id_b as contact_id,
 		rt.label_b_a as role,
 		rs.relationship_type_id as type_id,
@@ -2191,6 +2186,8 @@ ORDER BY
 				'dsa_id'		=> 0
 			);
 		}
+*/
+		// ============================================================
 		
 		$sql_dsa = '
 SELECT
@@ -2250,7 +2247,11 @@ ORDER BY
 				$ar_options[$contact][$role]['contact'] = $dao_dsa->display_name;
 			}
 			if (!array_key_exists('role', $ar_options[$contact][$role])) {
-				$ar_options[$contact][$role]['role'] = $dao_dsa->role;
+				if ($dao_dsa->relationship_type_id == 0) {
+					$ar_options[$contact][$role]['role'] = ts('Client');
+				} else {
+					$ar_options[$contact][$role]['role'] = $dao_dsa->role;
+				}
 			}
 			
 			// note regarding dsa_type:
@@ -2319,8 +2320,10 @@ WHERE
                       act.original_id,
                       act.id)
 		';
+//dpm($sql_dsa, 'sql_dsa 4 credit');
 		$dao_dsa = CRM_Core_DAO::executeQuery($sql_dsa);
 		while($dao_dsa->fetch()) {
+//dpm($dao_dsa, '$dao_dsa');
 			$contact = $dao_dsa->contact_id;
 			$ar_options[$contact] = array();
 
@@ -2328,7 +2331,11 @@ WHERE
 			$ar_options[$contact][$role] = array();
 
 			$ar_options[$contact][$role]['contact'] = $dao_dsa->display_name;
-			$ar_options[$contact][$role]['role'] = $dao_dsa->role;
+			if ($dao_dsa->relationship_type_id == 0) {
+				$ar_options[$contact][$role]['role'] = ts('Client');
+			} else {
+				$ar_options[$contact][$role]['role'] = $dao_dsa->role;
+			}
 						
 			$ar_options[$contact][$role]['dsa_type'] = $dao_dsa->type;
 			$ar_options[$contact][$role]['description'] = ($dao_dsa->type==1?'Payment':'Credit');
@@ -2343,7 +2350,7 @@ WHERE
 		}
 	}
 	
-//dpm($ar_options, '#ar_options');
+//dpm($ar_options, '$ar_options');
 	
 	$result = array();
 	foreach($ar_options as $contact=>$contact_data) {
@@ -2669,6 +2676,7 @@ WHERE
 }
 
 function _creditationValues($role_ar) {
+//dpm($role_ar, 'cr role_ar');
 	// Details for creditation of existing (paid) DSA activities (for jQuery to retrieve and process)
 	$activity = array();
 	foreach($role_ar as $role_key=>$role_disp) {
@@ -2678,6 +2686,7 @@ function _creditationValues($role_ar) {
 			$activity[] = $act_details[3]; // represents the original activity id of the earlier payment
 		}
 	}
+//dpm($activity, 'cr activity');
 	
 //dpm($activity, 'activity');
 	if (!empty($activity)) {
@@ -2745,6 +2754,8 @@ function dsa_civicrm_permission( &$permissions ) {
 		'edit Representative payment activity' => $prefix . ts('edit Representative payment activity'),
 		'approve Representative payment activity' => $prefix . ts('approve Representative payment activity'),
 		//'delete Representative payment activity' => $prefix . ts('delete Representative payment activity'),
+		'edit schedule for DSA payment' => $prefix . ts('edit schedule for DSA payment'),
+		'edit schedule for Representative payment' => $prefix . ts('edit schedule for Representative payment'),
 	); // NB: note the convention of using delete in ComponentName, plural for edits
 }
 

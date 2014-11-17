@@ -15,7 +15,7 @@ return array (
       'description' => 'Collect Representative payment activities in status "Payable", export to FIN and mark "Paid"',
       'run_frequency' => 'Daily',
       'api_entity' => 'Representative',
-      'api_action' => 'processpayments',
+      'api_action' => 'ProcessPayments',
       'parameters' => '',
     ),
   ),
