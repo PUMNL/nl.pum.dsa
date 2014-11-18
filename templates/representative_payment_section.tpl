@@ -23,6 +23,10 @@
         <td class="label">{$form.dsa_amount.label}</td>
 		<td class="view-value">{$form.dsa_amount.html}</td>
 	</tr>
+	<tr class="crm-case-activity-form-block-comments">
+        <td class="label">{$form.dsa_comments.label}</td>
+		<td class="view-value">{$form.dsa_comments.html}</td>
+	</tr>
 {if $form.dsa_approval.value != ''}
 	<tr class="crm-case-activity-form-block-dsa_approval">
         <td class="label">{$form.dsa_approval.label}</td>
@@ -108,6 +112,7 @@
 		cj('#activity_date_time_time').before( '<span id="activity_date_time_time_dsp"></span>' );
 		cj('#dsa_participant').before( '<span id="dsa_participant_dsp"></span>' );
 		cj('#dsa_amount').before( '<span id="dsa_amount_dsp"></span>' );
+		cj('#dsa_comments').before( '<span id="dsa_comments_dsp"></span>' );
 		cj('#status_id').before( '<span id="status_id_dsp"></span>' );
 	}
 	
@@ -156,6 +161,7 @@
 			cj('#activity_date_time_time_dsp').html( cj('#activity_date_time_time').val() );
 			cj('#dsa_participant_dsp').html( cj('#dsa_participant option:selected').text() );
 			cj('#dsa_amount_dsp').html( cj('#dsa_amount').val() );
+			cj('#dsa_comments_dsp').html( cj('#dsa_comments').val() );
 			cj('#status_id_dsp').html( cj('#status_id option:selected').text() );
 		}
 
@@ -178,6 +184,9 @@
 			// amount
 			cj('#dsa_amount').show();
 			cj('#dsa_amount_dsp').hide();
+			// comments
+			cj('#dsa_comments').show();
+			cj('#dsa_comments_dsp').hide();
 			// status
 			cj('#status_id').show();
 			cj('#status_id_dsp').hide();
@@ -206,6 +215,9 @@
 			// amount
 			cj('#dsa_amount').hide();
 			cj('#dsa_amount_dsp').show();
+			// comments
+			cj('#dsa_comments').hide();
+			cj('#dsa_comments_dsp').show();
 		}
 		
 		if (restrict == '1') {

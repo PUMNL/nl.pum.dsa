@@ -104,6 +104,7 @@ function civicrm_api3_representative_processpayments($params) {
 	try {
 //dpm($daoDsa, 'dsa record');
 		$process_record=TRUE;
+		$donor_id = ''; // track donor id for creditation; not donor code
 		// check if address (country id), approver id and approval date are available
 		if (is_null($daoDsa->country_id)) {
 			$warnings[] = 'No primary address found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
@@ -152,6 +153,7 @@ function civicrm_api3_representative_processpayments($params) {
 																								// 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
 			$finrec_act['FactuurDatum']			= date('d-m-Y', strtotime($daoDsa->original_date_time));
 																								// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation") :=> civi: date of original activity
+			$recSql_DsaCompose['donor_id']		= $daoDsa->sponsor;								// sponsor id (not code; store in civicrm_dsa_compose for creditation purposes)
 
 			// payments vs. creditation
 			if ($daoDsa->type == '1') {
@@ -536,6 +538,7 @@ function _dao_retrievePayableRepresentatives($statusLst) {
 		'Additional_Data'	=> _getCustomTableInfo('Additional_Data'),	// contains field "Initials"
 		'Bank_Information'	=> _getCustomTableInfo('Bank_Information'),	// contains several fields related to bankaccounts
 		'Donor_details_FA'  => _getCustomTableInfo('Donor_details_FA'),	// contains donor (sponsor) code
+		'sponsor_code'      => _getCustomTableInfo('sponsor_code'),	// contains donor (sponsor) code
 	);
 		
 	// query for all active Representative payment activities in status Payable
@@ -554,7 +557,9 @@ SELECT
       num.case_type,
       num.case_country,
       \'--DONOR-->\' AS \'_DONOR\',
+      ' . $tbl['sponsor_code']['sql_columns'] . ',
       dnr.display_name as donor_name,
+      ' . $tbl['Donor_details_FA']['sql_columns'] . ',
       \'--ACTIVITY-->\' AS \'_ACTIVITY\',
       act.*,
       \'--ORG_ACTIVITY-->\' AS \'_ORG_ACTIVITY\',
@@ -588,10 +593,10 @@ SELECT
       adr.postal_code_suffix,
       adr.postal_code,
       adr.usps_adc,
-      \'--CUSTOM-->\' AS \'_CUSTOM\',
+      \'--ADDITIONAL_DATA-->\' AS \'_ADDITIONAL_DATA\',
       ' . $tbl['Additional_Data']['sql_columns'] . ',
+	  \'--BANK-->\' AS \'_BANK\',
       ' . $tbl['Bank_Information']['sql_columns'] . ',
-	  ' . $tbl['Donor_details_FA']['sql_columns'] . ',
 	  \'--END--\' AS \'_END\'
 FROM
       civicrm_activity                 act,
@@ -612,14 +617,16 @@ FROM
             AND dlk.entity = \'Case\' /* joins and singles out the 1st donor linked to a case */
       LEFT JOIN civicrm_contribution   ctr
              ON ctr.id = dlk.donation_entity_id
-      LEFT JOIN civicrm_contact        dnr
-             ON dnr.id = ctr.contact_id
-      LEFT JOIN ' . $tbl['Donor_details_FA']['group_table'] . '
-             ON ' . $tbl['Donor_details_FA']['group_table'] . '.entity_id = dnr.id /* join case donor to case activity */
       ,
       civicrm_case                     cas
       LEFT JOIN civicrm_case_pum       num
              ON num.entity_id = cas.id /* join main activity (case) numbering */
+      LEFT JOIN ' . $tbl['sponsor_code']['group_table'] . '
+             ON ' . $tbl['sponsor_code']['group_table'] . '.entity_id = cas.id /* join cases donor to case */
+      LEFT JOIN civicrm_contact        dnr
+             ON dnr.id = ' . $tbl['sponsor_code']['group_table'] . '.' . $tbl['sponsor_code']['columns']['sponsor']['name'] . '
+      LEFT JOIN ' . $tbl['Donor_details_FA']['group_table'] . '
+             ON ' . $tbl['Donor_details_FA']['group_table'] . '.entity_id = dnr.id /* join case donor to case activity */
       ,
       civicrm_representative_compose   dsa
       LEFT JOIN civicrm_contact        con

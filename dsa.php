@@ -848,6 +848,8 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 	$form->add('hidden', 'restrictEdit', NULL, array('id'=> 'restrictEdit'));
 	// Add Representative payment amount field
 	$form->add('text', 'dsa_amount', ts('Representative Amount'));
+	// Add Comments field
+	$form->add('textarea', 'dsa_comments', ts('Comments'));
 	// Add a field to hold approval details
 	$form->add('text', 'dsa_approval', ts('Approval'), array('id'=>'dsa_approval'));
 	
@@ -884,6 +886,8 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 		} catch (Exception $e) {
 			$defaults['dsa_amount'] = '0.00';
 		}
+		// Default comment
+		$defaults['dsa_comments'] = '';
 		// Default approval details
 		$defaults['dsa_approval'] = '';
 		// Default flag to allow editing of all fields
@@ -919,6 +923,7 @@ WHERE
 //dpm($defaults['dsa_participant'], 'Default participant');
 		$defaults['dsa_type'] = $dao_defaults->type;
 		$defaults['dsa_amount'] = $dao_defaults->amount_rep;
+		$defaults['dsa_comments'] = $dao_defaults->comments;
 		// Details for creditation of existing (paid) DSA activities (for jQuery to retrieve and process)
 		//$defaults['credit_data'] = _creditationValues($role_ar);
 		if (is_null($dao_defaults->approval_cid)) {
@@ -1689,6 +1694,7 @@ SELECT
   dsa.contact_id,
   dsa.relationship_type_id,
   dsa.amount_rep,
+  dsa.comments,
   dsa.invoice_number,
   dsa.approval_cid,
   dsa.approval_datetime
@@ -1718,6 +1724,10 @@ WHERE
 			'dsa_amount'			=>  array(
 										'column'	=> 'amount_rep',
 										'type'		=> 'number',
+										),
+			'dsa_comments'			=>  array(
+										'column'	=> 'comments',
+										'type'		=> 'text',
 										),
 		);
 

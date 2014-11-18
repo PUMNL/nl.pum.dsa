@@ -182,6 +182,17 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		return TRUE;
 	}
 	
+	/**
+	 * Upgrade 1014 - additional columns in civicrm_representative_compose for comments and donor
+	 * @date 17 November 2014
+	 */
+	public function upgrade_1014() {
+		$this->ctx->log->info('Applying update 1014 (alter table civicrm_representative_compose)');
+		// alter table civicrm_representative_compose
+		$this->executeSqlFile('sql/civicrm_representative_compose_1014.sql');
+		return TRUE;
+	}
+	
 	
 	/* *********************************************************************************
 	 *
