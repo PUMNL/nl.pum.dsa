@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS `civicrm_dsa_compose` (
   `invoice_other` varchar(1) COLLATE utf8_unicode_ci DEFAULT NULL,
   `invoice_advance` varchar(1) COLLATE utf8_unicode_ci DEFAULT NULL,
   `credited_activity_id` int(11) DEFAULT NULL COMMENT 'For DSA creditation only: refers to the activity_id of the original payment',
+  `donor_id` INT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='nl.pum.dsa' ;
 
@@ -160,5 +161,7 @@ CREATE TABLE IF NOT EXISTS `civicrm_representative_compose` (
   `payment_id` int(11) DEFAULT NULL COMMENT 'payment line id',
   `invoice_number` varchar(7) COLLATE utf8_unicode_ci DEFAULT NULL,
   `invoice_rep` varchar(1) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `comments` text COLLATE utf8_unicode_ci,
+  `donor_id` INT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci ;
