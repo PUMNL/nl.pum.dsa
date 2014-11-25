@@ -167,7 +167,7 @@ function civicrm_api3_dsa_processpayments($params) {
 																								// 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
 			$finrec_act['FactuurDatum']			= date('d-m-Y', strtotime($daoDsa->original_date_time));
 																								// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation") :=> civi: date of original activity
-			$recSql_DsaCompose['donor_id']		= $daoDsa->sponsor;								// sponsor id (not code; store in civicrm_dsa_compose for creditation purposes)
+			$recSql_DsaCompose['donor_id']		= $daoDsa->Donor_id;							// sponsor id (not sponsor code; store in civicrm_dsa_compose for creditation purposes)
 
 			// payments vs. creditation
 			if ($daoDsa->type == '1') {
@@ -559,7 +559,6 @@ function _dao_retrievePayableDsa($statusLst, $offset) {
 		'Additional_Data'	=> _getCustomTableInfo('Additional_Data'),	// contains field "Initials"
 		'Bank_Information'	=> _getCustomTableInfo('Bank_Information'),	// contains several fields related to bankaccounts
 		'Donor_details_FA'  => _getCustomTableInfo('Donor_details_FA'),	// contains donor (sponsor) code
-		'sponsor_code'      => _getCustomTableInfo('sponsor_code'),	// contains donor (sponsor) code
 	);
 	
 	// query for all active DSA activities in status Payable, scheduled 10 days from now or before
@@ -577,7 +576,7 @@ SELECT
       num.case_type,
       num.case_country,
       \'--DONOR-->\' AS \'_DONOR\',
-      ' . $tbl['sponsor_code']['sql_columns'] . ',
+      dnr.id as \'Donor_id\',
       dnr.display_name as donor_name,
       ' . $tbl['Donor_details_FA']['sql_columns'] . ',
       \'--ACTIVITY-->\' AS \'_ACTIVITY\',
@@ -634,45 +633,33 @@ SELECT
 FROM
       civicrm_activity                 act,
       civicrm_activity                 org,
-      civicrm_case_activity            cac
-      LEFT JOIN (
-         SELECT
-            s_dlk.entity,
-            s_dlk.entity_id,
-            min(s_dlk.donation_entity_id) as donation_entity_id
-         FROM
-            civicrm_donor_link s_dlk
-         GROUP BY
-            s_dlk.entity,
-            s_dlk.entity_id
-         ) dlk
-             ON dlk.entity_id = cac.case_id
-            AND dlk.entity = \'Case\' /* joins and singles out the 1st donor linked to a case */
-      LEFT JOIN civicrm_contribution   ctr
-             ON ctr.id = dlk.donation_entity_id
-      ,
+      civicrm_case_activity            cac,
       civicrm_case                     cas
       LEFT JOIN civicrm_case_pum       num
-             ON num.entity_id = cas.id /* join main activity (case) numbering */
-      LEFT JOIN ' . $tbl['sponsor_code']['group_table'] . '
-             ON ' . $tbl['sponsor_code']['group_table'] . '.entity_id = cas.id /* join cases donor to case */
+        ON num.entity_id = cas.id           /* join main activity (case) numbering */
+      LEFT JOIN civicrm_donor_link     dlk
+        ON dlk.entity_id = cas.id AND
+	       dlk.entity = \'Case\' AND
+		   dlk.is_fa_donor = 1
+      LEFT JOIN civicrm_contribution   ctr
+        ON ctr.id = dlk.donation_entity_id
       LEFT JOIN civicrm_contact        dnr
-             ON dnr.id = ' . $tbl['sponsor_code']['group_table'] . '.' . $tbl['sponsor_code']['columns']['sponsor']['name'] . '
+        ON dnr.id = ctr.contact_id          /*civicrm_value_case_sponsor_code.sponsor*/
       LEFT JOIN ' . $tbl['Donor_details_FA']['group_table'] . '
-             ON ' . $tbl['Donor_details_FA']['group_table'] . '.entity_id = dnr.id /* join case donor to case activity */
+        ON ' . $tbl['Donor_details_FA']['group_table'] . '.entity_id = dnr.id /* join case donor to case activity */
       ,
       civicrm_dsa_compose              dsa
       LEFT JOIN civicrm_contact        con
-             ON con.id = dsa.contact_id
+        ON con.id = dsa.contact_id
       LEFT JOIN civicrm_address        adr
-    		    ON adr.contact_id = con.id
-            AND adr.is_primary = 1
+    	ON adr.contact_id = con.id
+       AND adr.is_primary = 1
       LEFT JOIN civicrm_contact        apr
-             ON apr.id = dsa.approval_cid
+        ON apr.id = dsa.approval_cid
       LEFT JOIN ' . $tbl['Additional_Data']['group_table'] . '
-             ON ' . $tbl['Additional_Data']['group_table'] . '.entity_id = con.id /* additional custom data for contact */
+        ON ' . $tbl['Additional_Data']['group_table'] . '.entity_id = con.id /* additional custom data for contact */
       LEFT JOIN ' . $tbl['Bank_Information']['group_table'] . '
-             ON ' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id /* additional custom data for bank information */
+        ON ' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id /* additional custom data for bank information */
       ,
       civicrm_option_group             ogp3,
       civicrm_option_value             ovl3
