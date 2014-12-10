@@ -2755,7 +2755,10 @@ WHERE
  */
 function dsa_civicrm_permission( &$permissions ) {
 	$prefix = ts('CiviCRM DSA') . ': '; // name of extension or module
-	$permissions = array(
+  if (!is_array($permissions)) {
+    $permissions = array();
+  }
+	$permissions = $permissions + array(
 		'create DSA activity' => $prefix . ts('create DSA activity'),
 		'edit DSA activity' => $prefix . ts('edit DSA activity'),
 		'approve DSA activity' => $prefix . ts('approve DSA activity'),
