@@ -36,7 +36,19 @@ function civicrm_api3_dsa_processpayments($params) {
   global $charMod;
 
   // verify schedule
-  // ....
+  $roster = 'DSA payment';
+  $params = array(
+	'version' => 3,
+	'q' => 'civicrm/ajax/rest',
+	'sequential' => 1,
+	'name' => $roster,
+	);
+  $result = civicrm_api('Roster', 'isallowed', $params);
+  if ($result['values']!=1) {
+    $msg = 'Processing DSA payments - execution prohibited by roster definition: ' . $roster;
+	CRM_Core_Error::debug_log_message($msg);
+	throw new Exception($msg);
+  }
   
   // retrieve payment offset
   $params = array(
@@ -537,10 +549,23 @@ Content-Disposition: attachment
   }
 //dpm($warnings, 'Warnings'); // should be handled differently when running as scheduled job ==================================================
 
+  // update roster for next run
+  $params = array(
+	'version' => 3,
+	'q' => 'civicrm/ajax/rest',
+	'sequential' => 1,
+	'name' => $roster,
+  );
+  $result = civicrm_api('Roster', 'schedulenext', $params);
+  if ($result['values']!=1) {
+    $msg = 'Processing DSA payments - failed to schedule next run: check roster ' . $roster;
+	CRM_Core_Error::debug_log_message($msg);
+	throw new Exception($msg);
+  }
   
   // to do:
   // - overall payment details
-  // - message per expert
+  // - message per expert => API
 
 }
 

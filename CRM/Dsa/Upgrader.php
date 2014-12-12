@@ -193,38 +193,64 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		return TRUE;
 	}
 	
-	
-	/* *********************************************************************************
-	 *
-	 * future upgrade should implement nl.pum.roster for advanced payment scheduling
-	 * $params = array(
-	 *   'version' => 3,
-	 *   'q' => 'civicrm/ajax/rest',
-	 *   'sequential' => 1,
-	 *   'name' => 'DSA payment',
-	 *   'type' => 'w',
-	 *   'value' => '2,4',
-	 *   'min_interval' => 1,
-	 *   'next_run' => '2014-11-12',
-	 *   'privilege' => 'edit schedule for DSA payment',
-	 * );
-	 * $result = civicrm_api('Roster', 'set', $params);
-	 * 
-	 * 
-	 * $params = array(
-	 *   'version' => 3,
-	 *   'q' => 'civicrm/ajax/rest',
-	 *   'sequential' => 1,
-	 *   'name' => 'Representative payment',
-	 *   'type' => 'm',
-	 *   'value' => 1,
-	 *   'min_interval' => 90,
-	 *   'next_run' => '2015-1-1',
-	 *   'privilege' => 'edit schedule for Representative payment',
-	 * );
-	 * $result = civicrm_api('Roster', 'set', $params);
-	 * 
-	 ***********************************************************************************/
+	/**
+	 * Upgrade 1015 - job control using nl.pum.roster
+	 * @date 10 December 2014
+	 */
+	public function upgrade_1015() {
+		$this->ctx->log->info('Applying update 1015 (implementing job control using nl.pum.roster)');
+		if (!CRM_Generic_Misc::generic_verify_extension('nl.pum.roster')) {
+			CRM_Core_Error::fatal("Mandatory module nl.pum.roster is not enabled!");
+			return FALSE;
+		};
+		$result = $this->_initiateRoster();
+		if (!$result) {
+			CRM_Core_Error::fatal("Required rosters could not be initiated");
+		} else {
+			return TRUE;
+		}
+	}
+
+	/**
+	 * Helper function to define rosters for the DSA- and Representative payment runs
+	 * Note: by default the roster will block both runs (next_run = <yesterday>)
+	 * Use civicrm/rosterview (having the right privileges for the rosters) to set a proper next run date
+	 */
+	function _initiateRoster() {
+		$params = array(
+			'version' => 3,
+			'q' => 'civicrm/ajax/rest',
+			'sequential' => 1,
+			'name' => 'DSA payment',
+			'type' => 'w',
+			'value' => '2,4',
+			'min_interval' => 1,
+			'next_run' => date('Y-m-d', strtotime('-1 days')),
+			'privilege' => 'edit schedule for DSA payment',
+		);
+		$result = civicrm_api('Roster', 'set', $params);
+		if (!empty($result['is_error'])) {
+			return FALSE;
+		}
+	  
+		$params = array(
+			'version' => 3,
+			'q' => 'civicrm/ajax/rest',
+			'sequential' => 1,
+			'name' => 'Representative payment',
+			'type' => 'm',
+			'value' => 1,
+			'min_interval' => 90,
+			'next_run' => date('Y-m-d', strtotime('-1 days')),
+			'privilege' => 'edit schedule for Representative payment',
+		);
+		$result = civicrm_api('Roster', 'set', $params);
+		if (!empty($result['is_error'])) {
+			return FALSE;
+		}
+		return TRUE;
+	}
+	 
 
 	
   /**
