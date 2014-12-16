@@ -43,7 +43,7 @@ function civicrm_api3_representative_processpayments($params) {
 	'sequential' => 1,
 	'name' => $roster,
 	);
-  $result = civicrm_api('Roster', 'isallowed', $params);
+  $result = civicrm_api('Roster', 'IsAllowed', $params);
   if ($result['values']!=1) {
     $msg = 'Processing representative payments - execution prohibited by roster definition: ' . $roster;
 	CRM_Core_Error::debug_log_message($msg);
@@ -537,7 +537,7 @@ Content-Disposition: attachment
 	'sequential' => 1,
 	'name' => $roster,
   );
-  $result = civicrm_api('Roster', 'schedulenext', $params);
+  $result = civicrm_api('Roster', 'ScheduleNext', $params);
   if ($result['values']!=1) {
     $msg = 'Processing representative payments - failed to schedule next run: check roster ' . $roster;
 	CRM_Core_Error::debug_log_message($msg);
