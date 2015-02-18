@@ -336,9 +336,9 @@ class DSA_OptionGroup {
 				'enable_level'	=>	'value',
 				'values'		=>	array(
 					array(
-						'label'			=> 'Representative for',
+						'label'			=> 'Representative',
 						'name'			=> 'Representative for',
-						'value'			=> 'Representative for',
+						'value'			=> 'Representative',
 						'weight'		=> 10,
 						'description'	=> '',
 						'default'		=> FALSE,
