@@ -577,7 +577,7 @@ Content-Disposition: attachment
  * Function to query for payable dsa records along with the experts' details
  * Returns dao-object from which records can be fetched
  */
-function _dao_retrievePayableDsa($statusLst, $offset) {
+function _dao_retrievePayableDsa($statusLst, $offset=10) {
 	// tables/columns definitions for custom fields for contact type Expert
 	// custom data table and columns are added to the basic query to fetch dsa details along with the experts' details
 	$tbl = array(

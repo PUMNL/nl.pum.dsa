@@ -516,6 +516,7 @@ WHERE
 	} else {
 		$defaults['main_dates'] = ' ' . ts('days from start date') . ' ' . $ma['start']->format('Y-m-d') . ' ' . ts('to end date') . ' ' . $ma['end']->format('Y-m-d');
 		$defaults['main_days'] = $ma['days'];
+		$defaults['activity_date_time'] = $ma['start']->format('m/d/Y');
 	}
 	/* For most of the form, there are three scenario's here:
 	   - manual creation of a new activity,
