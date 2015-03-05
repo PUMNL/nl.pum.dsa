@@ -325,7 +325,7 @@ class CRM_Dsa_Utils {
    * - extend the length of values using certain characters (likely ' '  or '0') at either the left or the right of the value (string)
    * - trim each value down to a certain size
   */
-  static function _dsa_concatValues($ar) {
+  static function dsa_concatValues($ar) {
 	// field order and size is fixed!
 	// modifications may render all output useless for the financial system!
 	$filter = CRM_Dsa_CharFilter::singleton();
