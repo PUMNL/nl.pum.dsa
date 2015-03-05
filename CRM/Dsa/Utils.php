@@ -319,4 +319,64 @@ class CRM_Dsa_Utils {
   
   
   
+  /*
+   * Function to mimic implode($ar), but implicitly modify the values before concatenation:
+   * - replace / remove odd characters
+   * - extend the length of values using certain characters (likely ' '  or '0') at either the left or the right of the value (string)
+   * - trim each value down to a certain size
+  */
+  static function _dsa_concatValues($ar) {
+	// field order and size is fixed!
+	// modifications may render all output useless for the financial system!
+	$filter = CRM_Dsa_CharFilter::singleton();
+	
+	return 
+		$filter->filteredResize($ar['Boekjaar'],				 2, ' ', TRUE,  FALSE) .	// 14 for 2014
+		$filter->filteredResize($ar['Dagboek'],					 2, ' ', TRUE,  FALSE) .	// I1 for DSA, I3 for Representative payment
+		$filter->filteredResize($ar['Periode'],					 2, ' ', TRUE,  FALSE) .	// 06 for June
+		$filter->filteredResize($ar['Boekstuk'],				 4, '0', FALSE, FALSE) .	// #### sequence (must be unique per month)
+		$filter->filteredResize($ar['GrootboekNr'],				 4, ' ', TRUE,  FALSE) .	// general ledger code
+		$filter->filteredResize($ar['Sponsorcode'],				 5, ' ', TRUE,  FALSE) .	// "10   " for DGIS where "610  " would be preferred
+		$filter->filteredResize($ar['Kostenplaats'],			 8, ' ', TRUE,  FALSE) .	// project number CCNNNNNT (country, number, type)
+		$filter->filteredResize($ar['Kostendrager'],			 8, ' ', TRUE,  FALSE) .	// country code main activity (8 chars!)
+		$filter->filteredResize($ar['Datum'],					10, ' ', TRUE,  FALSE) .	// today
+		$filter->filteredResize($ar['DC'],						 1, ' ', TRUE,  FALSE) .	// D for payment, C for full creditation. Ther will be NO partial creditation.
+		$filter->filteredResize($ar['PlusMin'],					 1, ' ', TRUE,  TRUE)  .	// + for payment, - for creditation
+		$filter->filteredResize($ar['Bedrag'],					10, '0', FALSE, FALSE) .	// not in use: 10 digit numeric 0
+		$filter->filteredResize($ar['Filler1'],					 9, ' ', TRUE,  FALSE) .	// not in use: 9 spaces
+		$filter->filteredResize($ar['OmschrijvingA'],			10, ' ', TRUE,  FALSE) .	// description fragment: surname
+		$filter->filteredResize(' ',							 1, ' ', TRUE,  FALSE) .	// description fragment: additional space
+		$filter->filteredResize($ar['OmschrijvingB'],			 6, ' ', TRUE,  FALSE) .	// description fragment: main activity number ("NNNNN ")
+		$filter->filteredResize($ar['OmschrijvingC'],			 3, ' ', TRUE,  FALSE) .	// description fragment: country ("CC ")
+		$filter->filteredResize($ar['Filler2'],					13, ' ', TRUE,  FALSE) .	// not in use: 13 spaces
+		$filter->filteredResize($ar['FactuurNrRunType'],		 1, ' ', TRUE,  FALSE) .	// D for DSA, L for Representative payment
+		$filter->filteredResize($ar['FactuurNrYear'],			 2, ' ', TRUE,  FALSE) .	// 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
+		$filter->filteredResize($ar['FactuurNr'],				 4, '0', FALSE, FALSE) .	// sequence based: "123456" would return "2345", "12" would return "0001"
+		$filter->filteredResize($ar['FactuurNrAmtType'],		 1, ' ', TRUE,  FALSE) .	// represents type of amount in a single character: 1-9, A-Z
+		$filter->filteredResize($ar['FactuurDatum'],			10, ' ', TRUE,  FALSE) .	// creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation") :=> civi: date of original activity
+		$filter->filteredResize($ar['FactuurBedrag'],			11, '0', FALSE, FALSE) .	// payment amount in EUR cents (123,456 -> 12346)
+		$filter->filteredResize($ar['FactuurPlusMin'],			 1, ' ', TRUE,  TRUE)  .	// + for payment, - for creditation
+		$filter->filteredResize($ar['Kenmerk'],					12, ' ', TRUE,  FALSE) .	// project number NNNNNCC (number, country)
+		$filter->filteredResize($ar['ValutaCode'],				 3, ' ', TRUE,  FALSE) .	// always EUR
+		$filter->filteredResize($ar['CrediteurNr'],				 8, ' ', TRUE,  FALSE) .	// experts shortname (8 char)
+		$filter->filteredResize($ar['NaamOrganisatie'],			35, ' ', TRUE,  FALSE) .	// experts name (e.g. "van Oranje-Nassau W.A.")
+		$filter->filteredResize($ar['Taal'],					 1, ' ', TRUE,  FALSE) .	// always "N"
+		$filter->filteredResize($ar['Land'],					 3, ' ', TRUE,  FALSE) .	// ISO2
+		$filter->filteredResize($ar['Adres1'],					35, ' ', TRUE,  FALSE) .	// experts street + number
+		$filter->filteredResize($ar['Adres2'],					35, ' ', TRUE,  FALSE) .	// experts zip + city
+		$filter->filteredResize($ar['BankRekNr'],				25, ' ', TRUE,  FALSE) .	// experts bank account: number (not IBAN)
+		$filter->filteredResize($ar['Soort'],					 1, ' ', TRUE,  FALSE) .	// main activity (case) type (1 character)
+		$filter->filteredResize($ar['Shortname'],				 8, ' ', TRUE,  FALSE) .	// experts shortname (8 char)
+		$filter->filteredResize($ar['Rekeninghouder'],			35, ' ', TRUE,  FALSE) .	// bank account holder: name
+		$filter->filteredResize($ar['RekeninghouderLand'],		20, ' ', TRUE,  FALSE) .	// bank account holder: country (ISO2)
+		$filter->filteredResize($ar['RekeninghouderAdres1'],	35, ' ', TRUE,  FALSE) .	// bank account holder: street + number
+		$filter->filteredResize($ar['RekeninghouderAdres2'],	35, ' ', TRUE,  FALSE) .	// bank account holder: zip + city
+		$filter->filteredResize(strtoupper($ar['IBAN']),		34, ' ', TRUE,  FALSE) .	// bank account: IBAN
+		$filter->filteredResize($ar['Banknaam'],				35, ' ', TRUE,  FALSE) .	// bank name
+		$filter->filteredResize($ar['BankPlaats'],				35, ' ', TRUE,  FALSE) .	// bank city
+		$filter->filteredResize($ar['BankLand'],				 3, ' ', TRUE,  FALSE) .	// bank country (ISO2)
+		$filter->filteredResize(strtoupper($ar['BIC']),			11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
+  }
+  
+  
 }
