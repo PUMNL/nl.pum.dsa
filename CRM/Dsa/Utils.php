@@ -377,6 +377,76 @@ class CRM_Dsa_Utils {
 		$filter->filteredResize($ar['BankLand'],				 3, ' ', TRUE,  FALSE) .	// bank country (ISO2)
 		$filter->filteredResize(strtoupper($ar['BIC']),			11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
   }
+
+
   
+  /*
+   * Function to return DSA-specific status values in an array
+   * format: array[status_name] = status_value
+   */
+  static function getDsaStatusList() {
+	$sql = '
+		SELECT	ogv.name, ogv.value
+		FROM	civicrm_option_value ogv, civicrm_option_group ogp
+		WHERE	ogv.option_group_id = ogp.id
+		AND		ogp.name = \'activity_status\'
+		AND		ogv.name IN (\'dsa_payable\', \'dsa_paid\')
+		';
+	$dao = CRM_Core_DAO::executeQuery($sql);
+	$result = array();
+	while ($dao->fetch()) {
+		$result[$dao->name] = $dao->value;
+	}
+	return $result;
+  }
+
+  /*
+   * Function to provide general ledger codes in an array
+   * format: array[name]=value
+   * should be replaced by a pre-filled table + query
+   * limit is set as civi 4.4.4 does not handle limit 0 as unlimited
+   */
+  static function getGeneralLedgerCodeList() {
+	$params = array(
+		'version' => 3,
+		'q' => 'civicrm/ajax/rest',
+		'option_group_name' => 'general_ledger',
+		'return' => 'name,value',
+		'options' => array(
+			'limit' => 1000,
+		),
+	);
+	$result = civicrm_api('OptionValue', 'get', $params);
+	$code_tbl = array();
+	foreach($result['values'] as $value) {
+		$code_tbl[$value['name']] = $value['value'];
+	}
+	return $code_tbl;
+}
+
+  /*
+   * Function to provide a translation table: country id to country ISO code and -name
+   * limit is set as civi 4.4.4 does not handle limit 0 as unlimited
+   */
+  static function getCountryISOCodeList() {
+	$params = array(
+		'version' => 3,
+		'q' => 'civicrm/ajax/rest',
+		'options' => array(
+			'limit' => 5000,
+		),
+		'return' => 'iso_code,name',
+	);
+	$result = civicrm_api('Country', 'get', $params);
+	return $result['values'];
+  }
+
+  /*
+   * Equivalent function for mySQL 'ifnull(a,b)'
+   * if returns a if not NULL, otherwise returns b
+   */
+  static function _ifnull($a, $b=null) {
+    return is_null($a)?$b:$a;
+  }
   
 }
