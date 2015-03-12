@@ -2635,6 +2635,7 @@ function dsa_civicrm_permission( &$permissions ) {
 		//'delete Representative payment activity' => $prefix . ts('delete Representative payment activity'),
 		'edit schedule for DSA payment' => $prefix . ts('edit schedule for DSA payment'),
 		'edit schedule for Representative payment' => $prefix . ts('edit schedule for Representative payment'),
+		'download payments' => $prefix . ts('download payments files'),
 	); // NB: note the convention of using delete in ComponentName, plural for edits
 }
 

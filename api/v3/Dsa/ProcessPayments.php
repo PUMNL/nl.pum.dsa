@@ -485,6 +485,7 @@ function civicrm_api3_dsa_processpayments($params) {
 		$subject = 'DSA payment: ' . $fileName;
 		$mailfrom = $dsa_config['mail_from'];
 		$message = '';
+/*
 		//$attachment = chunk_split(base64_encode($contentFin));
 		// send email
 		// http://stackoverflow.com/questions/12301358/send-attachments-with-php-mail (Ragnesh Chauhan)
@@ -522,6 +523,31 @@ Content-Disposition: attachment
 			//copy current buffer contents into $message variable and delete current output buffer
 			$message = ob_get_clean();
 			//send the email
+*/
+		try {
+			//define the headers we want passed. Note that they are separated with \r\n
+			//to send HTML mail, the content-type header must be set
+			$nl="\r\n";
+			$headers = 'MIME-Version: 1.0' . $nl;
+			$headers .= 'Content-type: text/html; charset=iso-8859-1' . $nl;
+			//additional headers
+			$headers .= 'To: ' . $mailto . $nl;
+			$headers .= 'From: ' . $mailfrom . $nl;
+			$headers .= 'Reply-To: ' . $mailfrom . $nl;
+			
+			$url = CRM_Utils_System::url('civicrm/downloadpayments', 'payment=' . $paymentId, TRUE);
+			$message = '<html>';
+			$message .= '<head>';
+			$message .= '<title>';
+			$message .= 'Payment: ' . $fileName;
+			$message .= '</title>';
+			$message .= '</head>';
+			$message .= '<body>';
+			$message .= 'Download today\'s payments here: ';
+			$message .= '<a href="' . $url . '">' . $fileName . '</a>';
+			$message .= '</body>';
+			$message .= '</html>';
+			
 			$mail_sent = mail( $mailto, $subject, $message, $headers );
 			if (!$mail_sent) {
 				throw new Exception('Failed sending email/attachment to FA');
