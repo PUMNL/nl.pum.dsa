@@ -53,7 +53,8 @@ class CRM_Dsa_Form_Report_PaymentReport extends CRM_Report_Form {
 			'filters' => array(
 				'timestamp' => array(
 					'title' => ts('timestamp'),
-					'operatorType' => CRM_Report_Form::OP_DATETIME,
+					'type' => CRM_Utils_Type::T_DATE,
+					'operatorType' => CRM_Report_Form::OP_DATE,
 				),
 			),
 			'order_bys' => array(
@@ -101,14 +102,44 @@ class CRM_Dsa_Form_Report_PaymentReport extends CRM_Report_Form {
   }  
 
   /**
+   * from function
+   */
+  function where() {
+    $clauses = array();
+    foreach ($this->_columns as $tableName => $table) {
+      if (array_key_exists('filters', $table)) {
+        foreach ($table['filters'] as $fieldName => $field) {
+          $clause = NULL;
+          if (CRM_Utils_Array::value('operatorType', $field) & CRM_Utils_Type::T_DATE) { // no other operator types currently in use
+            $relative = CRM_Utils_Array::value("{$fieldName}_relative", $this->_params);
+            $from     = CRM_Utils_Array::value("{$fieldName}_from", $this->_params);
+            $to       = CRM_Utils_Array::value("{$fieldName}_to", $this->_params);
+
+            $clause = $this->dateClause($field['name'], $relative, $from, $to, $field['type']);
+          }
+
+          if (!empty($clause)) {
+            $clauses[] = $clause;
+          }
+        }
+      }
+    }
+    if (empty($clauses)) {
+      $this->_where = "WHERE (1)";
+    } else {
+      $this->_where = "WHERE " . implode(' AND ', $clauses);
+    }
+  }
+  
+  /**
    * postProcess function
    */
   function postProcess() {
      parent::postProcess( );
   }
-
+ 
   /**
-   * postProcess function
+   * alterDisplay function
    * apply modifications to the bare report format
    */
   function alterDisplay(&$rows) {
@@ -125,8 +156,9 @@ class CRM_Dsa_Form_Report_PaymentReport extends CRM_Report_Form {
    * adds a download link to the filename-column and a tool tip when hovering over the link
    */
   private function _alterFilename($row, $rowNum, &$rows) {
-	$column_id = 'civicrm_dsa_payment_id';
-	$column_filename = 'civicrm_dsa_payment_filename';
+	$tbl_prefix = 'civicrm_dsa_payment_';
+	$column_id = $tbl_prefix . 'id';
+	$column_filename = $tbl_prefix . 'filename';
 	if (array_key_exists($column_id, $row) && array_key_exists($column_filename, $row)) {
 		$url = CRM_Utils_System::url('civicrm/downloadpayments', 'payment=' . $row[$column_id], $this->_absoluteUrl);
 		$rows[$rowNum][$column_filename . '_link'] = $url;
