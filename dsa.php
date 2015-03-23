@@ -516,6 +516,7 @@ WHERE
 	} else {
 		$defaults['main_dates'] = ' ' . ts('days from start date') . ' ' . $ma['start']->format('Y-m-d') . ' ' . ts('to end date') . ' ' . $ma['end']->format('Y-m-d');
 		$defaults['main_days'] = $ma['days'];
+		$defaults['activity_date_time'] = $ma['start']->format('m/d/Y');
 	}
 	/* For most of the form, there are three scenario's here:
 	   - manual creation of a new activity,
@@ -2634,6 +2635,7 @@ function dsa_civicrm_permission( &$permissions ) {
 		//'delete Representative payment activity' => $prefix . ts('delete Representative payment activity'),
 		'edit schedule for DSA payment' => $prefix . ts('edit schedule for DSA payment'),
 		'edit schedule for Representative payment' => $prefix . ts('edit schedule for Representative payment'),
+		'download payments' => $prefix . ts('download payments files'),
 	); // NB: note the convention of using delete in ComponentName, plural for edits
 }
 

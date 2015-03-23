@@ -6,4 +6,10 @@
     <title>DSAImport</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/downloadpayments</path>
+    <page_callback>CRM_Dsa_Page_DownloadPayments</page_callback>
+    <title>DownloadPayments</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
 </menu>
