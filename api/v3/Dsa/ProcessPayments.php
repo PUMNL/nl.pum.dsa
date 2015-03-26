@@ -451,6 +451,25 @@ function civicrm_api3_dsa_processpayments($params) {
 		$warnings[] = $e->getMessage() . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
 	}
   }
+  
+  // retrieve Business DSA lines
+  if (CRM_Generic_Misc::generic_verify_extension('nl.pum.businessdsa')) {
+    $fromDate = date('Y-m-d', strtotime('2015-01-01')); // application was still being built at that date
+	$toDate = date('Y-m-d', strtotime("-$offset days"));
+	try{
+		$bdsaLines = CRM_Businessdsa_BAO_BusinessDsa::getPayableBdsa($fromDate, $toDate);
+		if (!is_null($bdsaLines)) {
+			foreach($bdsaLines as $bdsaLine) {
+				fwrite($exportFin, $bdsaLine . "\r\n");
+				$exported = TRUE;
+			}
+		}
+	} catch (Exception $e) {
+		// an error occurred -> stop processing the current payment record and continue on the next
+		$warnings[] = $e->getMessage() . ' (business-dsa)';
+	}
+  }
+  
   // finalise / close file
   if (!$exported) {
 	fwrite($exportFin, "\r"); // file will never be empty
