@@ -448,5 +448,42 @@ class CRM_Dsa_Utils {
   static function _ifnull($a, $b=null) {
     return is_null($a)?$b:$a;
   }
-  
+
+  /**
+   * Method to check if activity type is a DSA activity type
+   *
+   * @param int $activityTypeId
+   * @return bool
+   * @throws Exception when error in API
+   * @access public
+   * @static
+   */
+  public static function isDsaActivityType($activityTypeId) {
+    if (empty($activityTypeId)) {
+      return FALSE;
+    }
+    $optionGroupParams = array(
+      'name' => 'activity_type',
+      'return' => 'id');
+    try {
+      $optionGroupId = civicrm_api3('OptionGroup', 'Getvalue', $optionGroupParams);
+      $optionValueParams = array(
+        'option_group_id' => $optionGroupId,
+        'name' => 'DSA',
+        'return' => 'value');
+      try {
+        $dsaActivityTypeId = civicrm_api3('OptionValue', 'Getvalue', $optionValueParams);
+        if ($dsaActivityTypeId == $activityTypeId) {
+          return TRUE;
+        }
+      } catch (CiviCRM_API3_Exception $ex) {
+        throw new Exception('Could not find a single option value with name DSA,
+          error from API OptionValue Getvalue: '.$ex->getMessage());
+      }
+    } catch (CiviCRM_API3_Exception $ex) {
+      throw new Exception('Could not find an option group with name activity_type,
+        error from API OptionGroup Getvalue: '.$ex->getMessage());
+    }
+    return FALSE;
+  }
 }
