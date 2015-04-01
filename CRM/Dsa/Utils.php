@@ -467,18 +467,24 @@ class CRM_Dsa_Utils {
       'return' => 'id');
     try {
       $optionGroupId = civicrm_api3('OptionGroup', 'Getvalue', $optionGroupParams);
-      $optionValueParams = array(
-        'option_group_id' => $optionGroupId,
-        'name' => 'DSA',
-        'return' => 'value');
-      try {
-        $dsaActivityTypeId = civicrm_api3('OptionValue', 'Getvalue', $optionValueParams);
-        if ($dsaActivityTypeId == $activityTypeId) {
-          return TRUE;
+      /*
+       * check for DSA and Representative payment activity types
+       */
+      $actTypesToBeChecked = array('DSA', 'Representative Payment');
+      foreach ($actTypesToBeChecked as $actTypeCheck) {
+        $optionValueParams = array(
+          'option_group_id' => $optionGroupId,
+          'name' => $actTypeCheck,
+          'return' => 'value');
+        try {
+          $protectedActivityTypeId = civicrm_api3('OptionValue', 'Getvalue', $optionValueParams);
+          if ($protectedActivityTypeId == $activityTypeId) {
+            return TRUE;
+          }
+        } catch (CiviCRM_API3_Exception $ex) {
+          throw new Exception('Could not find a single option value with name '.$actTypeCheck.
+            ' , error from API OptionValue Getvalue: ' . $ex->getMessage());
         }
-      } catch (CiviCRM_API3_Exception $ex) {
-        throw new Exception('Could not find a single option value with name DSA,
-          error from API OptionValue Getvalue: '.$ex->getMessage());
       }
     } catch (CiviCRM_API3_Exception $ex) {
       throw new Exception('Could not find an option group with name activity_type,
