@@ -453,12 +453,13 @@ class CRM_Dsa_Utils {
    * Method to check if activity type is a DSA activity type
    *
    * @param int $activityTypeId
+   * @param int $activityStatusId
    * @return bool
    * @throws Exception when error in API
    * @access public
    * @static
    */
-  public static function isDsaActivityType($activityTypeId) {
+  public static function isDsaActivityType($activityTypeId, $activityStatusId) {
     if (empty($activityTypeId)) {
       return FALSE;
     }
@@ -471,6 +472,7 @@ class CRM_Dsa_Utils {
        * check for DSA and Representative payment activity types
        */
       $actTypesToBeChecked = array('DSA', 'Representative Payment');
+      $dsaStatuslist = self::getDsaStatusList();
       foreach ($actTypesToBeChecked as $actTypeCheck) {
         $optionValueParams = array(
           'option_group_id' => $optionGroupId,
@@ -478,7 +480,7 @@ class CRM_Dsa_Utils {
           'return' => 'value');
         try {
           $protectedActivityTypeId = civicrm_api3('OptionValue', 'Getvalue', $optionValueParams);
-          if ($protectedActivityTypeId == $activityTypeId) {
+          if ($protectedActivityTypeId == $activityTypeId && $activityStatusId != $dsaStatuslist['dsa_payable']) {
             return TRUE;
           }
         } catch (CiviCRM_API3_Exception $ex) {
