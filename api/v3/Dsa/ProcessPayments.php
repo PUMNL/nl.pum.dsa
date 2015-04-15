@@ -455,7 +455,7 @@ function civicrm_api3_dsa_processpayments($params) {
   // retrieve Business DSA lines
   if (CRM_Generic_Misc::generic_verify_extension('nl.pum.businessdsa')) {
     $fromDate = date('Y-m-d', strtotime('2015-01-01')); // application was still being built at that date
-	$toDate = date('Y-m-d', strtotime("-$offset days"));
+	$toDate = date('Y-m-d', strtotime("+$offset days"));
 	try{
 		$bdsaLines = CRM_Businessdsa_BAO_BusinessDsa::getPayableBdsa($fromDate, $toDate);
 		if (!is_null($bdsaLines)) {
