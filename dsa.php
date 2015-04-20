@@ -284,7 +284,6 @@ function dsa_civicrm_buildForm($formName, &$form) {
 			}
 			break;
 
-
 //			default:
 		}
 	
