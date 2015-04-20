@@ -261,7 +261,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 				_dsa_buildform_representative_payment($formName, $form);
 			} else {
 				// CRM_Case_Form_Activity but not type DSA
-				// Apply filter on status list
+				// #1 Apply filter on status list
 				// retrieve a complete list of available activity statusses
 				$arStatusLst = _retrieveActivityStatusList();
 				// Find field "status_id" and its value
@@ -280,7 +280,24 @@ function dsa_civicrm_buildForm($formName, &$form) {
 						$newOptions = _removeDisallowedStatusOptions($fldOptions, $removeStatusName, $addSelect);
 						$form->_elements[$fldStatus['id']]->_options = $newOptions;
 					}
-				}	
+				}
+				// #2 Remove DSA and Representative payment as follow-up activity
+				foreach($form->_elements as $key=>$value) {
+					if ($value->_attributes) {
+						if ($value->_attributes['name']) {
+							if ($value->_attributes['name']=='followup_activity_type_id') {
+								foreach($value->_options as $opt_key=>$opt_val) {
+									if ($opt_val['text']=='DSA') {
+										unset($form->_elements[$key]->_options[$opt_key]);
+									}
+									if ($opt_val['text']=='Representative payment') {
+										unset($form->_elements[$key]->_options[$opt_key]);
+									}
+								}
+							}
+						}
+					}
+				}
 			}
 			break;
 
