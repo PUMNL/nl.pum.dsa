@@ -50,6 +50,10 @@ function civicrm_api3_representative_processpayments($params) {
 	throw new Exception($msg);
   }
   
+  // message array - will be written to log after processing
+  $warnings = array();
+  $warnings[] = 'Passed check on roster.';
+  
   // create new payment record and retrieve its id
   $runTime = time();
   $fileName = 'rep_' . date("Ymd_His", $runTime) . '.txt'; //===== need to add a path; is not root folder of CMS ========================================
@@ -111,34 +115,33 @@ function civicrm_api3_representative_processpayments($params) {
   $daoDsa = _dao_retrievePayableRepresentatives($statusLst);
 
     // loop: representative payments
-  $warnings = array();
   while ($daoDsa->fetch()) {
 	try {
 //dpm($daoDsa, 'dsa record');
 		$process_record=TRUE;
 		$donor_id = ''; // track donor id for creditation; not donor code
 		// check if address (country id), approver id and approval date are available
-		if (is_null($daoDsa->country_id)) {
+		if (empty($daoDsa->country_id)) {
 			$warnings[] = 'No primary address found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
 			$process_record=FALSE;
 		}
-		if (is_null($daoDsa->Shortname)) {
+		if (empty($daoDsa->Shortname)) {
 			$warnings[] = 'No shortname found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
 			$process_record=FALSE;
 		}
-		if (is_null($daoDsa->Bank_Account_Number) || is_null($daoDsa->Bank_Country_ISO_Code)) {
+		if (empty($daoDsa->Bank_Account_Number) || empty($daoDsa->Bank_Country_ISO_Code)) {
 			$warnings[] = 'No bank account details found for contact ' . $daoDsa->display_name . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
 			$process_record=FALSE;
 		}
-		if (is_null($daoDsa->approval_datetime) || empty($daoDsa->approver_name)) {
+		if (empty($daoDsa->approval_datetime) || empty($daoDsa->approver_name)) {
 			$warnings[] = 'No DSA approval details found (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
 			$process_record=FALSE;
 		}
-		if (is_null($daoDsa->case_sequence) || empty($daoDsa->case_type) || empty($daoDsa->case_country)) {
+		if (empty($daoDsa->case_sequence) || empty($daoDsa->case_type) || empty($daoDsa->case_country)) {
 			$warnings[] = 'No PUM main activity number found (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
 			$process_record=FALSE;
 		}
-		if (is_null($daoDsa->Donor_code)) {
+		if (empty($daoDsa->Donor_code)) {
 			$warnings[] = 'No donor code found (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ', ' . $daoDsa->subject . ')';
 			$process_record=FALSE;
 		}
