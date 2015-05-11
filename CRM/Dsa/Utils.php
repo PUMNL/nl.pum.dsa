@@ -474,11 +474,6 @@ class CRM_Dsa_Utils {
       $actTypesToBeChecked = array('DSA', 'Representative Payment');
       $dsaStatusList = self::getDsaStatusList();
 
-      foreach ($dsaStatusList as $statusKey => $statusValue) {
-        $message = 'Status key en value  is ' . $statusKey . ' ; ' . $statusValue;
-        CRM_Core_DAO::executeQuery('INSERT INTO ehtest SET message = %1', array(1 => array($message, 'String')));
-      }
-
       foreach ($actTypesToBeChecked as $actTypeCheck) {
         $optionValueParams = array(
           'option_group_id' => $optionGroupId,
