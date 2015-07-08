@@ -18,6 +18,12 @@
 function _dsa_concatValues($ar) {
 	// field order and size is fixed!
 	// modifications may render all output useless for the financial system!
+	
+	// prefilter chars in accountnumber and IBAN
+	$ar['BankRekNr'] = _charFilterNumbers($ar['BankRekNr']);	// experts bank account number (not IBAN) can only contain [0-9]
+	$ar['IBAN'] = _charFilterUpperCaseNum($ar['IBAN'], TRUE);	// bank account IBAN can only contain [0-9A-Z]
+	$ar['BIC'] = _charFilterUpperCaseNum($ar['BIC'], TRUE);		// BIC/Swift code can only contain [0-9A-Z]
+	
 	return 
 		_dsaSize($ar['Boekjaar'],				 2, ' ', TRUE,  FALSE) .	// 14 for 2014
 		_dsaSize($ar['Dagboek'],				 2, ' ', TRUE,  FALSE) .	// I1 for DSA, I3 for Representative payment
@@ -59,11 +65,11 @@ function _dsa_concatValues($ar) {
 		_dsaSize($ar['RekeninghouderLand'],		20, ' ', TRUE,  FALSE) .	// bank account holder: country (ISO2)
 		_dsaSize($ar['RekeninghouderAdres1'],	35, ' ', TRUE,  FALSE) .	// bank account holder: street + number
 		_dsaSize($ar['RekeninghouderAdres2'],	35, ' ', TRUE,  FALSE) .	// bank account holder: zip + city
-		_dsaSize(strtoupper($ar['IBAN']),		34, ' ', TRUE,  FALSE) .	// bank account: IBAN
+		_dsaSize($ar['IBAN']			,		34, ' ', TRUE,  FALSE) .	// bank account: IBAN
 		_dsaSize($ar['Banknaam'],				35, ' ', TRUE,  FALSE) .	// bank name
 		_dsaSize($ar['BankPlaats'],				35, ' ', TRUE,  FALSE) .	// bank city
 		_dsaSize($ar['BankLand'],				 3, ' ', TRUE,  FALSE) .	// bank country (ISO2)
-		_dsaSize(strtoupper($ar['BIC']),		11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
+		_dsaSize($ar['BIC'],					11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
 }
 
 /*
@@ -218,6 +224,24 @@ function charReplacement($data, $removeCharAr, $replacementCharAr, $skipFilter=F
 	return $data;
 }
 
+/*
+ * Function to remove all characters other than 0-9
+ */
+function _charFilterNumbers($dataStr) {
+	$dataStr = PREG_REPLACE("/[^0-9]/i", '', $dataStr);
+	return $dataStr;
+}
+
+/*
+ * Function to remove all characters other than 0-9 or A-Z
+ */
+function _charFilterUpperCaseNum($dataStr, $forceUpperCase=FALSE) {
+	if ($forceUpperCase) {
+		$dataStr = strtoupper($dataStr);
+	}
+	$dataStr = PREG_REPLACE("/[^0-9A-Z]/i", '', $dataStr);
+	return $dataStr;
+}
 
 /*
  * Function to resize a value to a certain length for export to a fixed row-size file
