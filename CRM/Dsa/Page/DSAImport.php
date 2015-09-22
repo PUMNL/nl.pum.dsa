@@ -64,9 +64,9 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 		}
 		
 		if ($_action=='read') {
-			$country = 'ZA';
-			$dt = '2014-04-07'; // date('Y-m-d', time());
-			$result = $this->getActiveCountryRates('ZA', $dt);
+//			$country = 'ZA';
+//			$dt = '2014-04-07'; // date('Y-m-d', time());
+//			$result = $this->getActiveCountryRates('ZA', $dt);
 //			dpm($result, 'active country rates for "'. $country . '"');
 		}
 		
@@ -449,7 +449,7 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 //		dpm($sql, "sql");
 		$dao = CRM_Core_DAO::executeQuery($sql);
 		if ($dao->N == 0) {
-			CRM_Core_Session::setStatus('No active DSA batches found!', 'Warning');
+			CRM_Core_Session::setStatus('No active DSA batches found!: '.$dt, 'Warning');
 			return null;
 		} elseif ($dao->N > 1) {
 			CRM_Core_Session::setStatus($dao->N . ' Active DSA batches found!' . PHP_EOL . '(Proceeding using the most recently imported one)', 'Warning');
