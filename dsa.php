@@ -884,6 +884,8 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 					'name' => 'default_business_amount',
 					'return' => 'name,value',
 			);
+      // create option value if not exists yet
+      CRM_Dsa_Utils::createBusinessDefaultAmount();
 		} else {
 			$params = array(
 					'option_group_name' => 'rep_payment_configuration',

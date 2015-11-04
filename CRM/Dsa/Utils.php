@@ -500,4 +500,35 @@ class CRM_Dsa_Utils {
     }
     return FALSE;
   }
+	/**
+	 * Method to create option value for default business amount (see issue 3057 http://redmine.pum.nl/issues/3057)
+	 */
+	public static function createBusinessDefaultAmount() {
+		$optionGroupParams = array(
+			'name' => "rep_payment_configuration",
+			'return' => "id"
+		);
+		$optionGroupId = civicrm_api3("OptionGroup", "Getvalue", $optionGroupParams);
+		$countParams = array(
+			'option_group_id' => $optionGroupId,
+			'name' => 'default_business_amount',
+		);
+		try {
+			$countOptionValues = civicrm_api3("OptionValue", "Getcount", $countParams);
+		} catch (CiviCRM_API3_Exception $ex) {
+			$countOptionValues = 0;
+		}
+		if ($countOptionValues == 0) {
+			$createParams = array(
+				'option_group_id' => $optionGroupId,
+				'label' => "Business default payment amount",
+				'name' => "default_business_amount",
+				'value' => "200.00",
+				'weight' => 15,
+				'description' => "Default amount for Representative Payment in Business (e.g. 200.00)",
+				'default' => FALSE
+			);
+			civicrm_api3("OptionValue", "Create", $createParams);
+		}
+	}
 }
