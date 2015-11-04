@@ -874,16 +874,24 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 	} elseif (!$dsaIsDefined) { //(is_null($dsaId)) {
 		// Defaults for new Representative payment creation (and for automatically generated Representative payment activities without additional data in civicrm_representative_compose)
 		// Default Representative payment amount
-		$params = array(
-			'version' => 3,
-			'q' => 'civicrm/ajax/rest',
-			'sequential' => 1,
-			'option_group_name' => 'rep_payment_configuration',
-			'name' => 'default_payment_amount',
-			'return' => 'name,value',
-		);
+
+		// issue #3057 http://redmine.pum.nl/issues/3057 separate default for Business
+		$caseType = $form->getVar("_caseType");
+		if ($caseType == "Business") {
+			$params = array(
+					'option_group_name' => 'rep_payment_configuration',
+					'name' => 'default_business_amount',
+					'return' => 'name,value',
+			);
+		} else {
+			$params = array(
+					'option_group_name' => 'rep_payment_configuration',
+					'name' => 'default_payment_amount',
+					'return' => 'name,value',
+			);
+		}
 		try {
-			$result = civicrm_api('OptionValue', 'getsingle', $params);
+			$result = civicrm_api3('OptionValue', 'getsingle', $params);
 			$defaults['dsa_amount'] = $result['value'];
 		} catch (Exception $e) {
 			$defaults['dsa_amount'] = '0.00';
@@ -1106,7 +1114,7 @@ function _dsa_validateform_dsa( $formName, &$fields, &$files, &$form, &$errors )
 }
 
 function _dsa_validateform_representative_payment( $formName, &$fields, &$files, &$form, &$errors ) {
-	// participant
+  // participant
 	if ($fields['dsa_participant'] == '') {
 		$errors['dsa_participant'] = 'Please select a participant';
 	} else {
@@ -1136,16 +1144,23 @@ function _dsa_validateform_representative_payment( $formName, &$fields, &$files,
 		
 		// if amount deviated from default, then a comment is mandatory
 		if (!array_key_exists('dsa_amount', $errors)) {
-			$params = array(
-				'version' => 3,
-				'q' => 'civicrm/ajax/rest',
-				'sequential' => 1,
-				'option_group_name' => 'rep_payment_configuration',
-				'name' => 'default_payment_amount',
-				'return' => 'name,value',
-			);
+      // issue 3057 separate defaults for Business
+      $caseType = $form->getVar("_caseType");
+      if ($caseType == "Business") {
+        $params = array(
+          'option_group_name' => 'rep_payment_configuration',
+          'name' => 'default_business_amount',
+          'return' => 'name,value',
+        );
+      } else {
+        $params = array(
+          'option_group_name' => 'rep_payment_configuration',
+          'name' => 'default_payment_amount',
+          'return' => 'name,value',
+        );
+      }
 			try {
-				$result = civicrm_api('OptionValue', 'getsingle', $params);
+				$result = civicrm_api3('OptionValue', 'getsingle', $params);
 				$ref_amt = $result['value'];
 			} catch (Exception $e) {
 				$ref_amt = '0.00';

@@ -312,6 +312,14 @@ class DSA_OptionGroup {
 						'description'	=> 'Default amount for Representative Payment (e.g. \'400.00\')',
 						'default'		=> FALSE,
 					),
+						array(
+								'label'			=> 'Business default payment amount',
+								'name'			=> 'business_default_amount',
+								'value'			=> '200.00',
+								'weight'		=> 10,
+								'description'	=> 'Default amount for Representative Payment in Business (e.g. \'200.00\')',
+								'default'		=> FALSE,
+						),
 					array(
 						'label'			=> 'Mail FA',
 						'name'			=> 'mail_fa',
