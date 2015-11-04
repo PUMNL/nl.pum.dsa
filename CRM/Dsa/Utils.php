@@ -330,6 +330,11 @@ class CRM_Dsa_Utils {
 	// modifications may render all output useless for the financial system!
 	$filter = CRM_Dsa_CharFilter::singleton();
 	
+	// prefilter chars in accountnumber and IBAN
+	$ar['BankRekNr'] = $filter->charFilterNumbers($ar['BankRekNr']); // experts bank account number (not IBAN) can only contain [0-9]
+	$ar['IBAN'] = $filter->charFilterUpperCaseNum($ar['IBAN'], TRUE); // bank account IBAN can only contain [0-9A-Z]
+	$ar['BIC'] = $filter->charFilterUpperCaseNum($ar['BIC'], TRUE); // BIC/Swift code can only contain [0-9A-Z]
+	
 	return 
 		$filter->filteredResize($ar['Boekjaar'],				 2, ' ', TRUE,  FALSE) .	// 14 for 2014
 		$filter->filteredResize($ar['Dagboek'],					 2, ' ', TRUE,  FALSE) .	// I1 for DSA, I3 for Representative payment
@@ -340,7 +345,7 @@ class CRM_Dsa_Utils {
 		$filter->filteredResize($ar['Kostenplaats'],			 8, ' ', TRUE,  FALSE) .	// project number CCNNNNNT (country, number, type)
 		$filter->filteredResize($ar['Kostendrager'],			 8, ' ', TRUE,  FALSE) .	// country code main activity (8 chars!)
 		$filter->filteredResize($ar['Datum'],					10, ' ', TRUE,  FALSE) .	// today
-		$filter->filteredResize($ar['DC'],						 1, ' ', TRUE,  FALSE) .	// D for payment, C for full creditation. Ther will be NO partial creditation.
+		$filter->filteredResize($ar['DC'],						 1, ' ', TRUE,  FALSE) .	// D for payment, C for full creditation. There will be NO partial creditation.
 		$filter->filteredResize($ar['PlusMin'],					 1, ' ', TRUE,  TRUE)  .	// + for payment, - for creditation
 		$filter->filteredResize($ar['Bedrag'],					10, '0', FALSE, FALSE) .	// not in use: 10 digit numeric 0
 		$filter->filteredResize($ar['Filler1'],					 9, ' ', TRUE,  FALSE) .	// not in use: 9 spaces
@@ -371,11 +376,11 @@ class CRM_Dsa_Utils {
 		$filter->filteredResize($ar['RekeninghouderLand'],		20, ' ', TRUE,  FALSE) .	// bank account holder: country (ISO2)
 		$filter->filteredResize($ar['RekeninghouderAdres1'],	35, ' ', TRUE,  FALSE) .	// bank account holder: street + number
 		$filter->filteredResize($ar['RekeninghouderAdres2'],	35, ' ', TRUE,  FALSE) .	// bank account holder: zip + city
-		$filter->filteredResize(strtoupper($ar['IBAN']),		34, ' ', TRUE,  FALSE) .	// bank account: IBAN
+		$filter->filteredResize($ar['IBAN'],					34, ' ', TRUE,  FALSE) .	// bank account: IBAN
 		$filter->filteredResize($ar['Banknaam'],				35, ' ', TRUE,  FALSE) .	// bank name
 		$filter->filteredResize($ar['BankPlaats'],				35, ' ', TRUE,  FALSE) .	// bank city
 		$filter->filteredResize($ar['BankLand'],				 3, ' ', TRUE,  FALSE) .	// bank country (ISO2)
-		$filter->filteredResize(strtoupper($ar['BIC']),			11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
+		$filter->filteredResize($ar['BIC'],						11, 'X', TRUE,  FALSE);		// experts bank account: BIC/Swift code
   }
 
 

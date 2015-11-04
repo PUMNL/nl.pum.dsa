@@ -46,6 +46,25 @@ class CRM_Dsa_CharFilter {
 	}
 	
 	/*
+	 * Function to remove all characters other than 0-9
+	 */
+	public function charFilterNumbers($dataStr) {
+		$dataStr = PREG_REPLACE("/[^0-9]/i", '', $dataStr);
+		return $dataStr;
+	}
+	
+	/*
+	 * Function to remove all characters other than 0-9 or A-Z
+	 */
+	public function charFilterUpperCaseNum($dataStr, $forceUpperCase=FALSE) {
+		if ($forceUpperCase) {
+			$dataStr = strtoupper($dataStr);
+		}
+		$dataStr = PREG_REPLACE("/[^0-9A-Z]/i", '', $dataStr);
+		return $dataStr;
+	}
+	
+	/*
 	 * Function to resize a value to a certain length for export to a fixed row-size file
 	 * contains implicit replacement of "odd" characters
 	 * 
