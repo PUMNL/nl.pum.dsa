@@ -373,8 +373,12 @@ function civicrm_api3_representative_processpayments($params) {
 						$gl_key = '';
 				}
 				
-				if (($amt==0) || ($gl_key=='')) {
+				if ($gl_key=='') {
 					// no action
+				} elseif ($amt==0) {
+					//if amount is 0, set status to paid
+					$sql = 'UPDATE civicrm_activity SET status_id=' . $statusLst['dsa_paid'] . ' WHERE id=' . $daoDsa->act_id;
+					$dao = CRM_Core_DAO::executeQuery($sql);															
 				} elseif (!array_key_exists($gl_key, $gl)) {
 					// a controlled way out: raise an error causing the code to skip the entire payment record
 					throw new Exception ('Unknown key for General Ledger: ' . $gl_key);
