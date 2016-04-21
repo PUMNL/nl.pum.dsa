@@ -163,6 +163,14 @@ class DSA_OptionGroup {
 						'default'		=> FALSE,
 					),
 					array(
+						'label'			=> 'Visa',
+						'name'			=> 'gl_visa',
+						'value'			=> 5030,
+						'weight'		=> 150,
+						'description'	=> '',
+						'default'		=> FALSE,
+					),
+					array(
 						'label'			=> 'Other',
 						'name'			=> 'gl_other',
 						'value'			=> 5130,
