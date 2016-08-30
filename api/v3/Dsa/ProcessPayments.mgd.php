@@ -13,7 +13,7 @@ return array (
       'version' => 3,
       'name' => 'Process DSA Payments',
       'description' => 'Collect DSA activities in status "Payable", export to FIN and mark "Paid"',
-      'run_frequency' => 'Daily',
+      'run_frequency' => 'Hourly',
       'api_entity' => 'Dsa',
       'api_action' => 'ProcessPayments',
       'parameters' => '',
