@@ -74,7 +74,7 @@ function civicrm_api3_representative_processpayments($params) {
   
   // create new payment record and retrieve its id
   $runTime = time();
-  $fileName = 'rep_' . date("Ymd_His", $runTime) . '.txt'; //===== need to add a path; is not root folder of CMS ========================================
+  $fileName = variable_get('file_private_path', conf_path() . '/files/private').'/rep_' . date("Ymd_His", $runTime) . '.txt';
   $sqlTime = '\'' . date('Y-m-d H:i:s', $runTime) . '\'';
   $sql = "INSERT INTO civicrm_dsa_payment (timestamp) VALUES (" . $sqlTime . ")";
   $dao = CRM_Core_DAO::executeQuery($sql);
@@ -104,7 +104,7 @@ function civicrm_api3_representative_processpayments($params) {
   $exportFin = fopen($fileName, 'x'); // write mode, error if file exists
   $exported = FALSE;
   if (!$exportFin) {
-	throw new API_Exception('File "' . $fileName . '" already exists - export terminated.');
+	throw new API_Exception('File "' . $fileName . '" already exists or could not be created - export terminated.');
   }
   
   // empty string to build an overall payment report
@@ -470,7 +470,7 @@ function civicrm_api3_representative_processpayments($params) {
 	
   try {
     // store
-	$sql = 'UPDATE civicrm_dsa_payment SET filename=\'' . $fileName . '\', filesize=' . filesize($fileName) . ', filetype=\'text/plain\', content=\'' . $contentFin . '\' WHERE id=' . $paymentId;
+	$sql = 'UPDATE civicrm_dsa_payment SET filename=\'' . basename($fileName) . '\', filesize=' . filesize($fileName) . ', filetype=\'text/plain\', content=\'' . $contentFin . '\' WHERE id=' . $paymentId;
 	$dao = CRM_Core_DAO::executeQuery($sql);
 	
 	// retrieve FA mail address
