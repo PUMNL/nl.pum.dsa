@@ -23,7 +23,8 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 	if (CRM_Core_DAO::checkTableExists('civicrm_country_pum')) {
 		$this->executeSqlFile('sql/civicrm_country_pum_data.sql');
 	}
-	// up-to-date to version 1012
+	$this->executeCustomDataFile('xml/representative_payment.xml');
+	// up-to-date to version 1017
   }
   
 	/**
@@ -210,6 +211,26 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 			return TRUE;
 		}
 	}
+
+	public function upgrade_1016() {
+    $this->executeCustomDataFile('xml/representative_payment.xml');
+	  return true;
+  }
+
+  public function upgrade_1017() {
+    $activity_type_option_group = civicrm_api3('OptionGroup', 'getvalue', array('return' => 'id', 'name' => 'activity_type'));
+    $rep_payment_id = civicrm_api3('OptionValue', 'getvalue', array('name' => 'Representative payment', 'option_group_id' => $activity_type_option_group, 'return' => 'value'));
+
+    $activity_status_option_group = civicrm_api3('OptionGroup', 'getvalue', array('return' => 'id', 'name' => 'activity_status'));
+    $paid_status_id = civicrm_api3('OptionValue', 'getvalue', array('return' => 'value', 'name' => 'dsa_paid', 'option_group_id' => $activity_status_option_group));
+
+    $sql = "INSERT INTO civicrm_value_rep_payment (entity_id, date_paid) (SELECT a.id as entity_id, a.activity_date_time as date_paid FROM civicrm_activity a WHERE activity_type_id = %1 AND status_id = %2)";
+    $sqlParams[1] = array($rep_payment_id, 'Integer');
+    $sqlParams[2] = array($paid_status_id, 'Integer');
+    CRM_Core_DAO::executeQuery($sql, $sqlParams);
+
+    return true;
+  }
 
 	/**
 	 * Helper function to define rosters for the DSA- and Representative payment runs
