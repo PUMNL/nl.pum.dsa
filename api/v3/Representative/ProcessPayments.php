@@ -397,7 +397,9 @@ function civicrm_api3_representative_processpayments($params) {
 					//if amount is 0, set status to paid
 					$sql = 'UPDATE civicrm_activity SET status_id=' . $statusLst['dsa_paid'] . ' WHERE id=' . $daoDsa->act_id;
 					$dao = CRM_Core_DAO::executeQuery($sql);
-          $sqlForPaidDate = 'REPLACE INTO civicrm_value_rep_payment SET date_paid = NOW() WHERE entity_id='.$daoDsa->act_id;
+          $sqlForPaidDate = 'DELETE FROM civicrm_value_rep_payment WHERE entity_id='.$daoDsa->act_id;
+          CRM_Core_DAO::executeQuery($sqlForPaidDate);
+          $sqlForPaidDate = 'INSERT INTO civicrm_value_rep_payment (date_paid, entity_id) VALUES (NOW(), '.$daoDsa->act_id.')';
           CRM_Core_DAO::executeQuery($sqlForPaidDate);
 				} elseif (!array_key_exists($gl_key, $gl)) {
 					// a controlled way out: raise an error causing the code to skip the entire payment record
@@ -448,7 +450,9 @@ function civicrm_api3_representative_processpayments($params) {
 				$dao = CRM_Core_DAO::executeQuery($sql);
 
 				// Update field date_paid
-        $sqlForPaidDate = 'REPLACE INTO civicrm_value_rep_payment SET date_paid = NOW() WHERE entity_id='.$daoDsa->act_id;
+        $sqlForPaidDate = 'DELETE FROM civicrm_value_rep_payment WHERE entity_id='.$daoDsa->act_id;
+        CRM_Core_DAO::executeQuery($sqlForPaidDate);
+        $sqlForPaidDate = 'INSERT INTO civicrm_value_rep_payment (date_paid, entity_id) VALUES (NOW(), '.$daoDsa->act_id.')';
         CRM_Core_DAO::executeQuery($sqlForPaidDate);
 				
 				// write temp string to file
