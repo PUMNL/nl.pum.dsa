@@ -432,6 +432,7 @@ function civicrm_api3_representative_processpayments($params) {
 			// if paymentlines exist in temporary arrays:
 			// - update record in civicrm_dsa_compose to store reference to the payment
 			// - update status in civicrm_activity
+      // - update field date_paid of the activity
 			// - write payment lines to file if payment lines exist
 			if (!empty($recExportFin)) {
 				// update dsa record
@@ -445,6 +446,10 @@ function civicrm_api3_representative_processpayments($params) {
 				// update activity record
 				$sql = 'UPDATE civicrm_activity SET status_id=' . $statusLst['dsa_paid'] . ' WHERE id=' . $daoDsa->act_id;
 				$dao = CRM_Core_DAO::executeQuery($sql);
+
+				// Update field date_paid
+        $sqlForPaidDate = 'REPLACE INTO civicrm_value_rep_payment SET date_paid = NOW() WHERE entity_id='.$daoDsa->act_id;
+        CRM_Core_DAO::executeQuery($sqlForPaidDate);
 				
 				// write temp string to file
 				foreach($recExportFin as $paymentLine) {
