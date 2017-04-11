@@ -345,6 +345,10 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 	 */
 	private function _importFile() {
 		$result = true;
+		$runTime = time();
+
+		$fileName = variable_get('file_private_path', conf_path() . '/files/private').'/dsaimport_' . date("Ymd_His", $runTime) . '.txt';
+
 		try {
 			$date = $_REQUEST['activation_date'];
 			if ($date=='') {
@@ -357,17 +361,23 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 			}
 			$creation = date('Y-m-d H:i:s');
 			foreach($_FILES as $value=>$file) {
-				if (file_exists('upload/dsa_' . $value . '.txt')) {
-					unlink('upload/dsa_' . $value . '.txt'); // delete file
+				if (file_exists($fileName)) {
+					unlink($fileName); // delete file
 				}
-				move_uploaded_file($_FILES[$value]['tmp_name'], 'upload/dsa_' . $value . '.txt');
+				if (file_exists($fileName)) {
+					//if file still exists
+					CRM_Utils_System::setUFMessage('Could not delete existing DSA file: '.$fileName.'. Please check file permissions.');
+					return FALSE;
+				}
+				move_uploaded_file($_FILES[$value]['tmp_name'], $fileName);
 			}
+
 			// if activationdate is provided, close all open batches on that same day (but what if multiple batches open on the same day?)
 			// ...
-			$fname = 'upload/dsa_file_dsa.txt';
-			$file=fopen($fname, 'r');
+
+			$file=fopen($fileName, 'r');
 			if (!$file) {
-				CRM_Utils_System::setUFMessage('Could not open file "' . $fname . '".');
+				CRM_Utils_System::setUFMessage('Could not open file "' . $fileName . '".');
 			} else {
 				// create new batch
 				$sql = 'INSERT INTO civicrm_dsa_batch (importdate, startdate) VALUES (\'' . $creation . '\', ' . $date . ')';
