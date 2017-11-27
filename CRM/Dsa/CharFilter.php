@@ -75,7 +75,7 @@ class CRM_Dsa_CharFilter {
 	 * $alignLeft: if TRUE: $fillChar is appended, if FALSE $fillChar is prepended
 	 * $skipCharRemoval: if TRUE: no additional removal of "unknown" characters is performed. If FALSE, only certain characters (0-9, a-z, A-Z, space, slash, dash) are returned (by charFilter())
 	 */
-	public function filteredResize($value='', $size, $fillChar=' ', $alignLeft=TRUE, $skipCharRemoval=FALSE) {	
+	public function filteredResize($value='', $size, $fillChar=' ', $alignLeft=TRUE, $skipCharRemoval=FALSE, $addSemicolon=TRUE) {	
 		// replace odd characters
 		$value = self::charFilter($value, $skipCharRemoval);
 		// verify or set the desired length of the value
@@ -98,6 +98,11 @@ class CRM_Dsa_CharFilter {
 			$value = $filler . $value;
 		}
 		$value = substr($value, 0, $size);
+
+		//Sometimes we need multiple fields after each other without a semicolon
+		if ($addSemicolon == TRUE) {
+			$value .= ';';
+		}
 		return $value;
 	}
 	

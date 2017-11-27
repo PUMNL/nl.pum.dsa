@@ -88,7 +88,7 @@ function civicrm_api3_dsa_processpayments($params) {
   
   // create new payment record and retrieve its id
   $runTime = time();
-  $fileName = variable_get('file_private_path', conf_path() . '/files/private').'/dsa_' . date("Ymd_His", $runTime) . '.txt';
+  $fileName = variable_get('file_private_path', conf_path() . '/files/private').'/dsa_' . date("Ymd_His", $runTime) . '.csv';
   $sqlTime = '\'' . date('Y-m-d H:i:s', $runTime) . '\'';
   $sql = "INSERT INTO civicrm_dsa_payment (timestamp) VALUES (" . $sqlTime . ")";
   $dao = CRM_Core_DAO::executeQuery($sql);
@@ -121,6 +121,9 @@ function civicrm_api3_dsa_processpayments($params) {
 	throw new API_Exception('File "' . $fileName . '" already exists or could not be created - export terminated.');
   }
   
+  $columnHeaders = _dsa_getColumnHeaders();
+  fwrite($exportFin,$columnHeaders."\r\n");
+
   // empty string to build an overall payment report
   $reportDsa = '';
   
@@ -227,10 +230,10 @@ function civicrm_api3_dsa_processpayments($params) {
 
 			} else {
 			
-				// creditation: reuse the original invoice number 
+				// creditation: reuse the original invoice number, change runtype to C and year to 99 (this is a requirement for the payment system :( )
 				$invoice_number = $daoDsa->invoice_number;
-				$finrec_act['FactuurNrRunType'] = substr($invoice_number, 0, 1);				// expected: stored D for DSA
-				$finrec_act['FactuurNrYear'] = substr($invoice_number, 1, 2);					// expected stored 14 for 2014
+				$finrec_act['FactuurNrRunType'] = 'C';				// C for Creditation
+				$finrec_act['FactuurNrYear'] = '99';          // In creditation number should be 99  // OLD: substr($invoice_number, 1, 2);
 				$finrec_act['FactuurNr']  = substr($invoice_number, -4); 						// expected: stored sequence number
 				
 			} // payments vs. creditation 

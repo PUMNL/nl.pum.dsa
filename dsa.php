@@ -2719,4 +2719,9 @@ function _getCustomTableInfo($customGroupName) {
 	return $customTable;
 }
 
-
+/**
+ * Function to add column headers to DSA file
+ */
+function _dsa_getColumnHeaders() {
+  return "Jaar;Db;Mnd;Volgnr;GB;KD;Project;Projland_1;FactD;DC_1;DC_2;Cred;Bet_ref;Fact_nr;Einddatum;FactBedr;DC_3;Projnr_2;Projland_2;Val;Shortn_cred;Name_cred;BankAccHold;Country_cred;Adres_cred;Pc_City_cred;BankAcc;ProjType;Shortn_cred;BankAccHolder;BankCntry;BankAccAdres;BankAccPC_city;IBAN number;BankName;BankCntry;BIC_SWIFT";
+}
