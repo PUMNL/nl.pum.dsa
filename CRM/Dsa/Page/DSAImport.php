@@ -222,13 +222,39 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 	 */
 	private function _convertFiles() {
 		$result = true;
+		$runTime = time();
+		$fileNameRates = variable_get('file_private_path', conf_path() . '/files/private').'/dsarates'.date("Ymd_His", $runTime).'.txt';
+		$fileNameLocations = variable_get('file_private_path', conf_path() . '/files/private').'/dsalocations'.date("Ymd_His", $runTime).'.txt';
+
 		try {
-			foreach($_FILES as $value=>$file) {
-				if (file_exists('upload/dsa_' . $value . '.txt')) {
-					unlink('upload/dsa_' . $value . '.txt'); // delete file
-				}
-				move_uploaded_file($_FILES[$value]['tmp_name'], 'upload/dsa_' . $value . '.txt');
+			if (file_exists($fileNameRates)) {
+				unlink($fileNameRates); // delete file
 			}
+			if (file_exists($fileNameRates)) {
+				//if file still exists
+				CRM_Utils_System::setUFMessage('Could not delete existing DSA rates file: '.$fileNameRates.'. Please check file permissions.');
+				$result = FALSE;
+				return $result;
+			}
+
+			if (file_exists($fileNameLocations)) {
+				unlink($fileNameLocations); // delete file
+			}
+			if (file_exists($fileNameLocations)) {
+				//if file still exists
+				CRM_Utils_System::setUFMessage('Could not delete existing DSA locations file: '.$fileNameLocations.'. Please check file permissions.');
+				$result = FALSE;
+				return $result;
+			}
+
+			foreach($_FILES as $value=>$file) {
+				if($value == 'file_locations') {
+					move_uploaded_file($_FILES[$value]['tmp_name'], $fileNameLocations);
+				} elseif ($value == 'file_rates') {
+					move_uploaded_file($_FILES[$value]['tmp_name'], $fileNameRates);
+				}
+			}
+
 			// empty conversion table
 			$sql = 'TRUNCATE TABLE civicrm_dsa_convert';
 			$dao = CRM_Core_DAO::executeQuery($sql);
@@ -237,14 +263,13 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 			// file #1: locations
 			// note: country code is a non-ISO UN format (ICSC) - check civicrm_country_pum
 			
-			$fname1 = 'upload/dsa_file_locations.txt';
-			$file=fopen($fname1, 'r');
-			if (!$file) {
-				CRM_Utils_System::setUFMessage('Could not open file "' . $fname1 . '".');
+			$fileLocations=fopen($fileNameLocations, 'r');
+			if (!$fileLocations) {
+				CRM_Utils_System::setUFMessage('Could not open file "' . $fileNameLocations . '".');
 			} else {
 				$num = 0;
-				while (!feof($file)) {
-					$line = fgets($file);
+				while (!feof($fileLocations)) {
+					$line = fgets($fileLocations);
 					$num++;
 					switch(strtoupper(substr($line, 0, 5))) {
 						case 'HEADR':
@@ -276,18 +301,18 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 							}
 					}
 				}
-				fclose($file);
+				fclose($fileLocations);
 			}
+
 			// #2: rates
-			$fname2 = 'upload/dsa_file_rates.txt';
-			$file=fopen($fname2, 'r');
-			if (!$file) {
-				CRM_Utils_System::setUFMessage('Could not open file "' . $fname2 . '".');
+			$fileRates=fopen($fileNameRates, 'r');
+			if (!$fileRates) {
+				CRM_Utils_System::setUFMessage('Could not open file "' . $fileNameRates . '".');
 			} else {
 				$num = 0;
 				$num2 = 0;
-				while (!feof($file)) {
-					$line = fgets($file);
+				while (!feof($fileRates)) {
+					$line = fgets($fileRates);
 					$num++;
 					switch(strtoupper(substr($line, 0, 5))) {
 						case 'HEADR':
@@ -315,14 +340,20 @@ class CRM_Dsa_Page_DSAImport extends CRM_Core_Page {
 							}
 					}
 				}
-				fclose($file);
+				fclose($fileRates);
 			}
 			
 		} catch(CiviCRM_API3_Exception $e) {
 			$result = false;
 		}
-		unlink ($fname1);
-		unlink ($fname2);
+
+    try {
+		  unlink($fileNameLocations);
+		  unlink($fileNameRates);
+    } catch(Exception $e) {
+      CRM_Utils_System::setUFMessage('Could not delete DSA import files: '.$fileNameLocations.', '.$fileNameRates.'. Please check file permissions.');
+    }
+
 		return $result;
 	}
 	
