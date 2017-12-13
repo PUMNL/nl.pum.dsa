@@ -488,6 +488,7 @@ WHERE
 		//$percentage[] = HTML_QuickForm::createElement('radio', null, null, '0%', '0'); // warning regarding static function call
 		$percentage['0']='0%';
 	}
+	ksort($percentage);
 	// Add percentage field
 	//$form->addGroup($percentage, 'dsa_percentage', ts('DSA Percentage'), '&nbsp;'); // bypassed due to warning regarding static function call (civi 4.4.5)
 	$form->addElement('select', 'dsa_percentage', ts('DSA Percentage'), array('' => ts('- select -')) + $percentage);
