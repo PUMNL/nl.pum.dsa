@@ -8,15 +8,14 @@
     <author>Ralph Kersten</author>
     <email>helpdesk@pum.nl</email>
   </maintainer>
-  <releaseDate>2016-12-20</releaseDate>
-  <version>1.16.2</version>
+  <releaseDate>2020-05-20</releaseDate>
+  <version>2.1</version>
   <develStage>stable</develStage>
   <compatibility>
     <ver>4.4</ver>
   </compatibility>
   <comments>
-    This module is new and under construction.
-	As of version 1.1 this extension requires the privileges "create DSA activity", "edit DSA activity" and "approve DSA activity" to be set
+    As of version 1.1 this extension requires the privileges "create DSA activity", "edit DSA activity" and "approve DSA activity" to be set
   </comments>
   <civix>
     <namespace>CRM/Dsa</namespace>

@@ -32,7 +32,7 @@ function _civicrm_api3_dsa_processpayments_spec(&$spec) {
  * @throws API_Exception
  */
 function civicrm_api3_dsa_processpayments($params) {
-  
+
   global $charMod;
 
   // verify schedule
@@ -49,7 +49,7 @@ function civicrm_api3_dsa_processpayments($params) {
 	CRM_Core_Error::debug_log_message($msg);
 	throw new Exception($msg);
   }
-  
+
   // retrieve payment offset
   $params = array(
 	'q' => 'civicrm/ajax/rest',
@@ -63,12 +63,12 @@ function civicrm_api3_dsa_processpayments($params) {
   } catch(Exception $e) {
 	throw new Exception('Could not read option value payment_offset in group dsa_configuration.');
   }
-  
+
   // message array - will be written to log after processing
   $warnings = array();
   $warnings[] = 'Passed checks on roster and date offset.';
-  
-  /* 
+
+  /*
   * Update roster for next run.
   * This should be done directly after the scheduled job is started,
   * to prevent that the job will run a second time when cron is scheduled to run a short time schedule
@@ -85,14 +85,14 @@ function civicrm_api3_dsa_processpayments($params) {
 	CRM_Core_Error::debug_log_message($msg);
 	throw new Exception($msg);
   }
-  
+
   // create new payment record and retrieve its id
   $runTime = time();
   $fileName = variable_get('file_private_path', conf_path() . '/files/private').'/dsa_' . date("Ymd_His", $runTime) . '.csv';
   $sqlTime = '\'' . date('Y-m-d H:i:s', $runTime) . '\'';
   $sql = "INSERT INTO civicrm_dsa_payment (timestamp) VALUES (" . $sqlTime . ")";
   $dao = CRM_Core_DAO::executeQuery($sql);
-  
+
   $sql = "SELECT id FROM civicrm_dsa_payment WHERE timestamp=" . $sqlTime;
   $dao = CRM_Core_DAO::executeQuery($sql);
   if (!$dao->N == 1) {
@@ -100,39 +100,39 @@ function civicrm_api3_dsa_processpayments($params) {
   }
   $result = $dao->fetch();
   $paymentId = $dao->id; // all -dsa_compose records should be marked with this id when processed
-  
+
   // cache countryname vs ISO code
   $country = _dsa_AlterCountryISOCodes(_dsa_GetCountryISOCodes());
-  
+
   // fetch DSA statusses
   $statusLst = _getDsaStatusList();
   if (!array_key_exists('dsa_payable', $statusLst) || !array_key_exists('dsa_paid', $statusLst)) {
     // cannot look for payable activities or cannot mark them paid
 	throw new API_Exception('Mandatory status for DSA is not defined - export terminated.');
   }
-  
+
   // character replacement definitions
   $charMod = _charReplacementBuild();
-  
+
   // new file for export to Financial system (fin)
   $exportFin = fopen($fileName, 'x'); // write mode, error if file exists
   $exported = FALSE;
   if (!$exportFin) {
 	throw new API_Exception('File "' . $fileName . '" already exists or could not be created - export terminated.');
   }
-  
+
   $columnHeaders = _dsa_getColumnHeaders();
   fwrite($exportFin,$columnHeaders."\r\n");
 
   // empty string to build an overall payment report
   $reportDsa = '';
-  
+
   // empty string to build a payment report for the expert (participant)
   $reportExpert = '';
-  
+
   // general ledger ("grootboek') codes
   $gl = _dsa_generalLedgerCodes();
-  
+
   // standard record set (keys in dutch) containing run-specific details ==========================
   // fields not yet in the right order!
   $finrec_std = array(
@@ -145,10 +145,10 @@ function civicrm_api3_dsa_processpayments($params) {
 	'Filler2'				=> '',															// not in use (13 * " ")
 	'FactuurNrRunType'		=> 'D',															// D for DSA
   );
-  
+
   // fetch payable dsa
   $daoDsa = _dao_retrievePayableDsa($statusLst, $offset);
-  
+
   // loop: dsa payments
   while ($daoDsa->fetch()) {
 	try {
@@ -183,10 +183,10 @@ function civicrm_api3_dsa_processpayments($params) {
 		if ($process_record) {
 			// prepare an empty array to collect all payment lines for a single record (export only complete record)
 			$recExportFin = array();
-			
+
 			// prepare am empty array to record changes to columns in civicrm_dsa_compose
 			$recSql_DsaCompose = array();
-			
+
 			// add activity specific details ==============================================================
 			// fields not yet in the right order!
 			// based on (extension of / copy of) the run specific details $finrec_std
@@ -207,8 +207,8 @@ function civicrm_api3_dsa_processpayments($params) {
 
 			// payments vs. creditation
 			if ($daoDsa->type == '1') {
-			
-				// payments: create a new invoice number 
+
+				// payments: create a new invoice number
 				$params = array(
 					'version' => 3,
 					'q' => 'civicrm/ajax/rest',
@@ -222,22 +222,22 @@ function civicrm_api3_dsa_processpayments($params) {
 					throw new Exception('Sequence \'invoice_number\' is not available.');
 				}
 				$finrec_act['FactuurNr']			= $nextVal;									// sequence based: "123456" would return "2345", "12" would return "0001"
-	
-				$recSql_DsaCompose['invoice_number'] = 
+
+				$recSql_DsaCompose['invoice_number'] =
 					_dsaSize($finrec_act['FactuurNrRunType'],	1, ' ', TRUE,  FALSE) .			// D for DSA
 					_dsaSize($finrec_act['FactuurNrYear'],		2, ' ', TRUE,  FALSE) .			// 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
 					_dsaSize($finrec_act['FactuurNr'],			4, '0', FALSE, FALSE); 			// sequence based: "123456" would return "2345", "12" would return "0001";
 
 			} else {
-			
+
 				// creditation: reuse the original invoice number, change runtype to C and year to 99 (this is a requirement for the payment system :( )
 				$invoice_number = $daoDsa->invoice_number;
 				$finrec_act['FactuurNrRunType'] = 'C';				// C for Creditation
 				$finrec_act['FactuurNrYear'] = '99';          // In creditation number should be 99  // OLD: substr($invoice_number, 1, 2);
 				$finrec_act['FactuurNr']  = substr($invoice_number, -4); 						// expected: stored sequence number
-				
-			} // payments vs. creditation 
-			
+
+			} // payments vs. creditation
+
 			$finrec_act['Kenmerk']				= trim(implode(
 													array($daoDsa->case_sequence, $daoDsa->case_country),
 													''));										// project number NNNNNCC (number, country)
@@ -250,7 +250,7 @@ function civicrm_api3_dsa_processpayments($params) {
 			$finrec_act['Land']					= $country[$daoDsa->country_id]['iso_code'];	// experts country of residence
 			$finrec_act['Adres1']				= $daoDsa->street_address;						// extperts street + number
 			$finrec_act['Adres2']				= trim(implode(
-													array( $daoDsa->postal_code, $daoDsa->postal_code_suffix, $daoDsa->city), 
+													array( $daoDsa->postal_code, $daoDsa->postal_code_suffix, $daoDsa->city),
 													' '));										// extperts zip + city
 			$finrec_act['BankRekNr']			= ltrim($daoDsa->Bank_Account_Number, '0');		// experts bank account: number (not IBAN)
 			$finrec_act['Soort']				= $daoDsa->case_type;							// main activity (case) type (1 character)
@@ -266,7 +266,7 @@ function civicrm_api3_dsa_processpayments($params) {
 			$finrec_act['BankLand']				= $country[$daoDsa->Bank_Country_ISO_Code]['iso_code'];
 																								// bank country (ISO2)
 			$finrec_act['BIC']					= $daoDsa->BIC_Swiftcode;						// experts bank account: BIC/Swift code
-			
+
 			// loop through the individual payment amounts for this activity
 			$amt_type = '';
 			for ($n=1; $n<36; $n++) {
@@ -274,7 +274,7 @@ function civicrm_api3_dsa_processpayments($params) {
 				// add amount specific details ============================================================
 				// fields not yet in the right order: that's handeled by _dsa_concatValues()
 				// based on (extension of / copy of) the activity specific details $finrec_act
-				
+
 				$finrec_amt = $finrec_act;
 				switch ($daoDsa->type) {
 					case '1':
@@ -293,7 +293,7 @@ function civicrm_api3_dsa_processpayments($params) {
 						$finrec_amt['FactuurPlusMin']	= '-';									// - for creditation
 						break;
 				}
-				
+
 				$amt_type = ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
 				$case_type = $daoDsa->case_name;
 				$gl_key = '';
@@ -309,13 +309,13 @@ function civicrm_api3_dsa_processpayments($params) {
 								$gl_key = 'gl_dsa';
 						}
 						break;
-	
+
 					case '3': // Medical (a.k.a. Outfit Allowance)
 						$amt = _ifnull($daoDsa->amount_medical, 0);
 						$column = 'invoice_medical';
 						$gl_key = 'gl_outfit';
 						break;
-	
+
 					case '4': // Advance amounts (also: Acquisition Advance Amount)
 						$amt = _ifnull($daoDsa->amount_advance, 0);
 						$column = 'invoice_advance';
@@ -327,13 +327,13 @@ function civicrm_api3_dsa_processpayments($params) {
 								$gl_key = 'gl_def_adv';
 						}
 						break;
-						
+
 /*					case '5': // Km PUM briefing, also documented as "reserved for LR remuneration"
 						$amt = _ifnull($daoDsa->amount_briefing, 0);
 						$column = 'invoice_briefing';
 						$gl_key = 'gl_pum_km_brf';
 						break;
-*/						
+*/
 /*					case '6': // Km PUM debriefing
 						$amt = _ifnull($daoDsa->amount_debriefing, 0);
 						$column = 'invoice_debriefing';
@@ -345,74 +345,74 @@ function civicrm_api3_dsa_processpayments($params) {
 						$column = 'invoice_briefing';
 						$gl_key = 'gl_pum_ov_brf_debrf';
 						break;
-						
+
 					case '7': // OV Airport (was: Km Airport / Schiphol)
 						$amt = _ifnull($daoDsa->amount_airport, 0);
 						$column = 'invoice_airport';
 						$gl_key = 'gl_pum_ov_airp';
 						break;
-					
+
 					case '8': // Transfer amount
 						$amt = _ifnull($daoDsa->amount_transfer, 0);
 						$column = 'invoice_transfer';
 						$gl_key = 'gl_transfer';
 						break;
-						
+
 					case '9': // Hotel
 						$amt = _ifnull($daoDsa->amount_hotel, 0);
 						$column = 'invoice_hotel';
 						$gl_key = 'gl_hotel';
 						break;
-						
+
 					case 'A': // Visa
 						$amt = _ifnull($daoDsa->amount_visa, 0);
 						$column = 'invoice_visa';
 						$gl_key = 'gl_visa';
 						break;
-					
+
 					case 'B': // Other
 						$amt = _ifnull($daoDsa->amount_other, 0);
 						$column = 'invoice_other';
 						$gl_key = 'gl_other';
 						break;
-					
+
 					case 'C': // Meal / Parking
 						$amt = 0;
 						$column = '';
 						$gl_key = '';
 						break;
-					
+
 					case 'D': // Debriefing settlement
 						$amt = 0;
 						$column = '';
 						$gl_key = '';
 						break;
-					
+
 					case 'X': // Training/BLP payment guest
 						$amt = 0;
 						$column = '';
 						$gl_key = '';
 						break;
-					
+
 					case 'Y': // Training/BLP payment expert/organisation costs
 						$amt = 0;
 						$column = '';
 						$gl_key = '';
 						break;
-					
+
 					case 'Z': // Reserved for secondpayment LR remueration
 						$amt = 0;
 						$column = '';
 						$gl_key = '';
 						break;
-						
+
 					default:
 						// no action
 						$amt = 0;
 						$column = '';
 						$gl_key = '';
 				}
-				
+
 				if (($amt==0) || ($gl_key=='')) {
 					// no action
 				} elseif (!array_key_exists($gl_key, $gl)) {
@@ -437,14 +437,14 @@ function civicrm_api3_dsa_processpayments($params) {
 						throw new Exception('Sequence \'payment_line\' is not available.');
 					}
 					$finrec_amt['Boekstuk']			= $lineNo;									// Sequence; per amount field
-					
+
 					$recSql_DsaCompose[$column] = $amt_type;
-					
+
 					// append Fin exportline to array
 					$recExportFin[] = _dsa_concatValues($finrec_amt);
 				}
 			}
-			
+
 			// if paymentlines exist in temporary arrays:
 			// - update record in civicrm_dsa_compose to store reference to the payment
 			// - update status in civicrm_activity
@@ -461,7 +461,7 @@ function civicrm_api3_dsa_processpayments($params) {
 				// update activity record
 				$sql = 'UPDATE civicrm_activity SET status_id=' . $statusLst['dsa_paid'] . ' WHERE id=' . $daoDsa->act_id;
 				$dao = CRM_Core_DAO::executeQuery($sql);
-				
+
 				// write temp string to file
 				foreach($recExportFin as $paymentLine) {
 					fwrite($exportFin, $paymentLine . "\r\n");
@@ -475,7 +475,7 @@ function civicrm_api3_dsa_processpayments($params) {
 		$warnings[] = $e->getMessage() . ' (case ' . $daoDsa->case_id . ', activity ' . $daoDsa->act_id . ')';
 	}
   }
-  
+
   // retrieve Business DSA lines
   if (CRM_Generic_Misc::generic_verify_extension('nl.pum.businessdsa')) {
     $fromDate = date('Y-m-d', strtotime('2015-01-01')); // application was still being built at that date
@@ -499,23 +499,23 @@ function civicrm_api3_dsa_processpayments($params) {
 		$warnings[] = $e->getMessage() . ' (business-dsa)';
 	}
   }
-  
+
   // finalise / close file
   if (!$exported) {
 	fwrite($exportFin, "\r"); // file will never be empty
   }
   fclose($exportFin);
-  
+
   // read content for storage
   $exportFin = fopen($fileName, 'r');
   $contentFin = fread($exportFin, filesize($fileName));
   fclose($exportFin);
-	
+
   try {
     // store
 	$sql = 'UPDATE civicrm_dsa_payment SET filename=\'' . basename($fileName) . '\', filesize=' . filesize($fileName) . ', filetype=\'text/plain\', content=\'' . $contentFin . '\' WHERE id=' . $paymentId;
 	$dao = CRM_Core_DAO::executeQuery($sql);
-	
+
 	// retrieve FA mail address
 	$dsa_config = array();
 	$params = array(
@@ -550,10 +550,10 @@ function civicrm_api3_dsa_processpayments($params) {
 			//define the body of the message.
 			ob_start(); //Turn on output buffering
 			?>
---PHP-mixed-<?php echo $random_hash; ?> 
+--PHP-mixed-<?php echo $random_hash; ?>
 Content-Type: multipart/alternative; boundary="PHP-alt-<?php echo $random_hash; ?>"
 
---PHP-alt-<?php echo $random_hash; ?> 
+--PHP-alt-<?php echo $random_hash; ?>
 Content-Type: text/plain; charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 
@@ -561,10 +561,10 @@ DSA Payments file:
 
 --PHP-alt-<?php echo $random_hash; ?>--
 
---PHP-mixed-<?php echo $random_hash; ?> 
-Content-Type: application/txt; name="<?php echo $fileName; ?>" 
-Content-Transfer-Encoding: base64 
-Content-Disposition: attachment 
+--PHP-mixed-<?php echo $random_hash; ?>
+Content-Type: application/txt; name="<?php echo $fileName; ?>"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment
 
 <?php echo $attachment; ?>
 --PHP-mixed-<?php echo $random_hash; ?>--
@@ -583,7 +583,7 @@ Content-Disposition: attachment
 			$headers .= 'To: ' . $mailto . $nl;
 			$headers .= 'From: ' . $mailfrom . $nl;
 			$headers .= 'Reply-To: ' . $mailfrom . $nl;
-			
+
 			$url = CRM_Utils_System::url('civicrm/downloadpayments', 'payment=' . $paymentId, TRUE);
 			$message = '<html>';
 			$message .= '<head>';
@@ -596,12 +596,12 @@ Content-Disposition: attachment
 			$message .= '<a href="' . $url . '">' . $fileName . '</a>';
 			$message .= '</body>';
 			$message .= '</html>';
-			
+
 			$mail_sent = mail( $mailto, $subject, $message, $headers );
 			if (!$mail_sent) {
 				throw new Exception('Failed sending email/attachment to FA');
 			}
-			
+
 			// it is now safe to delete the file
 			try {
 				unlink($fileName);
@@ -617,7 +617,7 @@ Content-Disposition: attachment
   } catch (Exception $e) {
 		$warnings[] = $e->getMessage() . ' (while storing file ' . $fileName . ')';
   }
-  
+
   $msg_prefix = 'Processing DSA payments - ';
   foreach($warnings as $msg) {
 	CRM_Core_Error::debug_log_message($msg_prefix . $msg);
@@ -646,7 +646,7 @@ function _dao_retrievePayableDsa($statusLst, $offset=10) {
 		'Bank_Information'	=> _getCustomTableInfo('Bank_Information'),	// contains several fields related to bankaccounts
 		'Donor_details_FA'  => _getCustomTableInfo('Donor_details_FA'),	// contains donor (sponsor) code
 	);
-	
+
 	// query for all active DSA activities in status Payable, scheduled 10 days from now or before
 	$sql = '
 SELECT
@@ -775,6 +775,16 @@ WHERE
            AND ovl2.option_group_id = ogp2.id
            AND ovl2.name = \'dsa_payable\'
          )
+  AND (
+    (
+      (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other) >= 2000
+      AND dsa.secondary_approval_approved = 1
+    )
+    OR
+    (
+      (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other) < 2000
+    )
+  )
   AND date(act.activity_date_time) <= DATE_ADD(curdate(), INTERVAL ' . $offset . ' DAY) /* dsa_config */
   AND cac.activity_id = act.id
   AND cas.id = cac.case_id /* join case data through case activities */
@@ -785,11 +795,11 @@ ORDER BY
   con.id,
   num.case_sequence
 	';
-	
+
 //dpm($tbl, 'Details custom tables');
 //dpm(array($sql), 'DSA Payment $sql');
-  
+
 	$dao = CRM_Core_DAO::executeQuery($sql);
-	
+
 	return $dao;
 }

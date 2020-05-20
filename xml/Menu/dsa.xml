@@ -12,4 +12,22 @@
     <title>DownloadPayments</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/dsa/mydsa</path>
+    <page_callback>CRM_Dsa_Page_MyDSA</page_callback>
+    <title>MyDSA</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+  <item>
+    <path>civicrm/dsa/approval</path>
+    <page_callback>CRM_Dsa_Form_DSAApproval</page_callback>
+    <title>DSAApproval</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+  <item>
+    <path>civicrm/dsa/teamleaders</path>
+    <page_callback>CRM_Dsa_Form_DSATeamleaders</page_callback>
+    <title>DSATeamleaders</title>
+    <access_arguments>administer CiviCRM</access_arguments>
+  </item>
 </menu>

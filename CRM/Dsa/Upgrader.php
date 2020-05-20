@@ -18,15 +18,15 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 	// WARNING: reinstall may fail due to several ALTER TABLE updates, which cannot be intercepted by try/catch!!
 	// build tables for storage of DSA data
 	$this->executeSqlFile('sql/build_tables.sql');
-	
+
 	// fill civicrm_country_pum table with additional country codes
 	if (CRM_Core_DAO::checkTableExists('civicrm_country_pum')) {
 		$this->executeSqlFile('sql/civicrm_country_pum_data.sql');
 	}
 	$this->executeCustomDataFile('xml/representative_payment.xml');
-	// up-to-date to version 1017
+	// up-to-date to version 1019
   }
-  
+
 	/**
 	 * Upgrade 1001 - add table civicrm_dsa_compose
 	 * @date 14 May 2014
@@ -39,7 +39,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		}
 		return TRUE;
 	}
-  
+
   	/**
 	 * Upgrade 1002 - alter table civicrm_dsa_compose
 	 * @date 21 May 2014
@@ -50,7 +50,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_dsa_compose_1002.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1003 - alter table civicrm_dsa_compose
 	 * @date 21 May 2014
@@ -61,7 +61,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_dsa_payment_1003.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1004 - add option group general_ledger
 	 * @date 30 June 2014
@@ -72,7 +72,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		DSA_OptionGroup::install();
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1005 - add relationship_type_id to civicrm_dsa_compose
 	 * @date 1 July 2014
@@ -83,7 +83,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_dsa_compose_1005.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1006 - add relationship_type_id to civicrm_dsa_compose
 	 * @date 2 July 2014
@@ -94,7 +94,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_dsa_compose_1006.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1007 - add type to civicrm_dsa_compose
 	 *              - set type in all records to 1 (payment)
@@ -106,7 +106,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_dsa_compose_1007.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1008 - add option values for option group general_ledger
 	 *				- add option group dsa_configuration
@@ -117,13 +117,13 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->ctx->log->info('Applying update 1008 (additional values for \'general_ledger\' / create/fill option group \'dsa_configuration\')');
 		// re-run option group installer
 		DSA_OptionGroup::install();
-		
+
 		$this->ctx->log->info('Applying update 1008 (alter table civicrm_dsa_compose)');
 		// alter table civicrm_dsa_compose
 		$this->executeSqlFile('sql/civicrm_dsa_compose_1008.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1009 - additional columns in civicrm_dsa_compose to track invoice numbers/codes for creditation
 	 * @date 27 August 2014
@@ -134,7 +134,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_dsa_compose_1009.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1010 - additional column in civicrm_dsa_compose to track the activity_id of the credited DSA
 	 * @date 28 August 2014
@@ -145,7 +145,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_dsa_compose_1010.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1011 - add option values for dsa_configuration
 	 * @date 3 September 2014
@@ -171,7 +171,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		DSA_ActivityType::install();
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1013 - additional column in civicrm_dsa_compose to track the donor (for creditation)
 	 * @date 13 November 2014
@@ -182,7 +182,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_dsa_compose_1013.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1014 - additional columns in civicrm_representative_compose for comments and donor
 	 * @date 17 November 2014
@@ -193,7 +193,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_representative_compose_1014.sql');
 		return TRUE;
 	}
-	
+
 	/**
 	 * Upgrade 1015 - job control using nl.pum.roster
 	 * @date 10 December 2014
@@ -232,6 +232,20 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
     return true;
   }
 
+  public function upgrade_1018() {
+    $this->ctx->log->info('Applying update 1018 (alter table civicrm_dsa_compose)');
+		// alter table civicrm_dsa_compose
+		$this->executeSqlFile('sql/civicrm_dsa_compose_1018.sql');
+		return TRUE;
+  }
+
+  public function upgrade_1019() {
+    $this->ctx->log->info('Applying update 1019 (add table civicrm_dsa_teamleaders)');
+		// alter table civicrm_dsa_compose
+		$this->executeSqlFile('sql/civicrm_dsa_teamleaders_1019.sql');
+		return TRUE;
+  }
+
 	/**
 	 * Helper function to define rosters for the DSA- and Representative payment runs
 	 * Note: by default the roster will block both runs (next_run = <yesterday>)
@@ -253,7 +267,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		if (!empty($result['is_error'])) {
 			return FALSE;
 		}
-	  
+
 		$params = array(
 			'version' => 3,
 			'q' => 'civicrm/ajax/rest',
@@ -271,9 +285,9 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		}
 		return TRUE;
 	}
-	 
 
-	
+
+
   /**
    * Example: Run an external SQL script when the module is uninstalled
    *

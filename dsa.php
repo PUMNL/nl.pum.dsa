@@ -122,7 +122,9 @@ function dsa_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_navigationMenu
  */
-function dsa_civicrm_navigationMenu( &$params ) {  
+function dsa_civicrm_navigationMenu( &$params ) {
+  $dsa_configuration_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'dsa_configuration', 'return' => 'id'));
+  $dsa_percentage_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'dsa_percentage', 'return' => 'id'));
   foreach($params as $mainMenu=>$value) {
 	if ($params[$mainMenu]['attributes']['name']=='Administer') {
 		$maxKey = max(array_keys($params[$mainMenu]['child']));
@@ -181,6 +183,48 @@ function dsa_civicrm_navigationMenu( &$params ) {
 					),
 					'child' => null
 				),
+        '4' => array (
+					'attributes' => array (
+						'label'      => ts('DSA Teamleaders'),
+						'name'       => 'DSA Teamleaders',
+						'url'        => 'civicrm/dsa/teamleaders',
+						'permission' => 'administer CiviCRM',
+						'operator'   => null,
+						'separator'  => 1,
+						'parentID'   => $maxKey+2,
+						'navID'      => 1,
+						'active'     => 1
+					),
+					'child' => null
+				),
+        '5' => array (
+					'attributes' => array (
+						'label'      => ts('DSA Percentage'),
+						'name'       => 'DSA Percentage',
+						'url'        => 'civicrm/admin/optionValue?gid='.$dsa_percentage_group_id.'&reset=1',
+						'permission' => 'administer CiviCRM',
+						'operator'   => null,
+						'separator'  => 1,
+						'parentID'   => $maxKey+2,
+						'navID'      => 1,
+						'active'     => 1
+					),
+					'child' => null
+				),
+        '6' => array (
+					'attributes' => array (
+						'label'      => ts('DSA Configuration'),
+						'name'       => 'DSA Configuration',
+						'url'        => 'civicrm/admin/optionValue?gid='.$dsa_configuration_group_id.'&reset=1',
+						'permission' => 'administer CiviCRM',
+						'operator'   => null,
+						'separator'  => 1,
+						'parentID'   => $maxKey+2,
+						'navID'      => 1,
+						'active'     => 1
+					),
+					'child' => null
+				),
 			)
 		);
 	} else {
@@ -222,8 +266,8 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					}
 				}
 			}
-			
-		
+
+
 			// avoid creation of a 2nd DSA activity in a status other than "Paid"
 			// DISABLED as additional DSA activities can be made for other 'roles' (can't tell yet which participant will be selected)
 		/*
@@ -271,11 +315,11 @@ function dsa_civicrm_buildForm($formName, &$form) {
 					if (isset($fldStatus['id'])) {
 						$fldVal = $fldStatus['obj']->_values[0];
 						$fldOptions = $fldStatus['obj']->_options; // use existing options list for modifications: might contain a filter from other modules
-						
+
 						// convert options to a DSA-specific options list
 						$removeStatusName = array('dsa_payable', 'dsa_paid');
 						$addSelect = TRUE;
-						
+
 						// apply modifictions
 						$newOptions = _removeDisallowedStatusOptions($fldOptions, $removeStatusName, $addSelect);
 						$form->_elements[$fldStatus['id']]->_options = $newOptions;
@@ -304,7 +348,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
 
 //			default:
 		}
-	
+
 	if ($loadJs) {
 		//CRM_Core_Resources::singleton()->addScriptFile('nl.pum.dsa', 'js/dsa.js');
 	}
@@ -343,7 +387,7 @@ function _dsa_buildform_dsa($formName, &$form) {
 	} else {
 		$allowEdit = CRM_Core_Permission::check('edit DSA activity');
 	}
-	
+
 	/* with a known $dsaId, we can find out if additional dsa data is already present
 	 * if so, it should be retrieved for presentation
 	 * if not, we should prepare default values
@@ -356,7 +400,7 @@ function _dsa_buildform_dsa($formName, &$form) {
 		$daoDsaRecord->fetch();
 		$dsaIsDefined = ($daoDsaRecord->recCount>0); // FALSE if recCount==0, otherwise TRUE
 	}
-	
+
 	// main activity (case) contains start- and enddate as custom field
 	$ma = array(
 		'start' => NULL,
@@ -406,7 +450,7 @@ WHERE
 		$ma['days'] = date_diff($ma['end'], $ma['start']);
 		$ma['days'] = $ma['days']->days + 1;
 	}
-	
+
 	// DSA fields are displayed using a custom .tpl-file
 	// assume templates are in a templates folder relative to this file
 	$templatePath = realpath(dirname(__FILE__)."/templates");
@@ -425,7 +469,7 @@ WHERE
 	$form->add('hidden', 'dsa_location_lst', NULL, array('id'=> 'dsa_location_lst'));
 	// Add a hidden field to hold the selected location id
 	$form->add('hidden', 'dsa_location_id', NULL, array('id'=> 'dsa_location_id'));
-	// Add a hidden field to hold a complete list of participators in this case 
+	// Add a hidden field to hold a complete list of participators in this case
 	// Retrieve all this cases participants
 	if (isset($form->_caseId)) {
 		$role_ar = _getCaseParticipantList_dsa($form->_caseId, $form->_activityId);
@@ -517,7 +561,7 @@ WHERE
 	$form->add('text', 'dsa_advance', ts('Expense Advance'));
 	// Add a field to hold approval details
 	$form->add('text', 'dsa_approval', ts('Approval'), array('id'=>'dsa_approval'));
-	
+
 	// Default values for
 	// - new creation - ok
 	// - open
@@ -525,7 +569,7 @@ WHERE
 	// - creditation create
 	// - creditation read
 	// - creditation save
-	
+
 	// Default field values =======================================
 	// apply default values for details from the case record, regardless of create/edit/read/validate mode
 	if (is_null($ma['start']) || is_null($ma['end'])) {
@@ -549,10 +593,10 @@ WHERE
 		$loc_id = $form->_submitValues['dsa_location_id'];
 		$rateData = CRM_Dsa_Page_DSAImport::getAllRatesByLocationId($loc_id); // should ref_date from previous query be used?
 		$defaults['dsa_location_lst'] = json_encode($rateData);
-		
+
 	} elseif (!$dsaIsDefined) { //(is_null($dsaId)) {
 		// Defaults for new DSA creation (and for automatically generated DSA activities without additional data in civicrm_dsa_compose)
-		
+
 		// participant
 		if (count($role_ar) == 1) {
 			// only 1 participant to choose
@@ -563,7 +607,7 @@ WHERE
 			$defaults['dsa_participant_id'] = $value[0];
 			$defaults['dsa_participant_role'] = $value[1];
 		}
-		
+
 		// retrieve default country (id) from country code in cases PUM Case number
 		$sql = '
 SELECT
@@ -580,11 +624,11 @@ WHERE
 			$dao_country->fetch();
 			$defaults['dsa_country'] = $dao_country->id;
 		}
-		
+
 		// Retieve all available locations / rates for the specified reference date (if any)
 		$rateData = CRM_Dsa_Page_DSAImport::getAllActiveRatesByDate();
-		$defaults['dsa_location_lst'] = json_encode($rateData);					
-		
+		$defaults['dsa_location_lst'] = json_encode($rateData);
+
 		// Default DSA percentage
 		if (!is_null($percentageDefault)) {
 			$defaults['dsa_percentage'] = $percentageDefault;
@@ -674,7 +718,7 @@ WHERE
 		} else {
 			$defaults['dsa_participant'] = $dao_defaults->contact_id . '|' . $dao_defaults->relationship_type_id . '|' . $dao_defaults->type . '|0';
 		}
-		
+
 		$defaults['dsa_type'] = $dao_defaults->type;
 		$defaults['dsa_percentage'] = $dao_defaults->percentage;
 		$defaults['dsa_days'] = $dao_defaults->days;
@@ -707,7 +751,7 @@ WHERE
 		$defaults['invoice_other'] = $dao_defaults->invoice_other;
 		$defaults['invoice_advance'] = $dao_defaults->invoice_advance;
 	}
-	
+
 	// Apply filter on status list
 	// retrieve a complete list of available activity statusses
 	$arStatusLst = _retrieveActivityStatusList();
@@ -721,7 +765,7 @@ WHERE
 		if (isset($fldStatus['id'])) {
 			$fldVal = $fldStatus['obj']->_values[0];
 			$fldOptions = $fldStatus['obj']->_options; // use existing options list for modifications: might contain a filter from other modules
-			
+
 			// convert options to a DSA-specific options list
 			switch ($arStatusLst[$fldVal]['name']) {
 				case 'Scheduled':
@@ -756,19 +800,19 @@ WHERE
 					$addSelect = TRUE;
 					$restrictEdit = '0';
 			}
-			
+
 			// if creation / editing was not allowed, then present read mode
 			if (!$allowEdit) {
 				$restrictEdit = '2';
 			}
-			
+
 			// apply modifictions
 			$newOptions = _leaveAllowedStatusOptions($fldOptions, $allowedStatusName, $addSelect);
 			$form->_elements[$fldStatus['id']]->_options = $newOptions;
 		}
 	}
 	$defaults['restrictEdit'] = $restrictEdit;
-	
+
 	// Apply default values
 	if (isset($defaults)) {
 		$form->setDefaults($defaults);
@@ -808,7 +852,7 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 	} else {
 		$allowEdit = CRM_Core_Permission::check('edit Representative payment activity');
 	}
-	
+
 	/* with a known $dsaId, we can find out if additional Representative payment data is already present
 	 * if so, it should be retrieved for presentation
 	 * if not, we should prepare default values
@@ -821,7 +865,7 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 		$daoDsaRecord->fetch();
 		$dsaIsDefined = ($daoDsaRecord->recCount>0); // FALSE if recCount==0, otherwise TRUE
 	}
-		
+
 	// Representative payment fields are displayed using a custom .tpl-file
 	// assume templates are in a templates folder relative to this file
 	$templatePath = realpath(dirname(__FILE__)."/templates");
@@ -834,7 +878,7 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 	// Form structure =============================================
 	// Add a hidden field to hold the payment type (from participant selection)
 	$form->add('hidden', 'dsa_type', NULL, array('id'=> 'dsa_type'));
-	// Add a hidden field to hold a complete list of participators in this case 
+	// Add a hidden field to hold a complete list of participators in this case
 	// Retrieve all this cases participants
 	if (isset($form->_caseId)) {
 		$role_ar = _getCaseParticipantList_representative_payment($form->_caseId, $form->_activityId);
@@ -856,12 +900,12 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 	$form->add('textarea', 'dsa_comments', ts('Comments'));
 	// Add a field to hold approval details
 	$form->add('text', 'dsa_approval', ts('Approval'), array('id'=>'dsa_approval'));
-	
+
 	// Default values for
 	// - new creation - ok
 	// - open
 	// - edit
-	
+
 	// Default field values =======================================
 	/* For most of the form, there are three scenario's here:
 	   - manual creation of a new activity,
@@ -872,7 +916,7 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 	if ($form->_flagSubmitted) {
 		// Defaults in case of a validation error
 		// All submitted values are present: leave to civi
-		
+
 	} elseif (!$dsaIsDefined) { //(is_null($dsaId)) {
 		// Defaults for new Representative payment creation (and for automatically generated Representative payment activities without additional data in civicrm_representative_compose)
 		// Default Representative payment amount
@@ -906,7 +950,7 @@ function _dsa_buildform_representative_payment($formName, &$form) {
 		$defaults['dsa_approval'] = '';
 		// Default flag to allow editing of all fields
 		$defaults['restrictEdit'] = '0';
-		
+
 	} else {
 		// Defaults for editing an existing DSA record
 		// get DSACompose met activity_id = $activityId
@@ -931,7 +975,7 @@ WHERE
 		} else {
 			$defaults['dsa_participant'] = $dao_defaults->contact_id . '|' . $dao_defaults->relationship_type_id . '|' . $dao_defaults->type . '|0';
 		}
-		
+
 		$defaults['dsa_type'] = $dao_defaults->type;
 		$defaults['dsa_amount'] = $dao_defaults->amount_rep;
 		$defaults['dsa_comments'] = $dao_defaults->comments;
@@ -944,9 +988,9 @@ WHERE
 		}
 		$defaults['invoice_number'] = $dao_defaults->invoice_number;
 		$defaults['invoice_rep'] = $dao_defaults->invoice_rep;
-		
+
 	}
-	
+
 	// Apply filter on status list
 	// retrieve a complete list of available activity statusses
 	$arStatusLst = _retrieveActivityStatusList();
@@ -960,7 +1004,7 @@ WHERE
 		if (isset($fldStatus['id'])) {
 			$fldVal = $fldStatus['obj']->_values[0];
 			$fldOptions = $fldStatus['obj']->_options; // use existing options list for modifications: might contain a filter from other modules
-			
+
 			// convert options to a Representative payment-specific options list
 			switch ($arStatusLst[$fldVal]['name']) {
 				case 'Scheduled':
@@ -995,19 +1039,19 @@ WHERE
 					$addSelect = TRUE;
 					$restrictEdit = '0';
 			}
-			
+
 			// if creation / editing was not allowed, then present read mode
 			if (!$allowEdit) {
 				$restrictEdit = '2';
 			}
-			
+
 			// apply modifictions
 			$newOptions = _leaveAllowedStatusOptions($fldOptions, $allowedStatusName, $addSelect);
 			$form->_elements[$fldStatus['id']]->_options = $newOptions;
 		}
 	}
 	$defaults['restrictEdit'] = $restrictEdit;
-	
+
 	// Apply default values
 	if (isset($defaults)) {
 		$form->setDefaults($defaults);
@@ -1026,7 +1070,7 @@ function dsa_civicrm_validateForm( $formName, &$fields, &$files, &$form, &$error
 				case 'DSA':
 					_dsa_validateform_dsa( $formName, $fields, $files, $form, $errors );
 					break;
-					
+
 				case 'Representative payment':
 					_dsa_validateform_representative_payment( $formName, $fields, $files, $form, $errors );
 					break;
@@ -1059,7 +1103,7 @@ function _dsa_validateform_dsa( $formName, &$fields, &$files, &$form, &$errors )
 	}
 	if ($fields['dsa_type'] == 1) {
 		// days
-		$fieldValue=trim($fields['dsa_days']);	
+		$fieldValue=trim($fields['dsa_days']);
 		if ((!CRM_Utils_Type::validate($fieldValue, 'Positive', False)) && (!$fieldValue==0)) {
 			$errors['dsa_days'] = ts('Please enter a valid number of days');
 		}
@@ -1078,7 +1122,7 @@ function _dsa_validateform_dsa( $formName, &$fields, &$files, &$form, &$errors )
 		foreach($fldNames as $name) {
 			$result = $result and _amountCheck($name, $fields, $errors);
 		}
-	
+
 		// minimum DSA amount
 		if ( (!array_key_exists('dsa_amount', $errors))  &&	(!array_key_exists('dsa_days', $errors)) ) {
 			$params = array(
@@ -1099,8 +1143,8 @@ function _dsa_validateform_dsa( $formName, &$fields, &$files, &$form, &$errors )
 				$errors['dsa_amount'] = ts('Minimum 100% daily DSA amount is') . ' ' . $minimumAmount;
 			}
 		}
-		
-		
+
+
 		// if 'other' amount is filled out, a description is required as well
 		if (!array_key_exists('dsa_other', $errors)) {
 			if (($fields['dsa_other']!=0) && (trim($fields['dsa_other_description'])=='')) {
@@ -1108,7 +1152,7 @@ function _dsa_validateform_dsa( $formName, &$fields, &$files, &$form, &$errors )
 				$result = FALSE;
 			}
 		}
-	
+
 	} else {
 		// $fields['dsa_type'] = 3; creditation
 		if ($fields['credit_act_id'] == '') {
@@ -1145,7 +1189,7 @@ function _dsa_validateform_representative_payment( $formName, &$fields, &$files,
 		foreach($fldNames as $name) {
 			$result = $result and _amountCheck($name, $fields, $errors);
 		}
-		
+
 		// if amount deviated from default, then a comment is mandatory
 		if (!array_key_exists('dsa_amount', $errors)) {
       // issue 3057 separate defaults for Business
@@ -1169,7 +1213,7 @@ function _dsa_validateform_representative_payment( $formName, &$fields, &$files,
 			} catch (Exception $e) {
 				$ref_amt = '0.00';
 			}
-		
+
 			if (($fields['dsa_amount']!=$ref_amt) || $fields['dsa_amount']==0) {
 				if (trim($fields['dsa_comments'])=='') {
 					$errors['dsa_comments'] = ts('Please comment on the deviation from the default amount');
@@ -1177,7 +1221,7 @@ function _dsa_validateform_representative_payment( $formName, &$fields, &$files,
 				}
 			}
 		}
-	
+
 	} else {
 		// $fields['dsa_type'] = 3; creditation (not used for Representative payment)
 	}
@@ -1266,7 +1310,7 @@ function dsa_civicrm_pre( $op, $objectName, $id, &$params ) {
 				// original_id is not defined -> no intervention
 			}
 			break;
-			
+
 		default:
 	}
 }
@@ -1290,23 +1334,23 @@ function dsa_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
  *
  * Stores added fields in civicrm_dsa_compose
  */
-function dsa_civicrm_postProcess( $formName, &$form ) {	
+function dsa_civicrm_postProcess( $formName, &$form ) {
 	switch($formName) {
 		case 'CRM_Case_Form_Activity':
 			switch($form->getVar('_activityTypeName')) {
 				case 'DSA':
 					_dsa_postprocess_dsa( $formName, $form );
 					break;
-					
+
 				case 'Representative payment':
 					_dsa_postprocess_representative_payment( $formName, $form );
 					break;
-						
+
 			} // switch activityTypeName
 			break;
-			
+
 		default:
-			
+
 	} // switch ($formName)
 	return;
 }
@@ -1318,7 +1362,7 @@ function _dsa_postprocess_dsa( $formName, &$form ) {
 //echo '</pre>';
 //exit();
 
-	$dao = NULL;		
+	$dao = NULL;
 	// Determine activity id for additional dsa data
 	if (isset($form->_defaultValues['original_id'])) {
 		// >=3rd save: original id is maintained
@@ -1338,7 +1382,7 @@ function _dsa_postprocess_dsa( $formName, &$form ) {
 		$dao->fetch();
 		$dsaId = $dao->max_id;
 	}
-	
+
 	// Determine action (number: add or update)
 	if (isset($form->_action)) {
 		$action = $form->_action;
@@ -1348,7 +1392,7 @@ function _dsa_postprocess_dsa( $formName, &$form ) {
 
 // -----
 	if ($form->_submitValues['dsa_type'] == 1) {
-		
+
 		// use submitted credit_act_id to collect data from original payment (if available)
 		$sql = '
 SELECT
@@ -1525,14 +1569,14 @@ exit();
 								} else {
 									$value = 'NULL';
 								}
-								
+
 								$input[$column['column']] = $value;
 							}
 						}
 					}
 				}
 			}
-	
+
 /*
 echo '<pre>';
 print_r($input);
@@ -1541,7 +1585,7 @@ echo '</pre>';
 exit();
 //*/
 		}
-	
+
 	} else {
 		// $form->_submitValues['dsa_type'] = 3 for creditation
 		// use submitted credit_act_id to collect fields from original payment
@@ -1607,7 +1651,7 @@ WHERE
 			}
 			// payment_id is added in the payment process
 			$input['invoice_number'] = _strParseSql($dao->invoice_number); // creditations reuse the original invoice numbers
-			$input['credited_activity_id'] = $form->_submitValues['credit_act_id'];	
+			$input['credited_activity_id'] = $form->_submitValues['credit_act_id'];
 			$input['donor_id'] = $dao->donor_id;
 		}
 	}
@@ -1634,14 +1678,14 @@ WHERE
 		$input['approval_cid'] = 'NULL';
 		$input['approval_datetime'] = 'NULL';
 	};
-	
+
 /*
 echo '=statusList======================================';
 echo '<pre>';
 print_r($statusList);
 echo '</pre>';
 */
-	
+
 	// update or insert? =====================================
 	$sqlDsaRecord = 'SELECT count(case_id) as recCount FROM civicrm_dsa_compose WHERE activity_id = ' . $dsaId;
 	$daoDsaRecord = CRM_Core_DAO::executeQuery($sqlDsaRecord);
@@ -1693,7 +1737,7 @@ function _dsa_postprocess_representative_payment( $formName, &$form ) {
 		$dao->fetch();
 		$dsaId = $dao->max_id;
 	}
-	
+
 	// Determine action (number: add or update)
 	if (isset($form->_action)) {
 		$action = $form->_action;
@@ -1703,7 +1747,7 @@ function _dsa_postprocess_representative_payment( $formName, &$form ) {
 
 // -----
 	if ($form->_submitValues['dsa_type'] == 1) {
-		
+
 		// use submitted credit_act_id to collect data from original payment (if available)
 		$sql = '
 SELECT
@@ -1812,14 +1856,14 @@ exit();
 								} else {
 									$value = 'NULL';
 								}
-								
+
 								$input[$column['column']] = $value;
 							}
 						}
 					}
 				}
 			}
-	
+
 /*
 echo '<pre>';
 print_r($input);
@@ -1828,7 +1872,7 @@ echo '</pre>';
 exit();
 //*/
 		}
-	
+
 	} else {
 		// $form->_submitValues['dsa_type'] = 3 for creditation
 		// not in use for Representative payment
@@ -1862,7 +1906,7 @@ echo '<pre>';
 print_r($statusList);
 echo '</pre>';
 */
-	
+
 	// update or insert? =====================================
 	$sqlDsaRecord = 'SELECT count(case_id) as recCount FROM civicrm_representative_compose WHERE activity_id = ' . $dsaId;
 	$daoDsaRecord = CRM_Core_DAO::executeQuery($sqlDsaRecord);
@@ -1990,7 +2034,7 @@ SELECT act.subject, dsa.*
 
 /*
  * Function to retrieve all values from option group "activity_status"
- * Values are returned in associative array, 
+ * Values are returned in associative array,
  * ar['status_id'] = array( 'name' => <status_name>, 'label' => <status_label> )
  */
 
@@ -2032,7 +2076,7 @@ function _leaveAllowedStatusOptions($currentOptionsList, $allowedNamesAr, $keepE
 	foreach($arStatus as $key=>$value) {
 		$nameToLabel[$value['name']] = $value['label'];
 	}
-	
+
 	// add allowed options to options list -if available-
 	$resultAr = array();
 	$n=-1;
@@ -2049,7 +2093,7 @@ function _leaveAllowedStatusOptions($currentOptionsList, $allowedNamesAr, $keepE
 			}
 		}
 	}
-			
+
 	// Apply allowed options to status_id field
 	return $resultAr;
 }
@@ -2067,7 +2111,7 @@ function _removeDisallowedStatusOptions($currentOptionsList, $removeNamesAr, $ke
 	foreach($arStatus as $key=>$value) {
 		$nameToLabel[$value['name']] = $value['label'];
 	}
-	
+
 	// add allowed options to options list -if available-
 	$resultAr = array();
 	$n=-1;
@@ -2090,7 +2134,7 @@ function _removeDisallowedStatusOptions($currentOptionsList, $removeNamesAr, $ke
 			$resultAr[] = $value_opt;
 		}
 	}
-			
+
 	// Apply allowed options to status_id field
 	return $resultAr;
 }
@@ -2130,18 +2174,18 @@ FROM
     ON dsa.activity_id = ifnull(act.original_id, act.id)
 WHERE
   act.id = ' . $activity_id;
-  
+
 		$dao_participant = CRM_Core_DAO::executeQuery($sql_participant);
 		$dao_participant->fetch();
 		if ($dao_participant->contact_id == 0) {
 			$activity_id = NULL;
 		}
 	}
-	
+
 	// 2 scenarios now:
 	// - activity id is not / no longer available -> prepare a participants options based on the (travel)cases client case members and existing dsa activities
 	// - activity id and participant are known -> prepare a single option list with only that participant
-	
+
 	$ar_options = array();
 	if (is_null($activity_id)) {
 		// activity_id is not available -> use case_id to build a participant options list based on case roles and existing DSA activities
@@ -2170,7 +2214,7 @@ WHERE
 			'dsa'			=> array(),
 			'dsa_id'		=> 0
 		);
-		
+
 		$sql_dsa = '
 SELECT
   dsa.*,
@@ -2234,7 +2278,7 @@ ORDER BY
 					$ar_options[$contact][$role]['role'] = $dao_dsa->role;
 				}
 			}
-			
+
 			// note regarding dsa_type:
 			// 1 indicates a payment,
 			// 3 indicated a creditation
@@ -2315,7 +2359,7 @@ WHERE
 			} else {
 				$ar_options[$contact][$role]['role'] = $dao_dsa->role;
 			}
-						
+
 			$ar_options[$contact][$role]['dsa_type'] = $dao_dsa->type;
 			$ar_options[$contact][$role]['description'] = ($dao_dsa->type==1?'Payment':'Credit');
 			$ar_options[$contact][$role]['dsa_id'] = ($dao_dsa->type==1?'0':$dao_dsa->credited_activity_id);
@@ -2328,7 +2372,7 @@ WHERE
 			}
 		}
 	}
-	
+
 	$result = array();
 	foreach($ar_options as $contact=>$contact_data) {
 		foreach($contact_data as $role=>$role_data) {
@@ -2338,7 +2382,7 @@ WHERE
 		}
 	}
 	asort($result);
-	
+
 	return $result; // for creditation: need to add dsa amounts and original activity_id as well
 }
 
@@ -2359,18 +2403,18 @@ FROM
     ON dsa.activity_id = ifnull(act.original_id, act.id)
 WHERE
   act.id = ' . $activity_id;
-  
+
 		$dao_participant = CRM_Core_DAO::executeQuery($sql_participant);
 		$dao_participant->fetch();
 		if ($dao_participant->contact_id == 0) {
 			$activity_id = NULL;
 		}
 	}
-	
+
 	// 2 scenarios now:
 	// - activity id is (no longer) available -> prepare a participants options based on case members and existing dsa activities
 	// - activity id and participant are known -> prepare a single option list with only that participant
-	
+
 	$ar_options = array();
 	if (is_null($activity_id)) {
 		// activity_id is not available -> use case_id to build a participant options list based on case roles and existing Representative payment activities
@@ -2424,7 +2468,7 @@ ORDER BY
 				'dsa_id'		=> 0
 			);
 		}
-		
+
 		$sql_dsa = '
 SELECT
   dsa.*,
@@ -2468,8 +2512,8 @@ ORDER BY
   dsa.contact_id,
   dsa.activity_id
 		';
-		
-		
+
+
 		$dao_dsa = CRM_Core_DAO::executeQuery($sql_dsa);
 		while($dao_dsa->fetch()) {
 			$contact = $dao_dsa->contact_id;
@@ -2486,7 +2530,7 @@ ORDER BY
 			if (!array_key_exists('role', $ar_options[$contact][$role])) {
 				$ar_options[$contact][$role]['role'] = $dao_dsa->role;
 			}
-			
+
 			// note regarding dsa_type:
 			// 1 indicates a payment,
 			// 3 indicated a creditation
@@ -2564,7 +2608,7 @@ WHERE
 
 			$ar_options[$contact][$role]['contact'] = $dao_dsa->display_name;
 			$ar_options[$contact][$role]['role'] = $dao_dsa->role;
-						
+
 			$ar_options[$contact][$role]['dsa_type'] = $dao_dsa->type;
 			$ar_options[$contact][$role]['description'] = ($dao_dsa->type==1?'Payment':'Credit');
 			$ar_options[$contact][$role]['dsa_id'] = ($dao_dsa->type==1?'0':$dao_dsa->credited_activity_id);
@@ -2577,7 +2621,7 @@ WHERE
 			}
 		}
 	}
-	
+
 	$result = array();
 	foreach($ar_options as $contact=>$contact_data) {
 		foreach($contact_data as $role=>$role_data) {
@@ -2587,7 +2631,7 @@ WHERE
 		}
 	}
 	asort($result);
-	
+
 	return $result; // for creditation: need to add dsa amounts and original activity_id as well
 }
 
@@ -2603,7 +2647,7 @@ function _creditationValues($role_ar) {
 		}
 	}
 	if (!empty($activity)) {
-		$sql=' 
+		$sql='
 SELECT
   act.id act_id,
   act.original_id,
@@ -2686,7 +2730,7 @@ function _getCustomTableInfo($customGroupName) {
 		'columns' => array(),
 		'sql_columns' => '',
 	);
-	
+
 	// retrieve table name for custom group
 	$sql = 'SELECT id, name, table_name FROM civicrm_custom_group WHERE name = \'' . $customGroupName . '\'';
 	$dao = CRM_Core_DAO::executeQuery($sql);
