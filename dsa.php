@@ -126,110 +126,130 @@ function dsa_civicrm_navigationMenu( &$params ) {
   $dsa_configuration_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'dsa_configuration', 'return' => 'id'));
   $dsa_percentage_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'dsa_percentage', 'return' => 'id'));
   foreach($params as $mainMenu=>$value) {
-	if ($params[$mainMenu]['attributes']['name']=='Administer') {
-		$maxKey = max(array_keys($params[$mainMenu]['child']));
-		$params[$mainMenu]['child'][$maxKey+1] = array (
-			'attributes' => array (
-				'label'      => ts('DSA'),
-				'name'       => 'DSA',
-				'url'        => null,
-				'permission' => 'administer CiviCRM',
-				'operator'   => null,
-				'separator'  => null,
-				'parentID'   => $mainMenu,
-				'navID'      => $maxKey+1,
-				'active'     => 1
-			),
-			'child' =>  array (
-				'1' => array (
-					'attributes' => array (
-						'label'      => ts('View imported batches'),
-						'name'       => 'View imported batches',
-						'url'        => 'civicrm/dsa/import&action=read',
-						'permission' => 'administer CiviCRM',
-						'operator'   => null,
-						'separator'  => 1,
-						'parentID'   => $maxKey+1,
-						'navID'      => 1,
-						'active'     => 1
-					),
-					'child' => null
-				),
-				'2' => array (
-					'attributes' => array (
-						'label'      => ts('Import locations and rates'),
-						'name'       => 'Import locations and rates',
-						'url'        => 'civicrm/dsa/import&action=upload',
-						'permission' => 'administer CiviCRM',
-						'operator'   => null,
-						'separator'  => 1,
-						'parentID'   => $maxKey+2,
-						'navID'      => 1,
-						'active'     => 1
-					),
-					'child' => null
-				),
-				'3' => array (
-					'attributes' => array (
-						'label'      => ts('Convert UN files to CSV'),
-						'name'       => 'Convert UN files to CSV',
-						'url'        => 'civicrm/dsa/import&action=convert',
-						'permission' => 'administer CiviCRM',
-						'operator'   => null,
-						'separator'  => 1,
-						'parentID'   => $maxKey+2,
-						'navID'      => 1,
-						'active'     => 1
-					),
-					'child' => null
-				),
-        '4' => array (
-					'attributes' => array (
-						'label'      => ts('DSA Teamleaders'),
-						'name'       => 'DSA Teamleaders',
-						'url'        => 'civicrm/dsa/teamleaders',
-						'permission' => 'administer CiviCRM',
-						'operator'   => null,
-						'separator'  => 1,
-						'parentID'   => $maxKey+2,
-						'navID'      => 1,
-						'active'     => 1
-					),
-					'child' => null
-				),
-        '5' => array (
-					'attributes' => array (
-						'label'      => ts('DSA Percentage'),
-						'name'       => 'DSA Percentage',
-						'url'        => 'civicrm/admin/optionValue?gid='.$dsa_percentage_group_id.'&reset=1',
-						'permission' => 'administer CiviCRM',
-						'operator'   => null,
-						'separator'  => 1,
-						'parentID'   => $maxKey+2,
-						'navID'      => 1,
-						'active'     => 1
-					),
-					'child' => null
-				),
-        '6' => array (
-					'attributes' => array (
-						'label'      => ts('DSA Configuration'),
-						'name'       => 'DSA Configuration',
-						'url'        => 'civicrm/admin/optionValue?gid='.$dsa_configuration_group_id.'&reset=1',
-						'permission' => 'administer CiviCRM',
-						'operator'   => null,
-						'separator'  => 1,
-						'parentID'   => $maxKey+2,
-						'navID'      => 1,
-						'active'     => 1
-					),
-					'child' => null
-				),
-			)
-		);
-	} else {
-		// off-scope menu entry in main menu level
-	}
+    if ($params[$mainMenu]['attributes']['name']=='Administer') {
+      $maxKey = max(array_keys($params[$mainMenu]['child']));
+      $params[$mainMenu]['child'][$maxKey+1] = array (
+        'attributes' => array (
+          'label'      => ts('DSA'),
+          'name'       => 'DSA',
+          'url'        => null,
+          'permission' => 'administer CiviCRM',
+          'operator'   => null,
+          'separator'  => null,
+          'parentID'   => $mainMenu,
+          'navID'      => $maxKey+1,
+          'active'     => 1
+        ),
+        'child' =>  array (
+          '1' => array (
+            'attributes' => array (
+              'label'      => ts('View imported batches'),
+              'name'       => 'View imported batches',
+              'url'        => 'civicrm/dsa/import&action=read',
+              'permission' => 'administer CiviCRM',
+              'operator'   => null,
+              'separator'  => 1,
+              'parentID'   => $maxKey+1,
+              'navID'      => 1,
+              'active'     => 1
+            ),
+            'child' => null
+          ),
+          '2' => array (
+            'attributes' => array (
+              'label'      => ts('Import locations and rates'),
+              'name'       => 'Import locations and rates',
+              'url'        => 'civicrm/dsa/import&action=upload',
+              'permission' => 'administer CiviCRM',
+              'operator'   => null,
+              'separator'  => 1,
+              'parentID'   => $maxKey+2,
+              'navID'      => 1,
+              'active'     => 1
+            ),
+            'child' => null
+          ),
+          '3' => array (
+            'attributes' => array (
+              'label'      => ts('Convert UN files to CSV'),
+              'name'       => 'Convert UN files to CSV',
+              'url'        => 'civicrm/dsa/import&action=convert',
+              'permission' => 'administer CiviCRM',
+              'operator'   => null,
+              'separator'  => 1,
+              'parentID'   => $maxKey+2,
+              'navID'      => 1,
+              'active'     => 1
+            ),
+            'child' => null
+          ),
+          '4' => array (
+            'attributes' => array (
+              'label'      => ts('DSA Teamleaders'),
+              'name'       => 'DSA Teamleaders',
+              'url'        => 'civicrm/dsa/teamleaders',
+              'permission' => 'administer CiviCRM',
+              'operator'   => null,
+              'separator'  => 1,
+              'parentID'   => $maxKey+2,
+              'navID'      => 1,
+              'active'     => 1
+            ),
+            'child' => null
+          ),
+          '5' => array (
+            'attributes' => array (
+              'label'      => ts('DSA Percentage'),
+              'name'       => 'DSA Percentage',
+              'url'        => 'civicrm/admin/optionValue?gid='.$dsa_percentage_group_id.'&reset=1',
+              'permission' => 'administer CiviCRM',
+              'operator'   => null,
+              'separator'  => 1,
+              'parentID'   => $maxKey+2,
+              'navID'      => 1,
+              'active'     => 1
+            ),
+            'child' => null
+          ),
+          '6' => array (
+            'attributes' => array (
+              'label'      => ts('DSA Configuration'),
+              'name'       => 'DSA Configuration',
+              'url'        => 'civicrm/admin/optionValue?gid='.$dsa_configuration_group_id.'&reset=1',
+              'permission' => 'administer CiviCRM',
+              'operator'   => null,
+              'separator'  => 1,
+              'parentID'   => $maxKey+2,
+              'navID'      => 1,
+              'active'     => 1
+            ),
+            'child' => null
+          ),
+        )
+      );
+
+      $session = CRM_Core_Session::singleton();
+      $current_contact = $session->getLoggedInContactID();
+
+      if(CRM_Dsa_Utils::isDSATeamleader($current_contact) == TRUE){
+        $maxKey = (max(array_keys($params)));
+        $params[$maxKey+1] = array (
+          'attributes' => array (
+            'label'      => 'My DSA',
+            'name'       => 'pum_dsa',
+            'url'        => 'civicrm/dsa/mydsa',
+            'permission' => 'access CiviCRM',
+            'operator'   => null,
+            'separator'  => null,
+            'parentID'   => null,
+            'navID'      => $maxKey+1,
+            'active'     => 1
+          )
+        );
+      }
+    } else {
+      // off-scope menu entry in main menu level
+    }
   }
 }
 

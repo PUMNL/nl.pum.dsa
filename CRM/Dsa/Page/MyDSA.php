@@ -157,7 +157,7 @@ LIMIT %2, %3";
           SELECT COUNT(*)
           FROM civicrm_dsa_compose dsa
           LEFT JOIN civicrm_case_contact cc ON cc.case_id = dsa.case_id
-          WHERE dsa.secondary_approval_approved = 0 AND (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other) >= 2000"
+          WHERE dsa.secondary_approval_approved IS NULL AND (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other) >= 2000"
         ),
         'rowCount' => 20,
         'status' => ts('MyDSA %%StatusMessage%%'),
