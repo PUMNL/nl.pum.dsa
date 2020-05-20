@@ -51,7 +51,7 @@ class CRM_Dsa_Page_MyDSA extends CRM_Core_Page {
     }
 
     $query = "
-SELECT act.is_current_revision as 'dsa_act_cur_revision',cact.is_current_revision as 'dsa_cact_cur_revision', ov.name as 'dsa_act_status', act.status_id as 'dsa_act_status_id', ovdsa.name as 'cred_act_status', cact.status_id as 'cred_act_status_id', rel_prof.contact_id_b as 'project_officer_id',profct.display_name as 'project_officer_name', dsact.id as 'dsa_contact_id', dsact.display_name as 'dsa_contact_name', act.id as 'act_id',act.subject as 'act_subj', act.activity_date_time as 'act_datetime', cact.id as 'cred_id', cact.subject as 'cred_subj',cact.activity_date_time as 'cred_datetime', cc.contact_id as 'case_contact_id', cny.name as 'client_country',clcc.contact_id as 'client_cid',dsa.*
+SELECT act.is_current_revision as 'dsa_act_cur_revision',cact.is_current_revision as 'dsa_cact_cur_revision', ov.name as 'dsa_act_status', act.status_id as 'dsa_act_status_id', ovdsa.name as 'cred_act_status', cact.status_id as 'cred_act_status_id', rel_prof.contact_id_b as 'project_officer_id',profct.display_name as 'project_officer_name', dsact.id as 'dsa_contact_id', dsact.display_name as 'dsa_contact_name', act.id as 'act_id',act.subject as 'act_subj', act.activity_date_time as 'act_datetime', cact.id as 'cred_id', cact.subject as 'cred_subj',cact.activity_date_time as 'cred_datetime', cc.contact_id as 'case_contact_id', IFNULL(ccny.name, pccl.display_name) as 'client_country',clcc.contact_id as 'client_cid',dsa.*
 FROM civicrm_dsa_compose dsa
 LEFT JOIN civicrm_case_contact cc ON cc.case_id = dsa.case_id
 LEFT JOIN civicrm_value_travel_parent tp ON tp.entity_id = dsa.case_id
@@ -65,6 +65,14 @@ LEFT JOIN civicrm_option_value ov ON act.status_id = ov.value AND ov.option_grou
 LEFT JOIN civicrm_option_value ovdsa ON cact.status_id = ovdsa.value AND ovdsa.option_group_id = (SELECT id FROM civicrm_option_group WHERE name = 'activity_status')
 LEFT JOIN civicrm_relationship rel_prof ON rel_prof.case_id = cc.case_id AND rel_prof.is_active = 1 AND rel_prof.case_id = dsa.case_id AND rel_prof.relationship_type_id = (SELECT id FROM civicrm_relationship_type rt WHERE name_b_a = 'Case Coordinator')
 LEFT JOIN civicrm_contact profct ON profct.id = rel_prof.contact_id_b
+/* To display country in overview */
+LEFT JOIN civicrm_case_contact pccc ON pccc.case_id = tp.case_id
+LEFT JOIN civicrm_contact pccl ON (
+  CASE pccl.contact_sub_type WHEN 'Country' THEN pccl.id = pccc.contact_id END
+)
+LEFT JOIN civicrm_address padr ON padr.contact_id = pccc.contact_id AND padr.is_primary = 1
+LEFT JOIN civicrm_country ccny ON ccny.id = padr.country_id
+/* End display country in overview */
 WHERE
   payment_id IS NULL
   AND (dsa.secondary_approval_approved IS NULL)

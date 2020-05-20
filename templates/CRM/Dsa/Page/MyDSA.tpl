@@ -45,11 +45,13 @@ function {/literal}{$list}{literal}viewActivity(activityID, contactID, list) {
 
 <div class="crm-content-block crm-block">
   <div id="help">
-    {ts}This overview lists all payable DSAs that have an amount of over 2000 euro and are not approved yet.{/ts}
+    {ts}This overview lists all payable DSAs that have an amount of more then 2000 euros and have not yet been approved.{/ts}
     <br />
-    {ts}Please use the buttons Approve or Reject to reject that specific DSA amount.{/ts}
+    {ts}Please use the Approve or Reject buttons to approve or reject that specific DSA amount.{/ts}
     <br />
     {ts}If you reject a DSA it will be put back on scheduled for correction by the project officer and the project officer will be informed.{/ts}
+    <br />
+    {ts}You need DSA Teamleader authorization to view the DSA entries, otherwise, no items will be shown.{/ts}
   </div>
   {include file="CRM/common/pager.tpl" location="top"}
   {include file='CRM/common/jsortable.tpl'}
