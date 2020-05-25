@@ -18,14 +18,10 @@ class CRM_Dsa_Page_MyDSA extends CRM_Core_Page {
       CRM_Core_Error::debug_log_message('Unable to retrieve CiviCRM Contact for Drupal ID: '.$user->uid);
     }
 
-    if (($this->_approverId != $this->_userContactId) && (CRM_Core_Permission::check('view others claims') == FALSE)) {
-      CRM_Core_Session::setStatus('Sorry, you are not allowed to view dsa for this user', 'DSA', 'error');
-    } else {
-      if(CRM_Dsa_Utils::isDSATeamleader($this->current_user['contact_id'])){
-        $myDSA = $this->getMyDSA($this->_approverId);
-        CRM_Utils_System::setTitle(ts("Approve or reject dsa"));
-        $this->assign('myDSAs', $myDSA);
-      }
+    if(CRM_Dsa_Utils::isDSATeamleader($this->current_user['contact_id'])){
+      $myDSA = $this->getMyDSA($this->_approverId);
+      CRM_Utils_System::setTitle(ts("Approve or reject dsa"));
+      $this->assign('myDSAs', $myDSA);
     }
 
     parent::run();
