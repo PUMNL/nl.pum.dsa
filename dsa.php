@@ -467,8 +467,14 @@ WHERE
   if (is_null($ma['start']) || is_null($ma['end'])) {
     // leave main_days to 0
   } else {
-    $ma['days'] = date_diff($ma['end'], $ma['start']);
-    $ma['days'] = $ma['days']->days + 1;
+    $start_date = explode(' ', $ma['start']->date);
+    $end_date = explode(' ', $ma['end']->date);
+    $start_date = explode('-', $start_date[0]);
+    $end_date = explode('-', $end_date[0]);
+    if(!empty($start_date[0]) && !empty($end_date[0])){
+      $ma['days'] = date_diff($ma['end'], $ma['start']);
+      $ma['days'] = $ma['days']->days + 1;
+    }
   }
 
   // DSA fields are displayed using a custom .tpl-file
@@ -598,7 +604,7 @@ WHERE
   } else {
     $defaults['main_dates'] = ' ' . ts('days from start date') . ' ' . $ma['start']->format('Y-m-d') . ' ' . ts('to end date') . ' ' . $ma['end']->format('Y-m-d');
     $defaults['main_days'] = $ma['days'];
-    $defaults['activity_date_time'] = $ma['start']->format('m/d/Y');
+    $defaults['activity_date_time'] = date_format(date_create($ma['start']->date),'m/d/Y');
   }
   /* For most of the form, there are three scenario's here:
      - manual creation of a new activity,
