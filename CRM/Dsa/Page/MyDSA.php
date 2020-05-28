@@ -100,7 +100,7 @@ LIMIT %2, %3";
       $row['project_officer_name'] = $dao->project_officer_name;
       $row['project_officer_url'] = CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid={$dao->project_officer_id}");
       $row['client_country'] = $dao->client_country;
-      $row['total_dsa_amount'] = ($dao->amount_dsa+$dao->amount_briefing+$dao->amount_airport+$dao->amount_transfer+$dao->amount_hotel+$dao->amount_visa+$dao->amount_medical+$dao->amount_other);
+      $row['total_dsa_amount'] = number_format((float)$dao->amount_dsa+$dao->amount_briefing+$dao->amount_airport+$dao->amount_transfer+$dao->amount_hotel+$dao->amount_visa+$dao->amount_medical+$dao->amount_other, 2);
       $row['dsa_contact_name_url'] = CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid={$dao->dsa_contact_id}");
       $row['dsa_contact_name'] = CRM_Threepeas_Utils::getContactName($dao->dsa_contact_id);
       $row['dsa_contact_id'] = $dao->dsa_contact_id;
