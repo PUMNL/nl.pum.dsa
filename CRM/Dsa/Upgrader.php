@@ -24,7 +24,7 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		$this->executeSqlFile('sql/civicrm_country_pum_data.sql');
 	}
 	$this->executeCustomDataFile('xml/representative_payment.xml');
-	// up-to-date to version 1019
+	// up-to-date to version 1020
   }
 
 	/**
@@ -232,6 +232,14 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
     return true;
   }
 
+  /**
+   * CRM_Dsa_Upgrader::upgrade_1018()
+   * @date May 2020
+   *
+   * Add secondary approval for dsa above certain amount
+   *
+   * @return
+   */
   public function upgrade_1018() {
     $this->ctx->log->info('Applying update 1018 (alter table civicrm_dsa_compose)');
 		// alter table civicrm_dsa_compose
@@ -239,10 +247,56 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
 		return TRUE;
   }
 
+  /**
+   * CRM_Dsa_Upgrader::upgrade_1019()
+   * @date May 2020
+   *
+   * Add teamleaders for dsa approval
+   *
+   * @return
+   */
   public function upgrade_1019() {
     $this->ctx->log->info('Applying update 1019 (add table civicrm_dsa_teamleaders)');
 		// alter table civicrm_dsa_compose
 		$this->executeSqlFile('sql/civicrm_dsa_teamleaders_1019.sql');
+		return TRUE;
+  }
+
+  /**
+   * CRM_Dsa_Upgrader::upgrade_1020()
+   * @date May 2020
+   *
+   * Add dsa status rejected for dsa approval
+   *
+   * @return
+   */
+  public function upgrade_1020() {
+    $this->ctx->log->info('Applying update 1020 (add dsa status Rejected)');
+
+    try {
+      $activity_status_option_group = civicrm_api3('OptionGroup', 'getvalue', array('return' => 'id', 'name' => 'activity_status'));
+
+      $params = array(
+        'version' => 3,
+        'sequential' => 1,
+        'option_group_id' => $activity_status_option_group,
+        'label' => 'Rejected',
+        'name' => 'dsa_rejected',
+        'value' => 1505,
+        'is_reserved' => 1,
+        'is_active' => 1,
+        'filter' => 0,
+        'weight' => 1508,
+        'description' => 'DSA activity rejected'
+      );
+      $result = civicrm_api3('OptionValue', 'create', $params);
+
+      return $result;
+    } catch (CiviCRM_API3_Exception $ex) {
+      throw new Exception('Could not create option value: dsa_rejected '.__METHOD__
+          .', contact your system administrator. Error from API OptionValue create: '.$ex->getMessage());
+    }
+
 		return TRUE;
   }
 

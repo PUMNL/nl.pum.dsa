@@ -44,7 +44,7 @@ class CRM_Dsa_Form_DSAApproval extends CRM_Core_Form {
         $sql = "UPDATE `civicrm_dsa_compose` SET `secondary_approval_cid` = '".$current_contact."', `secondary_approval_datetime` = NOW(), `secondary_approval_approved` = 1 WHERE `id` = '" . $this->dsaId."'";
         $dao = CRM_Core_DAO::executeQuery($sql);
         //Set activity status back to payable
-        $sql = "UPDATE `civicrm_activity` SET `status_id` = '".CRM_Dsa_Utils::getActivityStatusPayable()."' WHERE `id` = '" . $this->activityId."'";
+        $sql = "UPDATE `civicrm_activity` SET `status_id` = '".CRM_Dsa_Utils::getActivityStatusPayable()."' WHERE ((`original_id` = '".$this->activityId."' AND `is_current_revision` = 1) OR (`id` = '" . $this->activityId."'))";
         $dao = CRM_Core_DAO::executeQuery($sql);
 
         $this->sendMailToProf(TRUE, $this->dsaId, $this->caseId, $this->activityId, $current_contact, $this->caseContactId);
@@ -62,8 +62,8 @@ class CRM_Dsa_Form_DSAApproval extends CRM_Core_Form {
         $sql = "UPDATE `civicrm_dsa_compose` SET `secondary_approval_cid` = '".$current_contact."', `secondary_approval_datetime` = NOW(), `secondary_approval_approved` = 0 WHERE `id` = '" . $this->dsaId."'";
         $dao = CRM_Core_DAO::executeQuery($sql);
 
-        //Set activity status back to scheduled
-        $sql = "UPDATE `civicrm_activity` SET `status_id` = '".CRM_Dsa_Utils::getActivityStatusScheduled()."' WHERE `id` = '" . $this->activityId."'";
+        //Set activity status to rejected
+        $sql = "UPDATE `civicrm_activity` SET `status_id` = '".CRM_Dsa_Utils::getActivityStatusDsaRejected()."' WHERE ((`original_id` = '".$this->activityId."' AND `is_current_revision` = 1) OR (`id` = '" . $this->activityId."'))";
         $dao = CRM_Core_DAO::executeQuery($sql);
 
         $this->sendMailToProf(FALSE, $this->dsaId, $this->caseId, $this->activityId, $current_contact, $this->caseContactId);

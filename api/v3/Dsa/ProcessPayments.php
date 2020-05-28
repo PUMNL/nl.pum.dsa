@@ -669,6 +669,7 @@ SELECT
       act.*,
       \'--ORG_ACTIVITY-->\' AS \'_ORG_ACTIVITY\',
       org.activity_date_time AS original_date_time,
+      IFNULL(ccny.name, pccl.display_name) as client_country,
       \'--DSA-->\'AS \'_DSA\',
       dsa.type,
       dsa.loc_id,
@@ -749,6 +750,15 @@ FROM
       ,
       civicrm_option_group             ogp3,
       civicrm_option_value             ovl3
+      /* To display country in export */
+      LEFT JOIN civicrm_value_travel_parent tp ON tp.entity_id = dsa.case_id
+      LEFT JOIN civicrm_case_contact pccc ON pccc.case_id = tp.case_id
+      LEFT JOIN civicrm_contact pccl ON (
+        CASE pccl.contact_sub_type WHEN \'Country\' THEN pccl.id = pccc.contact_id END
+      )
+      LEFT JOIN civicrm_address padr ON padr.contact_id = pccc.contact_id AND padr.is_primary = 1
+      LEFT JOIN civicrm_country ccny ON ccny.id = padr.country_id
+      /* End display country in overview */
 WHERE
       act.is_current_revision = 1
   AND dsa.activity_id = ifnull(act.original_id, act.id)

@@ -243,6 +243,32 @@ class CRM_Dsa_Utils {
   }
 
   /**
+   * CRM_Dsa_Utils::getActivityStatusRejected()
+   *
+   * Function to get id of activity status dsa_rejected
+   *
+   * @return $result['id']
+   */
+  static function getActivityStatusDsaRejected() {
+    try {
+      $params = array(
+        'version' => 3,
+        'sequential' => 1,
+        'option_group_name' => 'activity_status',
+        'name' => 'dsa_rejected',
+      );
+      $result = civicrm_api('OptionValue', 'getsingle', $params);
+    } catch (CiviCRM_API3_Exception $ex) {
+
+    }
+    if(!empty($result['value'])) {
+      return $result['value'];
+    } else {
+      return FALSE;
+    }
+  }
+
+  /**
    * Function to retrieve an array of available activity types (value->name)
    *
    * @param  n.a.

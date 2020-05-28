@@ -789,10 +789,11 @@ WHERE
 			// convert options to a DSA-specific options list
 			switch ($arStatusLst[$fldVal]['name']) {
 				case 'Scheduled':
+				case 'dsa_rejected':
 				case 'Cancelled':
 				case 'Not Required':
 					if (CRM_Core_Permission::check('approve DSA activity')) {
-						$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable');
+						$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable', 'dsa_rejected');
 					} else {
 						$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required');
 					}
@@ -801,9 +802,9 @@ WHERE
 					break;
 				case 'dsa_payable':
 					if (CRM_Core_Permission::check('approve DSA activity')) {
-						$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable'); // allow status payable for approver
+						$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable', 'dsa_rejected'); // allow status payable for approver
 					} elseif (CRM_Core_Permission::check('edit DSA activity')) {
-						$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable'); // allow status payable for editor as that is the current status
+						$allowedStatusName = array('Scheduled', 'Cancelled', 'Not Required', 'dsa_payable', 'dsa_rejected'); // allow status payable for editor as that is the current status
 					} else {
 						$allowedStatusName = array('dsa_payable'); // current status only
 					}
@@ -1689,6 +1690,12 @@ WHERE
 		} else {
 			// leave as is
 		}
+
+    //Reset DSA Approval / Rejection
+    $input['secondary_approval_cid'] = 'NULL';
+    $input['secondary_approval_datetime'] = 'NULL';
+    $input['secondary_approval_approved'] = 'NULL';
+
 		break;
 	case 'dsa_paid':
 		// leave as is
@@ -1721,6 +1728,7 @@ echo '</pre>';
 		}
 		$sql = 'UPDATE civicrm_dsa_compose SET ' . implode(',', array_values($input)) . ' WHERE ' . $input['activity_id'];
 	}
+
 	$result = CRM_Core_DAO::executeQuery($sql);
 /*
 echo '<pre>';
