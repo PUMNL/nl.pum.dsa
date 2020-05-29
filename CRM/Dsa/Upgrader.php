@@ -256,9 +256,9 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
    * @return
    */
   public function upgrade_1019() {
-    $this->ctx->log->info('Applying update 1019 (add table civicrm_dsa_teamleaders)');
+    $this->ctx->log->info('Applying update 1019 (add table civicrm_dsa_managersoperations)');
 		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_teamleaders_1019.sql');
+		$this->executeSqlFile('sql/civicrm_dsa_managersoperations_1019.sql');
 		return TRUE;
   }
 

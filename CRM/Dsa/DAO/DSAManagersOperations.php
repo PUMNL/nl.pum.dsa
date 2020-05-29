@@ -1,5 +1,5 @@
 <?php
-class CRM_Dsa_DAO_DsaTeamleaders extends CRM_Core_DAO {
+class CRM_Dsa_DAO_DSAManagersOperations extends CRM_Core_DAO {
   /**
    * static instance to hold the field values
    *
@@ -13,7 +13,7 @@ class CRM_Dsa_DAO_DsaTeamleaders extends CRM_Core_DAO {
    * empty definition for virtual function
    */
   static function getTableName() {
-    return 'civicrm_dsa_teamleaders';
+    return 'civicrm_dsa_managersoperations';
   }
   /**
    * returns all the column names of this table

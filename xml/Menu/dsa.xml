@@ -25,9 +25,9 @@
     <access_arguments>access CiviCRM</access_arguments>
   </item>
   <item>
-    <path>civicrm/dsa/teamleaders</path>
-    <page_callback>CRM_Dsa_Form_DSATeamleaders</page_callback>
-    <title>DSATeamleaders</title>
+    <path>civicrm/dsa/managers_operations</path>
+    <page_callback>CRM_Dsa_Form_DSAManagersOperations</page_callback>
+    <title>DSA Managers Operations</title>
     <access_arguments>administer CiviCRM</access_arguments>
   </item>
 </menu>

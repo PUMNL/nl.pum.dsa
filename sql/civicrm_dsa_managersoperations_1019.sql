@@ -1,4 +1,4 @@
-CREATE TABLE `civicrm_dsa_teamleaders` (
+CREATE TABLE `civicrm_dsa_managersoperations` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `contact_id` int(11) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`)

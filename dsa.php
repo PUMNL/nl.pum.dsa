@@ -185,9 +185,9 @@ function dsa_civicrm_navigationMenu( &$params ) {
           ),
           '4' => array (
             'attributes' => array (
-              'label'      => ts('DSA Teamleaders'),
-              'name'       => 'DSA Teamleaders',
-              'url'        => 'civicrm/dsa/teamleaders',
+              'label'      => ts('DSA Managers Operations'),
+              'name'       => 'DSA Managers Operations',
+              'url'        => 'civicrm/dsa/managers_operations',
               'permission' => 'administer CiviCRM',
               'operator'   => null,
               'separator'  => 1,
@@ -231,7 +231,7 @@ function dsa_civicrm_navigationMenu( &$params ) {
       $session = CRM_Core_Session::singleton();
       $current_contact = $session->getLoggedInContactID();
 
-      if(CRM_Dsa_Utils::isDSATeamleader($current_contact) == TRUE){
+      if(CRM_Dsa_Utils::isDSAManagerOperations($current_contact) == TRUE){
         $maxKey = (max(array_keys($params)));
         $params[$maxKey+1] = array (
           'attributes' => array (

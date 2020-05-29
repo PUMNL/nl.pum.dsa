@@ -7,16 +7,16 @@
   <div class="crm-section">
     <div class="label"></div>
     <div class="content">
-      Please select the teamleaders on the left and press 'Add teamleader >>' to add a users as teamleader. <br />
-      To remove a user select the user on the right and press '<< Remove teamleader'.
+      Please select the manager operations on the left and press 'Add manager operations >>' to add a users as manager operations. <br />
+      To remove a user select the user on the right and press '<< Remove manager operations'.
 
     </div>
     <div class="clear"></div>
   </div>
 
   <div class="crm-section">
-    <div class="label">{$form.teamleaders.label}</div>
-    <div class="content">{$form.teamleaders.html}</div>
+    <div class="label">{$form.managers_operations.label}</div>
+    <div class="content">{$form.managers_operations.html}</div>
     <div class="clear"></div>
   </div>
 

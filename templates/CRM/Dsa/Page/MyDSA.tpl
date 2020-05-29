@@ -51,7 +51,7 @@ function {/literal}{$list}{literal}viewActivity(activityID, contactID, list) {
     <br />
     {ts}If you reject a DSA it will be put back on scheduled for correction by the project officer and the project officer will be informed.{/ts}
     <br />
-    {ts}You need DSA Teamleader authorization to view the DSA entries, otherwise, no items will be shown.{/ts}
+    {ts}You need DSA Manager Operations authorization to view the DSA entries, otherwise, no items will be shown.{/ts}
   </div>
   {include file="CRM/common/pager.tpl" location="top"}
   {include file='CRM/common/jsortable.tpl'}

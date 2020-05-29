@@ -7,22 +7,22 @@ use CRM_Dsa_ExtensionUtil as E;
  *
  * @see https://docs.civicrm.org/dev/en/latest/framework/quickform/
  */
-class CRM_Dsa_Form_DSATeamleaders extends CRM_Core_Form {
-  protected $teamleaders;
+class CRM_Dsa_Form_DSAManagersOperations extends CRM_Core_Form {
+  protected $managers_operations;
 
   function preProcess() {
-    CRM_Utils_System::setTitle('DSA Teamleaders');
-    $teamleaders = CRM_Dsa_BAO_DsaTeamleaders::getValues();
-    $this->teamleaders = $teamleaders;
+    CRM_Utils_System::setTitle('DSA Managers Operations');
+    $managers_operations = CRM_Dsa_BAO_DSAManagersOperations::getValues();
+    $this->managers_operations = $managers_operations;
     $this->setDefaultValues();
     parent::preProcess();
   }
 
   public function buildQuickForm() {
-    $dsaTeamleadersSelect = $this->addElement('advmultiselect', 'teamleaders', ts('Select Teamleaders'), CRM_Dsa_Utils::getPaidStaff(),
-      array('id' => 'teamleaders','class' => 'advmultselect', 'size' => 10, 'style' => 'width:auto;'),TRUE);
-    $dsaTeamleadersSelect->setButtonAttributes('add', array('value' => ts('Add teamleader')." >>"));
-    $dsaTeamleadersSelect->setButtonAttributes('remove', array('value' => "<< ".ts('Remove teamleader')));
+    $dsaManagerOperationsSelect = $this->addElement('advmultiselect', 'managers_operations', ts('Select Manager Operations'), CRM_Dsa_Utils::getPaidStaff(),
+      array('id' => 'managers_operations','class' => 'advmultselect', 'size' => 10, 'style' => 'width:auto;'),TRUE);
+    $dsaManagerOperationsSelect->setButtonAttributes('add', array('value' => ts('Add Manager Operations')." >>"));
+    $dsaManagerOperationsSelect->setButtonAttributes('remove', array('value' => "<< ".ts('Remove Manager Operations')));
 
     $this->addButtons(array(
       array('type' => 'next', 'name' => ts('Save'), 'isDefault' => TRUE),
@@ -36,8 +36,8 @@ class CRM_Dsa_Form_DSATeamleaders extends CRM_Core_Form {
   public function setDefaultValues() {
     $defaults = array();
 
-    foreach($this->teamleaders as $key => $value){
-      $defaults['teamleaders'][] = $value['contact_id'];
+    foreach($this->managers_operations as $key => $value){
+      $defaults['managers_operations'][] = $value['contact_id'];
     }
 
     return $defaults;
@@ -46,16 +46,16 @@ class CRM_Dsa_Form_DSATeamleaders extends CRM_Core_Form {
   public function postProcess() {
     $values = $this->exportValues();
 
-    CRM_Core_DAO::executeQuery('TRUNCATE TABLE civicrm_dsa_teamleaders');
+    CRM_Core_DAO::executeQuery('TRUNCATE TABLE civicrm_dsa_managersoperations');
 
-    if(is_array($values['teamleaders'])){
-      foreach($values['teamleaders'] as $key => $contact_id) {
-        $this->teamleaders['contact_id'] = (int)$contact_id;
-        CRM_Dsa_BAO_DsaTeamleaders::add($this->teamleaders);
+    if(is_array($values['managers_operations'])){
+      foreach($values['managers_operations'] as $key => $contact_id) {
+        $this->managers_operations['contact_id'] = (int)$contact_id;
+        CRM_Dsa_BAO_DSAManagersOperations::add($this->managers_operations);
       }
     }
 
-    CRM_Utils_System::redirect('/civicrm/dsa/teamleaders?reset=1');
+    CRM_Utils_System::redirect('/civicrm/dsa/managers_operations?reset=1');
 
     parent::postProcess();
   }

@@ -38,7 +38,7 @@ class CRM_Dsa_Form_DSAApproval extends CRM_Core_Form {
     $current_contact = $session->getLoggedInContactID();
     $action = !empty($_GET['action'])?$_GET['action']:'';
 
-    if(CRM_Dsa_Utils::isDSATeamleader($current_contact) && !empty($action) && ($action == 'approve')) {
+    if(CRM_Dsa_Utils::isDSAManagerOperations($current_contact) && !empty($action) && ($action == 'approve')) {
       //Set db field to approved
       if (!empty($current_contact) && !empty($this->dsaId)) {
         $sql = "UPDATE `civicrm_dsa_compose` SET `secondary_approval_cid` = '".$current_contact."', `secondary_approval_datetime` = NOW(), `secondary_approval_approved` = 1 WHERE `id` = '" . $this->dsaId."'";
@@ -55,7 +55,7 @@ class CRM_Dsa_Form_DSAApproval extends CRM_Core_Form {
         $session->setStatus('Current contactId or dsaId could not be found', 'DSA approval is missing details', 'error');
       }
     }
-    else if(CRM_Dsa_Utils::isDSATeamleader($current_contact) && !empty($action) && ($action == 'reject')){
+    else if(CRM_Dsa_Utils::isDSAManagerOperations($current_contact) && !empty($action) && ($action == 'reject')){
 
       if (!empty($current_contact) && !empty($this->dsaId)) {
         //Set db field to rejected

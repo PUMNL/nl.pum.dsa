@@ -657,7 +657,7 @@ class CRM_Dsa_Utils {
    * Method to get the list of paid staff
    * Used for selection in configuration screen
    *
-   * @return array $teamleaders
+   * @return array $paid_staff
    */
   public static function getPaidStaff(){
     $paid_staff = array();
@@ -727,15 +727,15 @@ class CRM_Dsa_Utils {
   }
 
   /**
-   * CRM_Dsa_Utils::isDSATeamleader()
+   * CRM_Dsa_Utils::isDSAManagerOperations()
    *
-   * Method to check whether the specified contactId is a DSA Teamleader or not
+   * Method to check whether the specified contactId is a DSA Manager Operations or not
    *
    * @param mixed $contactId
    * @return boolean
    */
-  public static function isDSATeamleader($contactId){
-    $dao = CRM_Core_DAO::executeQuery('SELECT * FROM civicrm_dsa_teamleaders WHERE contact_id = %1', array(1 => array($contactId, 'Integer')));
+  public static function isDSAManagerOperations($contactId){
+    $dao = CRM_Core_DAO::executeQuery('SELECT * FROM civicrm_dsa_managersoperations WHERE contact_id = %1', array(1 => array($contactId, 'Integer')));
     while($dao->fetch()){
       if($dao->contact_id == $contactId){
         return TRUE;

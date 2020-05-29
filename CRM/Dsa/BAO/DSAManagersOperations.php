@@ -1,5 +1,5 @@
 <?php
-class CRM_Dsa_BAO_DsaTeamleaders extends CRM_Dsa_DAO_DsaTeamleaders {
+class CRM_Dsa_BAO_DSAManagersOperations extends CRM_Dsa_DAO_DSAManagersOperations {
   /**
    * Function to get values
    *
@@ -7,27 +7,27 @@ class CRM_Dsa_BAO_DsaTeamleaders extends CRM_Dsa_DAO_DsaTeamleaders {
    * @access public
    * @static
    */
-  public static function getValues($params) {
+  public static function getValues($params=array()) {
     $result = array();
-    $dsaTeamleaders = new CRM_Dsa_BAO_DsaTeamleaders();
+    $DSAManagersOperations = new CRM_Dsa_BAO_DSAManagersOperations();
     if (!empty($params)) {
       $fields = self::fields();
       foreach ($params as $key => $value) {
         if (isset($fields[$key])) {
-          $dsaTeamleaders->$key = $value;
+          $DSAManagersOperations->$key = $value;
         }
       }
     }
-    $dsaTeamleaders->find();
-    while ($dsaTeamleaders->fetch()) {
+    $DSAManagersOperations->find();
+    while ($DSAManagersOperations->fetch()) {
       $row = array();
-      CRM_Core_DAO::storeValues($dsaTeamleaders, $row);
+      CRM_Core_DAO::storeValues($DSAManagersOperations, $row);
       $result[$row['id']] = $row;
     }
     return $result;
   }
   /**
-   * Function to add or update dsa teamleaders
+   * Function to add or update dsa manager operations
    *
    * @param array $params
    * @return array $result
@@ -39,18 +39,18 @@ class CRM_Dsa_BAO_DsaTeamleaders extends CRM_Dsa_DAO_DsaTeamleaders {
     $result = array();
 
     if (empty($params)) {
-      throw new Exception('Params can not be empty when adding or updating a Dsa Teamleader');
+      throw new Exception('Params can not be empty when adding or updating a Dsa Manager Operations');
     }
 
-    $dsaTeamleaders = new CRM_Dsa_BAO_DsaTeamleaders();
+    $DSAManagersOperations = new CRM_Dsa_BAO_DSAManagersOperations();
     $fields = self::fields();
     foreach ($params as $key => $value) {
       if (isset($fields[$key])) {
-        $dsaTeamleaders->$key = $value;
+        $DSAManagersOperations->$key = $value;
       }
     }
-    $dsaTeamleaders->save();
-    CRM_Core_DAO::storeValues($dsaTeamleaders, $result);
+    $DSAManagersOperations->save();
+    CRM_Core_DAO::storeValues($DSAManagersOperations, $result);
 
     if (is_numeric($params['id'])) {
       CRM_Utils_Hook::post('edit', 'Cluster', $params['id'], $cluster);
