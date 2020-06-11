@@ -15,206 +15,206 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
    * Example: Run an external SQL script when the module is installed
    */
   public function install() {
-	// WARNING: reinstall may fail due to several ALTER TABLE updates, which cannot be intercepted by try/catch!!
-	// build tables for storage of DSA data
-	$this->executeSqlFile('sql/build_tables.sql');
+    // WARNING: reinstall may fail due to several ALTER TABLE updates, which cannot be intercepted by try/catch!!
+    // build tables for storage of DSA data
+    $this->executeSqlFile('sql/build_tables.sql');
 
-	// fill civicrm_country_pum table with additional country codes
-	if (CRM_Core_DAO::checkTableExists('civicrm_country_pum')) {
-		$this->executeSqlFile('sql/civicrm_country_pum_data.sql');
-	}
-	$this->executeCustomDataFile('xml/representative_payment.xml');
-	// up-to-date to version 1020
+    // fill civicrm_country_pum table with additional country codes
+    if (CRM_Core_DAO::checkTableExists('civicrm_country_pum')) {
+      $this->executeSqlFile('sql/civicrm_country_pum_data.sql');
+    }
+    $this->executeCustomDataFile('xml/representative_payment.xml');
+    // up-to-date to version 1020
   }
 
-	/**
-	 * Upgrade 1001 - add table civicrm_dsa_compose
-	 * @date 14 May 2014
-	 */
-	public function upgrade_1001() {
-		$this->ctx->log->info('Applying update 1001 (add table civicrm_dsa_compose)');
-		// table for dsa on main activity
-		if (!CRM_Core_DAO::checkTableExists('civicrm_dsa_compose')) {
-			$this->executeSqlFile('sql/civicrm_dsa_compose_1001.sql');
-		}
-		return TRUE;
-	}
+  /**
+   * Upgrade 1001 - add table civicrm_dsa_compose
+   * @date 14 May 2014
+   */
+  public function upgrade_1001() {
+    $this->ctx->log->info('Applying update 1001 (add table civicrm_dsa_compose)');
+    // table for dsa on main activity
+    if (!CRM_Core_DAO::checkTableExists('civicrm_dsa_compose')) {
+      $this->executeSqlFile('sql/civicrm_dsa_compose_1001.sql');
+    }
+    return TRUE;
+  }
 
-  	/**
-	 * Upgrade 1002 - alter table civicrm_dsa_compose
-	 * @date 21 May 2014
-	 */
-	public function upgrade_1002() {
-		$this->ctx->log->info('Applying update 1002 (alter table civicrm_dsa_compose)');
-		// alter table for dsa on main activity
-		$this->executeSqlFile('sql/civicrm_dsa_compose_1002.sql');
-		return TRUE;
-	}
+  /**
+   * Upgrade 1002 - alter table civicrm_dsa_compose
+   * @date 21 May 2014
+   */
+  public function upgrade_1002() {
+    $this->ctx->log->info('Applying update 1002 (alter table civicrm_dsa_compose)');
+    // alter table for dsa on main activity
+    $this->executeSqlFile('sql/civicrm_dsa_compose_1002.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1003 - alter table civicrm_dsa_compose
-	 * @date 21 May 2014
-	 */
-	public function upgrade_1003() {
-		$this->ctx->log->info('Applying update 1003 (create table civicrm_dsa_payment)');
-		// create table for dsa payments
-		$this->executeSqlFile('sql/civicrm_dsa_payment_1003.sql');
-		return TRUE;
-	}
+  /**
+   * Upgrade 1003 - alter table civicrm_dsa_compose
+   * @date 21 May 2014
+   */
+  public function upgrade_1003() {
+    $this->ctx->log->info('Applying update 1003 (create table civicrm_dsa_payment)');
+    // create table for dsa payments
+    $this->executeSqlFile('sql/civicrm_dsa_payment_1003.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1004 - add option group general_ledger
-	 * @date 30 June 2014
-	 */
-	public function upgrade_1004() {
-		$this->ctx->log->info('Applying update 1004 (create/fill option group \'general_ledger\')');
-		// re-run option group installer
-		DSA_OptionGroup::install();
-		return TRUE;
-	}
+  /**
+   * Upgrade 1004 - add option group general_ledger
+   * @date 30 June 2014
+   */
+  public function upgrade_1004() {
+    $this->ctx->log->info('Applying update 1004 (create/fill option group \'general_ledger\')');
+    // re-run option group installer
+    DSA_OptionGroup::install();
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1005 - add relationship_type_id to civicrm_dsa_compose
-	 * @date 1 July 2014
-	 */
-	public function upgrade_1005() {
-		$this->ctx->log->info('Applying update 1005 (alter table civicrm_dsa_compose)');
-		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_compose_1005.sql');
-		return TRUE;
-	}
+  /**
+   * Upgrade 1005 - add relationship_type_id to civicrm_dsa_compose
+   * @date 1 July 2014
+   */
+  public function upgrade_1005() {
+    $this->ctx->log->info('Applying update 1005 (alter table civicrm_dsa_compose)');
+    // alter table civicrm_dsa_compose
+    $this->executeSqlFile('sql/civicrm_dsa_compose_1005.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1006 - add relationship_type_id to civicrm_dsa_compose
-	 * @date 2 July 2014
-	 */
-	public function upgrade_1006() {
-		$this->ctx->log->info('Applying update 1006 (alter table civicrm_dsa_compose)');
-		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_compose_1006.sql');
-		return TRUE;
-	}
+  /**
+   * Upgrade 1006 - add relationship_type_id to civicrm_dsa_compose
+   * @date 2 July 2014
+   */
+  public function upgrade_1006() {
+    $this->ctx->log->info('Applying update 1006 (alter table civicrm_dsa_compose)');
+    // alter table civicrm_dsa_compose
+    $this->executeSqlFile('sql/civicrm_dsa_compose_1006.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1007 - add type to civicrm_dsa_compose
-	 *              - set type in all records to 1 (payment)
-	 * @date 7 July 2014
-	 */
-	public function upgrade_1007() {
-		$this->ctx->log->info('Applying update 1007 (alter table civicrm_dsa_compose)');
-		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_compose_1007.sql');
-		return TRUE;
-	}
+  /**
+   * Upgrade 1007 - add type to civicrm_dsa_compose
+   *              - set type in all records to 1 (payment)
+   * @date 7 July 2014
+   */
+  public function upgrade_1007() {
+    $this->ctx->log->info('Applying update 1007 (alter table civicrm_dsa_compose)');
+    // alter table civicrm_dsa_compose
+    $this->executeSqlFile('sql/civicrm_dsa_compose_1007.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1008 - add option values for option group general_ledger
-	 *				- add option group dsa_configuration
-	 *              - remove column amt_debriefing from civicrm_dsa_compose
-	 * @date 22 August 2014
-	 */
-	public function upgrade_1008() {
-		$this->ctx->log->info('Applying update 1008 (additional values for \'general_ledger\' / create/fill option group \'dsa_configuration\')');
-		// re-run option group installer
-		DSA_OptionGroup::install();
+  /**
+   * Upgrade 1008 - add option values for option group general_ledger
+   *              - add option group dsa_configuration
+   *              - remove column amt_debriefing from civicrm_dsa_compose
+   * @date 22 August 2014
+   */
+  public function upgrade_1008() {
+    $this->ctx->log->info('Applying update 1008 (additional values for \'general_ledger\' / create/fill option group \'dsa_configuration\')');
+    // re-run option group installer
+    DSA_OptionGroup::install();
 
-		$this->ctx->log->info('Applying update 1008 (alter table civicrm_dsa_compose)');
-		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_compose_1008.sql');
-		return TRUE;
-	}
+    $this->ctx->log->info('Applying update 1008 (alter table civicrm_dsa_compose)');
+    // alter table civicrm_dsa_compose
+    $this->executeSqlFile('sql/civicrm_dsa_compose_1008.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1009 - additional columns in civicrm_dsa_compose to track invoice numbers/codes for creditation
-	 * @date 27 August 2014
-	 */
-	public function upgrade_1009() {
-		$this->ctx->log->info('Applying update 1009 (alter table civicrm_dsa_compose)');
-		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_compose_1009.sql');
-		return TRUE;
-	}
+  /**
+   * Upgrade 1009 - additional columns in civicrm_dsa_compose to track invoice numbers/codes for creditation
+   * @date 27 August 2014
+   */
+  public function upgrade_1009() {
+    $this->ctx->log->info('Applying update 1009 (alter table civicrm_dsa_compose)');
+    // alter table civicrm_dsa_compose
+    $this->executeSqlFile('sql/civicrm_dsa_compose_1009.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1010 - additional column in civicrm_dsa_compose to track the activity_id of the credited DSA
-	 * @date 28 August 2014
-	 */
-	public function upgrade_1010() {
-		$this->ctx->log->info('Applying update 1010 (alter table civicrm_dsa_compose)');
-		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_compose_1010.sql');
-		return TRUE;
-	}
+  /**
+   * Upgrade 1010 - additional column in civicrm_dsa_compose to track the activity_id of the credited DSA
+   * @date 28 August 2014
+   */
+  public function upgrade_1010() {
+    $this->ctx->log->info('Applying update 1010 (alter table civicrm_dsa_compose)');
+    // alter table civicrm_dsa_compose
+    $this->executeSqlFile('sql/civicrm_dsa_compose_1010.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1011 - add option values for dsa_configuration
-	 * @date 3 September 2014
-	 */
-	public function upgrade_1011() {
-		$this->ctx->log->info('Applying update 1011 (additional values for \'dsa_configuration\')');
-		// re-run option group installer
-		DSA_OptionGroup::install();
-		return TRUE;
-	}
+  /**
+   * Upgrade 1011 - add option values for dsa_configuration
+   * @date 3 September 2014
+   */
+  public function upgrade_1011() {
+    $this->ctx->log->info('Applying update 1011 (additional values for \'dsa_configuration\')');
+    // re-run option group installer
+    DSA_OptionGroup::install();
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1012 - implementation of representative payments
-	 * @date 11 Oktober 2014
-	 */
-	public function upgrade_1012() {
-		$this->ctx->log->info('Applying update 1012 (implementation of representative payments)');
-		// create table civicrm_representative_compose
-		$this->executeSqlFile('sql/civicrm_representative_compose_1012.sql');
-		// re-run option group installer
-		DSA_OptionGroup::install();
-		// re-run activity type installer
-		DSA_ActivityType::install();
-		return TRUE;
-	}
+  /**
+   * Upgrade 1012 - implementation of representative payments
+   * @date 11 Oktober 2014
+   */
+  public function upgrade_1012() {
+    $this->ctx->log->info('Applying update 1012 (implementation of representative payments)');
+    // create table civicrm_representative_compose
+    $this->executeSqlFile('sql/civicrm_representative_compose_1012.sql');
+    // re-run option group installer
+    DSA_OptionGroup::install();
+    // re-run activity type installer
+    DSA_ActivityType::install();
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1013 - additional column in civicrm_dsa_compose to track the donor (for creditation)
-	 * @date 13 November 2014
-	 */
-	public function upgrade_1013() {
-		$this->ctx->log->info('Applying update 1013 (alter table civicrm_dsa_compose)');
-		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_compose_1013.sql');
-		return TRUE;
-	}
+  /**
+   * Upgrade 1013 - additional column in civicrm_dsa_compose to track the donor (for creditation)
+   * @date 13 November 2014
+   */
+  public function upgrade_1013() {
+    $this->ctx->log->info('Applying update 1013 (alter table civicrm_dsa_compose)');
+    // alter table civicrm_dsa_compose
+    $this->executeSqlFile('sql/civicrm_dsa_compose_1013.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1014 - additional columns in civicrm_representative_compose for comments and donor
-	 * @date 17 November 2014
-	 */
-	public function upgrade_1014() {
-		$this->ctx->log->info('Applying update 1014 (alter table civicrm_representative_compose)');
-		// alter table civicrm_representative_compose
-		$this->executeSqlFile('sql/civicrm_representative_compose_1014.sql');
-		return TRUE;
-	}
+  /**
+   * Upgrade 1014 - additional columns in civicrm_representative_compose for comments and donor
+   * @date 17 November 2014
+   */
+  public function upgrade_1014() {
+    $this->ctx->log->info('Applying update 1014 (alter table civicrm_representative_compose)');
+    // alter table civicrm_representative_compose
+    $this->executeSqlFile('sql/civicrm_representative_compose_1014.sql');
+    return TRUE;
+  }
 
-	/**
-	 * Upgrade 1015 - job control using nl.pum.roster
-	 * @date 10 December 2014
-	 */
-	public function upgrade_1015() {
-		$this->ctx->log->info('Applying update 1015 (implementing job control using nl.pum.roster)');
-		if (!CRM_Generic_Misc::generic_verify_extension('nl.pum.roster')) {
-			CRM_Core_Error::fatal("Mandatory module nl.pum.roster is not enabled!");
-			return FALSE;
-		};
-		$result = $this->_initiateRoster();
-		if (!$result) {
-			CRM_Core_Error::fatal("Required rosters could not be initiated");
-		} else {
-			return TRUE;
-		}
-	}
+  /**
+   * Upgrade 1015 - job control using nl.pum.roster
+   * @date 10 December 2014
+   */
+  public function upgrade_1015() {
+    $this->ctx->log->info('Applying update 1015 (implementing job control using nl.pum.roster)');
+    if (!CRM_Generic_Misc::generic_verify_extension('nl.pum.roster')) {
+      CRM_Core_Error::fatal("Mandatory module nl.pum.roster is not enabled!");
+      return FALSE;
+    };
+    $result = $this->_initiateRoster();
+    if (!$result) {
+      CRM_Core_Error::fatal("Required rosters could not be initiated");
+    } else {
+      return TRUE;
+    }
+  }
 
-	public function upgrade_1016() {
+  public function upgrade_1016() {
     $this->executeCustomDataFile('xml/representative_payment.xml');
-	  return true;
+    return true;
   }
 
   public function upgrade_1017() {
@@ -242,9 +242,9 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
    */
   public function upgrade_1018() {
     $this->ctx->log->info('Applying update 1018 (alter table civicrm_dsa_compose)');
-		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_compose_1018.sql');
-		return TRUE;
+    // alter table civicrm_dsa_compose
+    $this->executeSqlFile('sql/civicrm_dsa_compose_1018.sql');
+    return TRUE;
   }
 
   /**
@@ -257,9 +257,9 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
    */
   public function upgrade_1019() {
     $this->ctx->log->info('Applying update 1019 (add table civicrm_dsa_managersoperations)');
-		// alter table civicrm_dsa_compose
-		$this->executeSqlFile('sql/civicrm_dsa_managersoperations_1019.sql');
-		return TRUE;
+    // alter table civicrm_dsa_compose
+    $this->executeSqlFile('sql/civicrm_dsa_managersoperations_1019.sql');
+    return TRUE;
   }
 
   /**
@@ -297,49 +297,48 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
           .', contact your system administrator. Error from API OptionValue create: '.$ex->getMessage());
     }
 
-		return TRUE;
+    return TRUE;
   }
 
-	/**
-	 * Helper function to define rosters for the DSA- and Representative payment runs
-	 * Note: by default the roster will block both runs (next_run = <yesterday>)
-	 * Use civicrm/rosterview (having the right privileges for the rosters) to set a proper next run date
-	 */
-	function _initiateRoster() {
-		$params = array(
-			'version' => 3,
-			'q' => 'civicrm/ajax/rest',
-			'sequential' => 1,
-			'name' => 'DSA payment',
-			'type' => 'w',
-			'value' => '2,4',
-			'min_interval' => 1,
-			'next_run' => date('Y-m-d', strtotime('-1 days')),
-			'privilege' => 'edit schedule for DSA payment',
-		);
-		$result = civicrm_api('Roster', 'set', $params);
-		if (!empty($result['is_error'])) {
-			return FALSE;
-		}
+  /**
+   * Helper function to define rosters for the DSA- and Representative payment runs
+   * Note: by default the roster will block both runs (next_run = <yesterday>)
+   * Use civicrm/rosterview (having the right privileges for the rosters) to set a proper next run date
+   */
+  function _initiateRoster() {
+    $params = array(
+      'version' => 3,
+      'q' => 'civicrm/ajax/rest',
+      'sequential' => 1,
+      'name' => 'DSA payment',
+      'type' => 'w',
+      'value' => '2,4',
+      'min_interval' => 1,
+      'next_run' => date('Y-m-d', strtotime('-1 days')),
+      'privilege' => 'edit schedule for DSA payment',
+    );
+    $result = civicrm_api('Roster', 'set', $params);
+    if (!empty($result['is_error'])) {
+      return FALSE;
+    }
 
-		$params = array(
-			'version' => 3,
-			'q' => 'civicrm/ajax/rest',
-			'sequential' => 1,
-			'name' => 'Representative payment',
-			'type' => 'm',
-			'value' => 1,
-			'min_interval' => 90,
-			'next_run' => date('Y-m-d', strtotime('-1 days')),
-			'privilege' => 'edit schedule for Representative payment',
-		);
-		$result = civicrm_api('Roster', 'set', $params);
-		if (!empty($result['is_error'])) {
-			return FALSE;
-		}
-		return TRUE;
-	}
-
+    $params = array(
+      'version' => 3,
+      'q' => 'civicrm/ajax/rest',
+      'sequential' => 1,
+      'name' => 'Representative payment',
+      'type' => 'm',
+      'value' => 1,
+      'min_interval' => 90,
+      'next_run' => date('Y-m-d', strtotime('-1 days')),
+      'privilege' => 'edit schedule for Representative payment',
+    );
+    $result = civicrm_api('Roster', 'set', $params);
+    if (!empty($result['is_error'])) {
+      return FALSE;
+    }
+    return TRUE;
+  }
 
 
   /**

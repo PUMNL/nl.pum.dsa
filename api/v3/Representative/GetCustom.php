@@ -10,9 +10,9 @@
  */
 function _civicrm_api3_representative_getcustom_spec(&$spec) {
   $spec['activity_id'] = array(
-		'title'			=> 'Activity id',
-		'type'			=> 'integer',
-		'api.required'	=> 1,
+    'title'     => 'Activity id',
+    'type'      => 'integer',
+    'api.required'  => 1,
   );
 }
 
@@ -40,31 +40,31 @@ WHERE
   $cols = civicrm_api3_representative_columns();
   while ($dao->fetch()) {
     $rec = array();
-	foreach($cols as $col) {
-		if (property_exists($dao, $col)) {
-			$rec[$col] = $dao->$col;
-		}
-	}
-	$result[] = $rec;
+    foreach($cols as $col) {
+      if (property_exists($dao, $col)) {
+        $rec[$col] = $dao->$col;
+      }
+    }
+    $result[] = $rec;
   }
   return civicrm_api3_create_success($result, $params, 'Dsa', 'GetCustom');
 }
 
 function civicrm_api3_representative_columns() {
-	return array(
-		'id',
-		'type',
-		'case_id',
-		'activity_id',
-		'contact_id',
-		'relationship_type_id',
-		'amount_rep',
-		'approval_cid',
-		'approval_datetime',
-		'payment_id',
-		'invoice_number',
-		'invoice_rep',
-		'comments',
-		'donor_id',
-	);
+  return array(
+    'id',
+    'type',
+    'case_id',
+    'activity_id',
+    'contact_id',
+    'relationship_type_id',
+    'amount_rep',
+    'approval_cid',
+    'approval_datetime',
+    'payment_id',
+    'invoice_number',
+    'invoice_rep',
+    'comments',
+    'donor_id',
+  );
 }

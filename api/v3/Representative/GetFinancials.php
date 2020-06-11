@@ -10,10 +10,10 @@
  */
 function _civicrm_api3_representative_getfinancials_spec(&$spec) {
   $spec['contact_id'] = array(
-		'title'			=> 'Contact id',
-		'type'			=> 'integer',
-		'api.required'	=> 1,
-	);
+    'title'     => 'Contact id',
+    'type'      => 'integer',
+    'api.required'  => 1,
+  );
 }
 
 /**
@@ -27,46 +27,46 @@ function _civicrm_api3_representative_getfinancials_spec(&$spec) {
  */
 function civicrm_api3_representative_getfinancials($params) {
   $filtered_params = _civicrm_api3_representative_getfinancials_filter_params($params);
-	if (count($filtered_params) == 0) {
-		throw new API_Exception('No accepted parameters found', 1001);
-	}
+  if (count($filtered_params) == 0) {
+    throw new API_Exception('No accepted parameters found', 1001);
+  }
 
-	$dao = _civicrm_api3_representative_getfinancials_dao($filtered_params);
-	$result = array();
-	while ($dao->fetch()) {
-		// collect data
-		$result[] = array(
-			'type' => $dao->type,
-			'reference' => $dao->case_sequence . ' ' . $dao->case_type . ' ' . $dao->case_country,
-			'description' => $dao->subject,
-			'payment_type' =>$dao->payment_type,
-			'amount' => $dao->total_amount,
-			'contact_id' => $dao->contact_id,
-			'date' => $dao->payment_datetime,
-		);
-	}
-    return civicrm_api3_create_success($result, $params);
+  $dao = _civicrm_api3_representative_getfinancials_dao($filtered_params);
+  $result = array();
+  while ($dao->fetch()) {
+    // collect data
+    $result[] = array(
+      'type' => $dao->type,
+      'reference' => $dao->case_sequence . ' ' . $dao->case_type . ' ' . $dao->case_country,
+      'description' => $dao->subject,
+      'payment_type' =>$dao->payment_type,
+      'amount' => $dao->total_amount,
+      'contact_id' => $dao->contact_id,
+      'date' => $dao->payment_datetime,
+    );
+  }
+  return civicrm_api3_create_success($result, $params);
 }
 
 function _civicrm_api3_representative_getfinancials_filter_params($params) {
-	$required = array(
-		'contact_id',
-	);
-	$result = array();
-	foreach($params as $key => $value) {
-		if (in_array($key, $required)) {
-			$result[$key] = $value;
-		}
-	}
-	return $result;
+  $required = array(
+    'contact_id',
+  );
+  $result = array();
+  foreach($params as $key => $value) {
+    if (in_array($key, $required)) {
+      $result[$key] = $value;
+    }
+  }
+  return $result;
 }
 
 function _civicrm_api3_representative_getfinancials_dao($params) {
-	$tbl = array(
-		'Donor_details_FA'  => _getCustomTableInfo('Donor_details_FA'),	// contains donor (sponsor) code
-	);
+  $tbl = array(
+    'Donor_details_FA'  => _getCustomTableInfo('Donor_details_FA'), // contains donor (sponsor) code
+  );
 
-	$sql = '
+  $sql = '
 SELECT
   \'Representative payment\' type,
   cas.id case_id,
@@ -136,9 +136,9 @@ WHERE
 ORDER BY
   case_sequence,
   payment_datetime
-	';
-	
-	$dao = CRM_Core_DAO::executeQuery($sql);
-	
-	return $dao;
+  ';
+
+  $dao = CRM_Core_DAO::executeQuery($sql);
+
+  return $dao;
 }

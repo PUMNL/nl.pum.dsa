@@ -1,5 +1,5 @@
 cj(function($) {
-	CRM.alert(ts('dsa.js is loaded!'));
+  CRM.alert(ts('dsa.js is loaded!'));
 
   /*
   function getUrlParameter(sParam) {

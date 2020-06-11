@@ -124,6 +124,8 @@ function dsa_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
  */
 function dsa_civicrm_navigationMenu( &$params ) {
   $dsa_configuration_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'dsa_configuration', 'return' => 'id'));
+  $representative_payment_configuration_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'rep_payment_configuration', 'return' => 'id'));
+  $representative_relationships_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'rep_payment_relationships', 'return' => 'id'));
   $dsa_percentage_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'dsa_percentage', 'return' => 'id'));
   foreach($params as $mainMenu=>$value) {
     if ($params[$mainMenu]['attributes']['name']=='Administer') {
@@ -213,9 +215,37 @@ function dsa_civicrm_navigationMenu( &$params ) {
           ),
           '6' => array (
             'attributes' => array (
-              'label'      => ts('DSA Configuration'),
-              'name'       => 'DSA Configuration',
+              'label'      => ts('DSA Payment Configuration'),
+              'name'       => 'DSA Payment Configuration',
               'url'        => 'civicrm/admin/optionValue?gid='.$dsa_configuration_group_id.'&reset=1',
+              'permission' => 'administer CiviCRM',
+              'operator'   => null,
+              'separator'  => 1,
+              'parentID'   => $maxKey+2,
+              'navID'      => 1,
+              'active'     => 1
+            ),
+            'child' => null
+          ),
+          '7' => array (
+            'attributes' => array (
+              'label'      => ts('Representative Payment Configuration'),
+              'name'       => 'Representative Payment Configuration',
+              'url'        => 'civicrm/admin/optionValue?gid='.$representative_payment_configuration_group_id.'&reset=1',
+              'permission' => 'administer CiviCRM',
+              'operator'   => null,
+              'separator'  => 1,
+              'parentID'   => $maxKey+2,
+              'navID'      => 1,
+              'active'     => 1
+            ),
+            'child' => null
+          ),
+          '8' => array (
+            'attributes' => array (
+              'label'      => ts('Representative Payment Relationships'),
+              'name'       => 'Representative Payment Relationships',
+              'url'        => 'civicrm/admin/optionValue?gid='.$representative_relationships_group_id.'&reset=1',
               'permission' => 'administer CiviCRM',
               'operator'   => null,
               'separator'  => 1,
@@ -587,6 +617,8 @@ WHERE
   $form->add('text', 'dsa_advance', ts('Expense Advance'));
   // Add a field to hold approval details
   $form->add('text', 'dsa_approval', ts('Approval'), array('id'=>'dsa_approval'));
+  // Add a field to hold secondary approval details
+  $form->add('text', 'dsa_secondary_approval', ts('Secondary Approval'), array('id'=>'dsa_secondary_approval'));
 
   // Default values for
   // - new creation - ok
@@ -700,6 +732,8 @@ WHERE
     $defaults['dsa_advance'] = '0.00';
     // Default approval details
     $defaults['dsa_approval'] = '';
+    // Default secondary approval details
+    $defaults['dsa_secondary_approval'] = '';
     // Default flag to allow editing of all fields
     $defaults['restrictEdit'] = '0';
     // Details for creditation of existing (paid) DSA activities (for jQuery to retrieve and process)
@@ -715,11 +749,14 @@ SELECT
   rte.country,
   rte.rate,
   cnt.id AS cy_id,
-  con.display_name AS approver_name
+  con.display_name AS approver_name,
+  apr.display_name AS secondary_approver_name
 FROM
   civicrm_dsa_compose cmp
   LEFT JOIN civicrm_contact con
     ON cmp.approval_cid = con.id
+  LEFT JOIN civicrm_contact apr
+    ON cmp.secondary_approval_cid = apr.id
   LEFT JOIN civicrm_dsa_rate rte
     ON cmp.loc_id = rte.id
   LEFT JOIN civicrm_country cnt
@@ -763,6 +800,11 @@ WHERE
       $defaults['dsa_approval'] = '';
     } else {
       $defaults['dsa_approval'] = 'Approved ' . $dao_defaults->approval_datetime . ' by ' . $dao_defaults->approver_name;
+    }
+    if(is_null($dao_defaults->secondary_approval_cid)) {
+      $defaults['dsa_secondary_approval'] = '';
+    } else {
+      $defaults['dsa_secondary_approval'] = 'Secondary approved on ' . $dao_defaults->secondary_approval_datetime . ' by '.$dao_defaults->secondary_approver_name;
     }
     // Details for creditation of existing (paid) DSA activities (for jQuery to retrieve and process)
     $defaults['credit_data'] = _creditationValues($role_ar);
