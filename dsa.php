@@ -494,14 +494,11 @@ WHERE
       }
     }
   }
+
   if (is_null($ma['start']) || is_null($ma['end'])) {
     // leave main_days to 0
   } else {
-    $start_date = explode(' ', $ma['start']->date);
-    $end_date = explode(' ', $ma['end']->date);
-    $start_date = explode('-', $start_date[0]);
-    $end_date = explode('-', $end_date[0]);
-    if(!empty($start_date[0]) && !empty($end_date[0])){
+    if(!empty($ma['start']) && !empty($ma['end'])){
       $ma['days'] = date_diff($ma['end'], $ma['start']);
       $ma['days'] = $ma['days']->days + 1;
     }
@@ -2844,5 +2841,5 @@ function _getCustomTableInfo($customGroupName) {
  * Function to add column headers to DSA file
  */
 function _dsa_getColumnHeaders() {
-  return "Jaar;Db;Mnd;Volgnr;GB;KD;Project;Projland_1;FactD;DC_1;DC_2;Cred;Bet_ref;Fact_nr;Einddatum;FactBedr;DC_3;Projnr_2;Projland_2;Val;Shortn_cred;Name_cred;BankAccHold;Country_cred;Adres_cred;Pc_City_cred;BankAcc;ProjType;Shortn_cred;BankAccHolder;BankCntry;BankAccAdres;BankAccPC_city;IBAN number;BankName;BankCntry;BIC_SWIFT";
+  return "Jaar;Db;Mnd;Volgnr;GB;KD;Project;Projland_1;FactD;DC_1;DC_2;Cred;Bet_ref;Fact_nr;Einddatum;FactBedr;DC_3;Projnr_2;Projland_2;Val;Shortn_cred;Name_cred;BankAccHold;Country_cred;Adres_cred;Pc_City_cred;BankAcc;ProjType;Shortn_cred;BankAccHolder;BankCntry;BankAccAdres;BankAccPC_city;IBAN number;BankName;BankCntry;BIC_SWIFT;Sector;Artikel;Omschrijving";
 }

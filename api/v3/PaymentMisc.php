@@ -35,24 +35,24 @@ function _dsa_concatValues($ar) {
     _dsaSize($ar['Kostendrager'],          8, '',   TRUE,   FALSE,  TRUE) . // country code main activity (8 chars!)
     _dsaSize($ar['Datum'],                10, '',   TRUE,   FALSE,  TRUE) . // today
     _dsaSize($ar['DC'],                    1, '',   TRUE,   FALSE,  TRUE) . // D for payment, C for full creditation. Ther will be NO partial creditation.
-    _dsaSize($ar['PlusMin'],               1, '',   TRUE,   TRUE,   TRUE)  .  // + for payment, - for creditation
-    //_dsaSize($ar['Bedrag'],             10, '',   FALSE,  FALSE) .  // not in use: 10 digit numeric 0
-    //_dsaSize($ar['Filler1'],             9, ' ',  TRUE,   FALSE) .  // not in use: 9 spaces
+    _dsaSize($ar['PlusMin'],               1, '',   TRUE,   TRUE,   TRUE) . // + for payment, - for creditation
+    //_dsaSize($ar['Bedrag'],             10, '',   FALSE,  FALSE) .        // not in use: 10 digit numeric 0
+    //_dsaSize($ar['Filler1'],             9, ' ',  TRUE,   FALSE) .        // not in use: 9 spaces
     _dsaSize($ar['OmschrijvingA'],        10, '',   TRUE,   FALSE,  TRUE) . // description fragment: surname
-    //_dsaSize(' ',                        1, '',   TRUE,   FALSE) .  // description fragment: additional space
+    //_dsaSize(' ',                        1, '',   TRUE,   FALSE) .        // description fragment: additional space
     _dsaSize($ar['OmschrijvingB'].' '.$ar['OmschrijvingC'], 8, '', TRUE,  FALSE, TRUE) .  // description fragment: main activity number ("NNNNN ")
-    //_dsaSize($ar['OmschrijvingC'],       3, '',   TRUE,   FALSE) .  // description fragment: country ("CC ")
-    //_dsaSize($ar['Filler2'],            13, '',   TRUE,   FALSE) .  // not in use: 13 spaces
+    //_dsaSize($ar['OmschrijvingC'],       3, '',   TRUE,   FALSE) .        // description fragment: country ("CC ")
+    //_dsaSize($ar['Filler2'],            13, '',   TRUE,   FALSE) .        // not in use: 13 spaces
     _dsaSize($ar['FactuurNrRunType'].$ar['FactuurNrYear']._dsaSize($ar['FactuurNr'], 5, '0', FALSE, FALSE, FALSE), 8, '', TRUE, FALSE, TRUE) .  // D for DSA, L for Representative payment
-    //_dsaSize($ar['FactuurNrYear'],       2, '',   TRUE,   FALSE) .  // 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
-    //_dsaSize($ar['FactuurNr'],           4, '0',  FALSE,  FALSE) .  // sequence based: "123456" would return "2345", "12" would return "0001"
-    //_dsaSize($ar['FactuurNrAmtType'],    1, '',   TRUE,   FALSE) .  // represents type of amount in a single character: 1-9, A-Z
+    //_dsaSize($ar['FactuurNrYear'],       2, '',   TRUE,   FALSE) .        // 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
+    //_dsaSize($ar['FactuurNr'],           4, '0',  FALSE,  FALSE) .        // sequence based: "123456" would return "2345", "12" would return "0001"
+    //_dsaSize($ar['FactuurNrAmtType'],    1, '',   TRUE,   FALSE) .        // represents type of amount in a single character: 1-9, A-Z
     _dsaSize($ar['FactuurDatum'],         10, '',   TRUE,   FALSE,  TRUE) . // creation date (dd-mm-yyyy) of DSA activity (in Notes 1st save when in status "preparation") :=> civi: date of original activity
     _dsaSize($ar['FactuurBedrag'],        11, '',   FALSE,  FALSE,  TRUE) . // payment amount in EUR cents (123,456 -> 12346)
-    _dsaSize($ar['FactuurPlusMin'],        1, '',   TRUE,   TRUE,   TRUE)  .  // + for payment, - for creditation
-    _dsaSize($ar['OmschrijvingB'],         8, '',   TRUE,   TRUE,   TRUE). //Project number
-    _dsaSize($ar['OmschrijvingC'],         2, '',   TRUE,   TRUE,   TRUE). //Country code
-    //_dsaSize($ar['Kenmerk'],            12, '',   TRUE,   FALSE) .  // project number NNNNNCC (number, country)
+    _dsaSize($ar['FactuurPlusMin'],        1, '',   TRUE,   TRUE,   TRUE) . // + for payment, - for creditation
+    _dsaSize($ar['OmschrijvingB'],         8, '',   TRUE,   TRUE,   TRUE) . // Project number
+    _dsaSize($ar['OmschrijvingC'],         2, '',   TRUE,   TRUE,   TRUE) . // Country code
+    //_dsaSize($ar['Kenmerk'],            12, '',   TRUE,   FALSE) .        // project number NNNNNCC (number, country)
     _dsaSize($ar['ValutaCode'],            3, '',   TRUE,   FALSE,  TRUE) . // always EUR
     _dsaSize($ar['CrediteurNr'],           8, '',   TRUE,   FALSE,  TRUE) . // experts shortname (8 char)
     _dsaSize($ar['NaamOrganisatie'],      35, ' ',  TRUE,   FALSE,  TRUE) . // experts name (e.g. "van Oranje-Nassau W.A.")
@@ -69,9 +69,12 @@ function _dsa_concatValues($ar) {
     _dsaSize($ar['RekeninghouderAdres2'], 35, ' ',  TRUE,   FALSE,  TRUE) . // bank account holder: zip + city
     _dsaSize($ar['IBAN'],                 34, ' ',  TRUE,   FALSE,  TRUE) . // bank account: IBAN
     _dsaSize($ar['Banknaam'],             35, ' ',  TRUE,   FALSE,  TRUE) . // bank name
-    //_dsaSize($ar['BankPlaats'],         35, '',   TRUE,   FALSE) .  // bank city
+    //_dsaSize($ar['BankPlaats'],         35, '',   TRUE,   FALSE) .        // bank city
     _dsaSize($ar['BankLand'],              3, ' ',  TRUE,   FALSE,  TRUE) . // bank country (ISO2)
-    _dsaSize($ar['BIC'],                  11, 'X',  TRUE,   FALSE,  FALSE);   // experts bank account: BIC/Swift code
+    _dsaSize($ar['BIC'],                  11, 'X',  TRUE,   FALSE,  TRUE) . // experts bank account: BIC/Swift code
+    _dsaSize($ar['Sector'],              128, '',   TRUE,   FALSE,  TRUE) . // experts main sector
+    _dsaSize($ar['Artikel'],              64, '',   TRUE,   FALSE,  TRUE) . // client country
+    _dsaSize($ar['Omschrijving'],         64, '',   TRUE,   FALSE,  FALSE); // client country
 }
 
 /*

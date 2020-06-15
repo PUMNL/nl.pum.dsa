@@ -22,10 +22,10 @@ class CRM_Dsa_Page_DownloadPayments extends CRM_Core_Page {
         $dao->fetch();
         $this->assign('message', ts('Downloading') . ' ' . $dao->filename); // just in case the page should ever get displayed
         // present download and abort the build of a new page
-        header("Content-type:text/plain");
+        header("Content-type: text/csv");
         header("Content-Transfer-Encoding: base64");
         print($dao->content);
-        header("Content-Disposition: attachment, filename=" . $dao->filename);
+        header("Content-Disposition: attachment; filename=" . $dao->filename);
         exit();
       }
     }

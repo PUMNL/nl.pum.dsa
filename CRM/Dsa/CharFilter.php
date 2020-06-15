@@ -64,16 +64,16 @@ class CRM_Dsa_CharFilter {
     return $dataStr;
   }
 
-  /*
+  /**
    * Function to resize a value to a certain length for export to a fixed row-size file
    * contains implicit replacement of "odd" characters
    *
-   * parameters:
-   * $value: the value to parse into an export line
-   * $size: the length in which $value should be parsed
-   * $fillChar: the character to use to increase $values length if neccessary
-   * $alignLeft: if TRUE: $fillChar is appended, if FALSE $fillChar is prepended
-   * $skipCharRemoval: if TRUE: no additional removal of "unknown" characters is performed. If FALSE, only certain characters (0-9, a-z, A-Z, space, slash, dash) are returned (by charFilter())
+   * @param string $value the value to parse into an export line
+   * @param int $size the length in which $value should be parsed
+   * @param string $fillChar the character to use to increase $values length if neccessary
+   * @param bool $alignLeft if TRUE: $fillChar is appended, if FALSE $fillChar is prepended
+   * @param bool $skipCharRemoval if TRUE: no additional removal of 'unknown' characters is performed. If FALSE, only certain characters (0-9, a-z, A-Z, space, slash, dash) are returned (by charFilter())
+   * @param bool $addSemicolon if TRUE: a semicolon is added to the end of the value
    */
   public function filteredResize($value='', $size, $fillChar=' ', $alignLeft=TRUE, $skipCharRemoval=FALSE, $addSemicolon=TRUE) {
     // replace odd characters
