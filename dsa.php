@@ -798,10 +798,16 @@ WHERE
     } else {
       $defaults['dsa_approval'] = 'Approved ' . $dao_defaults->approval_datetime . ' by ' . $dao_defaults->approver_name;
     }
-    if(is_null($dao_defaults->secondary_approval_cid)) {
+    if(is_null($dao_defaults->secondary_approval_cid) && ($dao_defaults->dsa_amount + $dao_defaults->dsa_briefing + $dao_defaults->dsa_airport + $dao_defaults->dsa_transfer + $dao_defaults->dsa_hotel + $dao_defaults->dsa_visa + $dao_defaults->dsa_medical + $dao_defaults->dsa_other + $dao_defaults->dsa_advance) < 2000) {
       $defaults['dsa_secondary_approval'] = '';
     } else {
-      $defaults['dsa_secondary_approval'] = 'Secondary approved on ' . $dao_defaults->secondary_approval_datetime . ' by '.$dao_defaults->secondary_approver_name;
+      if($dao_defaults->secondary_approval_approved == 0 && !empty($dao_defaults->secondary_approval_datetime)){
+        $defaults['dsa_secondary_approval'] = 'Secondary rejected on ' . $dao_defaults->secondary_approval_datetime . ' by '.$dao_defaults->secondary_approver_name;
+      } else if($dao_defaults->secondary_approval_approved == 1 && !empty($dao_defaults->secondary_approval_datetime)){
+        $defaults['dsa_secondary_approval'] = 'Secondary approved on ' . $dao_defaults->secondary_approval_datetime . ' by '.$dao_defaults->secondary_approver_name;
+      } else {
+        $defaults['dsa_secondary_approval'] = 'Waiting for secondary approval';
+      }
     }
     // Details for creditation of existing (paid) DSA activities (for jQuery to retrieve and process)
     $defaults['credit_data'] = _creditationValues($role_ar);
