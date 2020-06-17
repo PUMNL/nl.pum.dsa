@@ -737,7 +737,7 @@ FROM
       LEFT JOIN civicrm_case ctp ON ctp.id = tp.case_id
       LEFT JOIN civicrm_case_contact pccc ON pccc.case_id = tp.case_id
       LEFT JOIN civicrm_contact pccl ON (
-        CASE pccl.contact_sub_type WHEN \''.chr(1).'Country'.chr(1).'\' THEN pccl.id = pccc.contact_id END
+        CASE pccl.contact_sub_type WHEN CONCAT(char(1),\'Country\',char(1)) THEN pccl.id = pccc.contact_id END
       )
       LEFT JOIN civicrm_address padr ON padr.contact_id = pccc.contact_id AND padr.is_primary = 1
       LEFT JOIN civicrm_country ccny ON ccny.id = padr.country_id
