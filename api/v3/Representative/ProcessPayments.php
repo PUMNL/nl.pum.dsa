@@ -240,6 +240,11 @@ function civicrm_api3_representative_processpayments($params) {
         $finrec_act['BankLand']       = $country[$daoDsa->Bank_Country_ISO_Code]['iso_code'];                                           // bank country (ISO2)
         $finrec_act['BIC']            = $daoDsa->BIC_Swiftcode;                                                                         // experts bank account: BIC/Swift code
 
+        //Add sector and country, the strange names 'artikel' & 'omschrijving' for country is due to the strange design of the financial software
+        $finrec_act['Sector']       = $daoDsa->expert_sector;
+        $finrec_act['Artikel']      = $daoDsa->client_country;
+        $finrec_act['Omschrijving'] = $daoDsa->client_country;
+
         // loop through the individual payment amounts for this activity
         $amt_type = '';
         //for ($n=1; $n<36; $n++) {
@@ -269,7 +274,7 @@ function civicrm_api3_representative_processpayments($params) {
           }
 
           $amt_type = ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
-          $case_type = $daoDsa->case_name;
+          $case_type = $daoDsa->parent_case_name;
           $gl_key = '';
           switch ($amt_type) {
   /*          case '1': // DSA amount
@@ -615,8 +620,7 @@ SELECT
       dsa.approval_cid AS approver_id,
       dsa.id AS dsa_id,
       \'--CASE-->\' AS \'_CASE\',
-      ovl3.name AS case_name,
-      ovl4.name as parent_case_name,
+      cap.name as parent_case_name,
       num.case_sequence,
       num.case_type,
       num.case_country,
@@ -663,88 +667,54 @@ SELECT
       ' . $tbl['Additional_Data']['sql_columns'] . ',
     \'--BANK-->\' AS \'_BANK\',
       ' . $tbl['Bank_Information']['sql_columns'] . ',
+    \'--EXPERT-->\' AS \'_EXPERT\',
+      rexp.contact_id_b AS \'expert_id\',
+      se.label AS \'expert_sector\',
     \'--END--\' AS \'_END\'
 FROM
-      civicrm_activity                 act,
-      civicrm_activity                 org,
-      civicrm_case_activity            cac,
-      civicrm_case                     cas
-      LEFT JOIN civicrm_case_pum       num
-        ON num.entity_id = cas.id           /* join main activity (case) numbering */
-      LEFT JOIN civicrm_donor_link     dlk
-        ON dlk.entity_id = cas.id AND
-           dlk.entity = \'Case\' AND
-           dlk.is_fa_donor = 1
-      LEFT JOIN civicrm_contribution   ctr
-        ON ctr.id = dlk.donation_entity_id
-      LEFT JOIN civicrm_contact        dnr
-        ON dnr.id = ctr.contact_id          /*civicrm_value_case_sponsor_code.sponsor*/
-      LEFT JOIN ' . $tbl['Donor_details_FA']['group_table'] . '
-        ON ' . $tbl['Donor_details_FA']['group_table'] . '.entity_id = dnr.id /* join case donor to case activity */
-      ,
-      civicrm_representative_compose   dsa
+      civicrm_activity                          act
+      LEFT JOIN civicrm_activity                org   ON org.id = ifnull(act.original_id, act.id)
+      LEFT JOIN civicrm_representative_compose  dsa   ON dsa.activity_id = ifnull(act.original_id, act.id)
+      LEFT JOIN civicrm_case_activity           cac   ON cac.activity_id = act.id
+      LEFT JOIN civicrm_case                    cas   ON cas.id = cac.case_id
+      LEFT JOIN civicrm_case_pum                num   ON num.entity_id = cas.id          /* join main activity (case) numbering */
+      LEFT JOIN civicrm_donor_link              dlk   ON dlk.entity_id = cas.id AND dlk.entity = \'Case\' AND dlk.is_fa_donor = 1
+      LEFT JOIN civicrm_contribution            ctr   ON ctr.id = dlk.donation_entity_id
+      LEFT JOIN civicrm_contact                 dnr   ON dnr.id = ctr.contact_id         /* donor */
+      LEFT JOIN ' . $tbl['Donor_details_FA']['group_table'] . ' ON ' . $tbl['Donor_details_FA']['group_table'] . '.entity_id = dnr.id /* join case donor to case activity */
       /* To display country in export */
-      LEFT JOIN civicrm_value_travel_parent tp ON tp.entity_id = dsa.case_id
-      LEFT JOIN civicrm_case ctp ON ctp.id = tp.case_id
-      LEFT JOIN civicrm_case_contact pccc ON pccc.case_id = tp.case_id
-      LEFT JOIN civicrm_contact pccl ON (
-        CASE pccl.contact_sub_type WHEN CONCAT(char(1),\'Country\',char(1)) THEN pccl.id = pccc.contact_id END
-      )
-      LEFT JOIN civicrm_address padr ON padr.contact_id = pccc.contact_id AND padr.is_primary = 1
-      LEFT JOIN civicrm_country ccny ON ccny.id = padr.country_id
+        LEFT JOIN civicrm_case_contact          pccc  ON pccc.case_id = cas.id
+        LEFT JOIN civicrm_contact               pccl  ON ( CASE pccl.contact_sub_type WHEN CONCAT(char(1),\'Country\',char(1)) THEN pccl.id = pccc.contact_id END )
+        LEFT JOIN civicrm_address               padr  ON padr.contact_id = pccc.contact_id AND padr.is_primary = 1
+        LEFT JOIN civicrm_country               ccny  ON ccny.id = padr.country_id
       /* End display country in export */
-      LEFT JOIN civicrm_contact        con
-        ON con.id = dsa.contact_id
-      LEFT JOIN civicrm_address        adr
-        ON adr.contact_id = con.id
-        AND adr.is_primary = 1
-      LEFT JOIN civicrm_contact        apr
-        ON apr.id = dsa.approval_cid
-      LEFT JOIN ' . $tbl['Additional_Data']['group_table'] . '
-        ON ' . $tbl['Additional_Data']['group_table'] . '.entity_id = con.id /* additional custom data for contact */
-      LEFT JOIN ' . $tbl['Bank_Information']['group_table'] . '
-        ON ' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id /* additional custom data for bank information */
-      LEFT JOIN civicrm_contact_segment cs
-        ON cs.contact_id = con.id AND cs.is_active = 1 AND cs.is_main = 1
-      LEFT JOIN civicrm_segment seg
-        ON seg.id = cs.segment_id AND seg.is_active = 1
-      ,
-      civicrm_option_group             ogp3,
-      civicrm_option_value             ovl3,
-      civicrm_option_value             ovl4
+      LEFT JOIN civicrm_contact                 con   ON con.id = dsa.contact_id
+      LEFT JOIN civicrm_address                 adr   ON adr.contact_id = con.id AND adr.is_primary = 1
+      LEFT JOIN civicrm_contact                 apr   ON apr.id = dsa.approval_cid
+      LEFT JOIN ' . $tbl['Additional_Data']['group_table'] . ' ON ' . $tbl['Additional_Data']['group_table'] . '.entity_id = con.id /* additional custom data for contact */
+      LEFT JOIN ' . $tbl['Bank_Information']['group_table'] . ' ON ' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id /* additional custom data for bank information */
+      LEFT JOIN civicrm_contact_segment         cs    ON cs.contact_id = con.id AND cs.is_active = 1 AND cs.is_main = 1
+      LEFT JOIN civicrm_segment                 seg   ON seg.id = cs.segment_id AND seg.is_active = 1
+      LEFT JOIN civicrm_option_value            cap   ON cap.option_group_id = (SELECT id FROM civicrm_option_group WHERE name = \'case_type\') AND cap.value = cas.case_type_id
+      LEFT JOIN civicrm_relationship            rexp  ON rexp.case_id = cac.case_id AND rexp.relationship_type_id = (SELECT id FROM civicrm_relationship_type WHERE name_a_b = \'Expert\')
+      LEFT JOIN civicrm_contact_segment         cse   ON cse.contact_id = rexp.contact_id_b AND cse.is_active = 1 AND cse.is_main = 1
+      LEFT JOIN civicrm_segment                 se    ON se.id = cse.segment_id
 WHERE
       act.is_current_revision = 1
-  AND dsa.activity_id = ifnull(act.original_id, act.id)
-  AND org.id = ifnull(act.original_id, act.id)
-  AND act.activity_type_id IN (
-         SELECT
-               ovl1.value
-         FROM
-               civicrm_option_group ogp1,
-               civicrm_option_value ovl1
-         WHERE
-               ogp1.name = \'activity_type\'
-           AND ovl1.option_group_id = ogp1.id
-           AND ovl1.name = \'Representative payment\'
-         )
-  AND act.status_id IN (
-         SELECT
-               ovl2.value
-         FROM
-               civicrm_option_group ogp2,
-               civicrm_option_value ovl2
-         WHERE
-               ogp2.name = \'activity_status\'
-           AND ovl2.option_group_id = ogp2.id
-           AND ovl2.name = \'dsa_payable\'
-         )
-  AND cac.activity_id = act.id
-  AND cas.id = cac.case_id /* join case data through case activities */
-  AND ogp3.name = \'case_type\'
-  AND ovl3.option_group_id = ogp3.id
-  AND ovl3.value = cas.case_type_id /* join case type name */
-  AND ovl4.option_group_id = ogp3.id
-  AND ovl4.value = ctp.case_type_id /* join parent case type name */
+      AND act.activity_type_id = (
+        SELECT ovl1.value FROM
+          civicrm_option_value ovl1
+        WHERE
+          ovl1.name = \'Representative payment\'
+          AND ovl1.option_group_id = (SELECT id FROM civicrm_option_group WHERE name = \'activity_type\')
+        )
+      AND act.status_id = (
+        SELECT value FROM
+          civicrm_option_value ovl2
+        WHERE
+          ovl2.name = \'dsa_payable\'
+          AND ovl2.option_group_id = (SELECT id FROM civicrm_option_group WHERE name = \'activity_status\')
+        )
 ORDER BY
   con.id,
   num.case_sequence

@@ -287,7 +287,7 @@ function civicrm_api3_dsa_processpayments($params) {
           }
 
           $amt_type = ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
-          $case_type = $daoDsa->case_name;
+          $case_type = $daoDsa->parent_case_name;
           $gl_key = '';
           switch ($amt_type) {
             case '1': // DSA amount
@@ -650,21 +650,21 @@ SELECT
       dsa.id AS dsa_id,
       \'--CASE-->\' AS \'_CASE\',
       ovl3.name AS case_name,
-      ovl4.name as parent_case_name,
+      ovl4.name AS parent_case_name,
       num.case_sequence,
       num.case_type,
       num.case_country,
       \'--DONOR-->\' AS \'_DONOR\',
-      dnr.id as \'Donor_id\',
-      dnr.display_name as donor_name,
+      dnr.id AS \'Donor_id\',
+      dnr.display_name AS donor_name,
       ' . $tbl['Donor_details_FA']['sql_columns'] . ',
       \'--ACTIVITY-->\' AS \'_ACTIVITY\',
       act.*,
       \'--ORG_ACTIVITY-->\' AS \'_ORG_ACTIVITY\',
       org.activity_date_time AS original_date_time,
       \'--CLIENT_COUNTRY-->\' AS \'_CLIENT_COUNTRY\',
-      IFNULL(ccny.name, pccl.display_name) as client_country,
-      \'--DSA-->\'AS \'_DSA\',
+      IFNULL(ccny.name, pccl.display_name) AS client_country,
+      \'--DSA-->\' AS \'_DSA\',
       dsa.type,
       dsa.loc_id,
       dsa.percentage,
@@ -710,7 +710,8 @@ SELECT
       ' . $tbl['Additional_Data']['sql_columns'] . ',
     \'--BANK-->\' AS \'_BANK\',
       ' . $tbl['Bank_Information']['sql_columns'] . ',
-    \'--EXPERT_SECTOR-->\' AS \'_EXPERT_SECTOR\',
+    \'--EXPERT-->\' AS \'_EXPERT\',
+      con.id AS \'expert_id\',
       seg.label AS \'expert_sector\',
     \'--END--\' AS \'_END\'
 FROM
