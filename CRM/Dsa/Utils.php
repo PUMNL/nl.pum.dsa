@@ -467,6 +467,7 @@ class CRM_Dsa_Utils {
       //$filter->filteredResize($ar['BankPlaats'],         35, '',  TRUE,   FALSE,  TRUE) . // bank city
       $filter->filteredResize($ar['BankLand'],              3, ' ', TRUE,   FALSE,  TRUE) . // bank country (ISO2)
       $filter->filteredResize($ar['BIC'],                  11, 'X', TRUE,   FALSE,  TRUE) . // experts bank account: BIC/Swift code
+      $filter->filteredResize($ar['Projecttype'],         128, '',  TRUE,   FALSE,  TRUE) . // project type
       $filter->filteredResize($ar['Sector'],              128, '',  TRUE,   FALSE,  TRUE) . // experts sector
       $filter->filteredResize($ar['Artikel'],              64, '',  TRUE,   FALSE,  TRUE) . // country of client
       $filter->filteredResize($ar['Omschrijving'],         64, '',  TRUE,   FALSE,  FALSE); // country of client

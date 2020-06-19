@@ -241,6 +241,7 @@ function civicrm_api3_representative_processpayments($params) {
         $finrec_act['BIC']            = $daoDsa->BIC_Swiftcode;                                                                         // experts bank account: BIC/Swift code
 
         //Add sector and country, the strange names 'artikel' & 'omschrijving' for country is due to the strange design of the financial software
+        $finrec_act['Projecttype']  = $daoDsa->parent_case_type;
         $finrec_act['Sector']       = $daoDsa->expert_sector;
         $finrec_act['Artikel']      = $daoDsa->client_country;
         $finrec_act['Omschrijving'] = $daoDsa->client_country;
@@ -274,7 +275,7 @@ function civicrm_api3_representative_processpayments($params) {
           }
 
           $amt_type = ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
-          $case_type = $daoDsa->parent_case_name;
+          $case_type = $daoDsa->parent_case_type;
           $gl_key = '';
           switch ($amt_type) {
   /*          case '1': // DSA amount
@@ -620,7 +621,7 @@ SELECT
       dsa.approval_cid AS approver_id,
       dsa.id AS dsa_id,
       \'--CASE-->\' AS \'_CASE\',
-      cap.name as parent_case_name,
+      cap.name as parent_case_type,
       num.case_sequence,
       num.case_type,
       num.case_country,

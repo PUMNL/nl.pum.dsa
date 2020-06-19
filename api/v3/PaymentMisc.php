@@ -72,6 +72,7 @@ function _dsa_concatValues($ar) {
     //_dsaSize($ar['BankPlaats'],         35, '',   TRUE,   FALSE) .        // bank city
     _dsaSize($ar['BankLand'],              3, ' ',  TRUE,   FALSE,  TRUE) . // bank country (ISO2)
     _dsaSize($ar['BIC'],                  11, 'X',  TRUE,   FALSE,  TRUE) . // experts bank account: BIC/Swift code
+    _dsaSize($ar['Projecttype'],          64, '',   TRUE,   FALSE,  TRUE) . // parent case type
     _dsaSize($ar['Sector'],              128, '',   TRUE,   FALSE,  TRUE) . // experts main sector
     _dsaSize($ar['Artikel'],              64, '',   TRUE,   FALSE,  TRUE) . // client country
     _dsaSize($ar['Omschrijving'],         64, '',   TRUE,   FALSE,  FALSE); // client country

@@ -287,7 +287,7 @@ function civicrm_api3_dsa_processpayments($params) {
           }
 
           $amt_type = ($n<10?$n:chr($n+55)); // 1='1', 2='2, ... 9='9', 10='A', 11='B', ... 35='Z'
-          $case_type = $daoDsa->parent_case_name;
+          $case_type = $daoDsa->parent_case_type;
           $gl_key = '';
           switch ($amt_type) {
             case '1': // DSA amount
@@ -650,7 +650,7 @@ SELECT
       dsa.id AS dsa_id,
       \'--CASE-->\' AS \'_CASE\',
       ovl3.name AS case_name,
-      ovl4.name AS parent_case_name,
+      ovl4.name AS parent_case_type,
       num.case_sequence,
       num.case_type,
       num.case_country,
