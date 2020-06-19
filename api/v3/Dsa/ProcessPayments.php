@@ -253,11 +253,11 @@ function civicrm_api3_dsa_processpayments($params) {
         $finrec_act['BankPlaats']           = $daoDsa->Bank_City;                                                                             // bank city
         $finrec_act['BankLand']             = $country[$daoDsa->Bank_Country_ISO_Code]['iso_code'];                                           // bank country (ISO2)
         $finrec_act['BIC']                  = $daoDsa->BIC_Swiftcode;                                                                         // experts bank account: BIC/Swift code
-
+        $finrec_act['Projecttype']          = $daoDsa->parent_case_type;                                                                      // parent case type
         //Add sector and country, the strange names 'artikel' & 'omschrijving' for country is due to the strange design of the financial software
-        $finrec_act['Sector']       = $daoDsa->expert_sector;
-        $finrec_act['Artikel']      = $daoDsa->client_country;
-        $finrec_act['Omschrijving'] = $daoDsa->client_country;
+        $finrec_act['Sector']               = $daoDsa->expert_sector;                                                                         // experts main sector
+        $finrec_act['Artikel']              = $daoDsa->client_country;                                                                        // client country
+        $finrec_act['Omschrijving']         = $daoDsa->client_country;                                                                        // client country
 
         // loop through the individual payment amounts for this activity
         $amt_type = '';
