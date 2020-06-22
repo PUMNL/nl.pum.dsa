@@ -1735,12 +1735,8 @@ WHERE
   switch ($statusList[$form->_submitValues['status_id']]['name']) {
   case 'dsa_payable':
     // set approver - but only when not set yet
-    if (!isset($dao->my_approval_cid)) {
-      $input['approval_cid'] = $approver_id;
-      $input['approval_datetime'] = 'now()';
-    } else {
-      // leave as is
-    }
+    $input['approval_cid'] = $approver_id;
+    $input['approval_datetime'] = 'now()';
 
     //Reset DSA Approval / Rejection
     $input['secondary_approval_cid'] = 'NULL';
