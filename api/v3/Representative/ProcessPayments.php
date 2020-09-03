@@ -614,7 +614,7 @@ function _dao_retrievePayableRepresentatives($statusLst) {
   // the original limitation skip payments when the cases end date is exceeded by 9 mnd + 7 days is NOT included
   $sql = '
 SELECT
-      \'--META-->\' AS \'_META\',
+      DISTINCT \'--META-->\' AS \'_META\',
       cac.case_id AS case_id,
       act.id AS act_id,
       con.id AS participant_id,

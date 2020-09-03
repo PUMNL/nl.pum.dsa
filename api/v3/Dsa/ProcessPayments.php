@@ -642,7 +642,7 @@ function _dao_retrievePayableDsa($statusLst, $offset=10) {
   // query for all active DSA activities in status Payable, scheduled 10 days from now or before
   $sql = '
 SELECT
-      \'--META-->\' AS \'_META\',
+      DISTINCT \'--META-->\' AS \'_META\',
       cac.case_id AS case_id,
       act.id AS act_id,
       con.id AS participant_id,
