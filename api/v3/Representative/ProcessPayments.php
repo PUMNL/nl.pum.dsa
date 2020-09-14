@@ -670,7 +670,7 @@ SELECT
       ' . $tbl['Bank_Information']['sql_columns'] . ',
     \'--EXPERT-->\' AS \'_EXPERT\',
       rexp.contact_id_b AS \'expert_id\',
-      se.label AS \'expert_sector\',
+      (SELECT segm.label AS \'expert_sector\' FROM civicrm_segment segm WHERE segm.id = (SELECT segment_id FROM civicrm_contact_segment WHERE contact_id = rexp.contact_id_b AND is_active = 1 AND (end_date IS NULL OR end_date > NOW()) AND is_main = 1 LIMIT 1)) AS \'expert_sector\',
     \'--END--\' AS \'_END\'
 FROM
       civicrm_activity                          act
@@ -694,12 +694,8 @@ FROM
       LEFT JOIN civicrm_contact                 apr   ON apr.id = dsa.approval_cid
       LEFT JOIN ' . $tbl['Additional_Data']['group_table'] . ' ON ' . $tbl['Additional_Data']['group_table'] . '.entity_id = con.id /* additional custom data for contact */
       LEFT JOIN ' . $tbl['Bank_Information']['group_table'] . ' ON ' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id /* additional custom data for bank information */
-      LEFT JOIN civicrm_contact_segment         cs    ON cs.contact_id = con.id AND cs.is_active = 1 AND cs.is_main = 1
-      LEFT JOIN civicrm_segment                 seg   ON seg.id = cs.segment_id AND seg.is_active = 1
       LEFT JOIN civicrm_option_value            cap   ON cap.option_group_id = (SELECT id FROM civicrm_option_group WHERE name = \'case_type\') AND cap.value = cas.case_type_id
       LEFT JOIN civicrm_relationship            rexp  ON rexp.case_id = cac.case_id AND rexp.relationship_type_id = (SELECT id FROM civicrm_relationship_type WHERE name_a_b = \'Expert\')
-      LEFT JOIN civicrm_contact_segment         cse   ON cse.contact_id = rexp.contact_id_b AND cse.is_active = 1 AND cse.is_main = 1
-      LEFT JOIN civicrm_segment                 se    ON se.id = cse.segment_id
 WHERE
       act.is_current_revision = 1
       AND act.activity_type_id = (

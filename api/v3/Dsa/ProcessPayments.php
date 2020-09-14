@@ -712,7 +712,7 @@ SELECT
       ' . $tbl['Bank_Information']['sql_columns'] . ',
     \'--EXPERT-->\' AS \'_EXPERT\',
       con.id AS \'expert_id\',
-      seg.label AS \'expert_sector\',
+      (SELECT segm.label AS \'expert_sector\' FROM civicrm_segment segm WHERE segm.id = (SELECT segment_id FROM civicrm_contact_segment WHERE contact_id = con.id AND is_active = 1 AND (end_date IS NULL OR end_date > NOW()) AND is_main = 1 LIMIT 1)) AS \'expert_sector\',
     \'--END--\' AS \'_END\'
 FROM
       civicrm_activity                 act,
@@ -754,10 +754,6 @@ FROM
         ON ' . $tbl['Additional_Data']['group_table'] . '.entity_id = con.id /* additional custom data for contact */
       LEFT JOIN ' . $tbl['Bank_Information']['group_table'] . '
         ON ' . $tbl['Bank_Information']['group_table'] . '.entity_id = con.id /* additional custom data for bank information */
-      LEFT JOIN civicrm_contact_segment cs
-        ON cs.contact_id = con.id AND cs.is_active = 1 AND cs.is_main = 1
-      LEFT JOIN civicrm_segment seg
-        ON seg.id = cs.segment_id AND seg.is_active = 1
       ,
       civicrm_option_group             ogp3,
       civicrm_option_value             ovl3,
