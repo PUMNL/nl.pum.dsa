@@ -220,9 +220,9 @@ function civicrm_api3_dsa_processpayments($params) {
           $finrec_act['FactuurNr']      = $nextVal;                             // sequence based: "123456" would return "2345", "12" would return "0001"
 
           $recSql_DsaCompose['invoice_number'] =
-            _dsaSize($finrec_act['FactuurNrRunType'],  1, ' ', TRUE,  FALSE) .  // D for DSA
-            _dsaSize($finrec_act['FactuurNrYear'],    2, ' ', TRUE,  FALSE) .   // 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
-            _dsaSize($finrec_act['FactuurNr'],      4, '0', FALSE, FALSE);      // sequence based: "123456" would return "2345", "12" would return "0001";
+            _dsaSize($finrec_act['FactuurNrRunType'],  1, ' ', TRUE,  FALSE, FALSE) .  // D for DSA
+            _dsaSize($finrec_act['FactuurNrYear'],    2, ' ', TRUE,  FALSE, FALSE) .   // 14 for 2014; date of "preparation", not dsa payment! :=> civi: date of original activity
+            _dsaSize($finrec_act['FactuurNr'],      4, '0', FALSE, FALSE, FALSE);      // sequence based: "123456" would return "2345", "12" would return "0001";
 
         } else {
 

@@ -127,6 +127,8 @@ function dsa_civicrm_navigationMenu( &$params ) {
   $representative_payment_configuration_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'rep_payment_configuration', 'return' => 'id'));
   $representative_relationships_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'rep_payment_relationships', 'return' => 'id'));
   $dsa_percentage_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'dsa_percentage', 'return' => 'id'));
+  $general_ledger_group_id = civicrm_api('OptionGroup', 'getvalue', array('version' => 3, 'sequential' => 1, 'name' => 'general_ledger', 'return' => 'id'));
+
   foreach($params as $mainMenu=>$value) {
     if ($params[$mainMenu]['attributes']['name']=='Administer') {
       $maxKey = max(array_keys($params[$mainMenu]['child']));
@@ -255,6 +257,20 @@ function dsa_civicrm_navigationMenu( &$params ) {
             ),
             'child' => null
           ),
+          '9' => array (
+            'attributes' => array (
+              'label'      => ts('General Ledger Numbers'),
+              'name'       => 'General Ledger Numbers',
+              'url'        => 'civicrm/admin/optionValue?gid='.$general_ledger_group_id.'&reset=1',
+              'permission' => 'administer CiviCRM',
+              'operator'   => null,
+              'separator'  => 1,
+              'parentID'   => $maxKey+2,
+              'navID'      => 1,
+              'active'     => 1
+            ),
+            'child' => null
+          ),
         )
       );
 
@@ -291,6 +307,7 @@ function dsa_civicrm_navigationMenu( &$params ) {
  */
 function dsa_civicrm_buildForm($formName, &$form) {
   $loadJs = false;
+
   switch($formName) {
     case 'CRM_Case_Form_CaseView':
       // avoid creation of DSA by unauthorised people
@@ -306,7 +323,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
                   }
                 }
                 if ($opt_val['text']=='Representative payment') {
-                  if (!CRM_Core_Permission::check('create Representative payment activity')) {
+                  if (!CRM_Core_Permission::check('create Representative payment activity') || !in_array($form->_caseDetails['case_type'],array('Advice','Seminar','Remote Coaching'))) {
                     unset($form->_elements[$key]->_options[$opt_key]);
                     //$form->_elements[$key]->_options[$opt_key]
                   }

@@ -301,6 +301,186 @@ class CRM_Dsa_Upgrader extends CRM_Dsa_Upgrader_Base {
   }
 
   /**
+   * CRM_Dsa_Upgrader::upgrade_1021()
+   * @date September 2020
+   *
+   * Create roster for export of monthly representative payments
+   *
+   * @return
+   */
+  public function upgrade_1021() {
+    $this->ctx->log->info('Applying update 1021 (add roster fixed fee payment for representatives)');
+
+    try {
+      $params = array(
+        'version' => 3,
+        'q' => 'civicrm/ajax/rest',
+        'sequential' => 1,
+        'name' => 'Fixed fee payment for representatives',
+        'type' => 'm',
+        'value' => '1',
+        'min_interval' => 30,
+        'next_run' => date('Y-m-d', strtotime('-1 days')),
+        'privilege' => 'edit schedule for Representative payment',
+      );
+      $result = civicrm_api('Roster', 'set', $params);
+
+      if (!empty($result['is_error'])) {
+        return FALSE;
+      }
+    } catch (CiviCRM_API3_Exception $ex) {
+      throw new Exception('Could not set roster value for fixed fee payment for representative in method '.__METHOD__
+          .', contact your system administrator. Error from API OptionValue create: '.$ex->getMessage());
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * CRM_Dsa_Upgrader::upgrade_1022()
+   * @date September 2020
+   *
+   * Add fixed fixed fee amount option in Representative Payment Configuration
+   *
+   * @return
+   */
+  public function upgrade_1022() {
+    $this->ctx->log->info('Applying update 1022 (Add fixed fixed fee amount option in Representative Payment Configuration)');
+
+    try {
+      $rep_payment_configuration_option_group = civicrm_api3('OptionGroup', 'getvalue', array('return' => 'id', 'name' => 'rep_payment_configuration'));
+
+      $params = array(
+        'version' => 3,
+        'sequential' => 1,
+        'option_group_id' => $rep_payment_configuration_option_group,
+        'label' => 'Fixed representative fee amount',
+        'name' => 'fixed_representative_fee_amount',
+        'value' => '100.00',
+        'is_reserved' => 1,
+        'is_active' => 1,
+        'filter' => 0,
+        'weight' => 20,
+        'description' => 'Default fixed fee amount for representatives (e.g.\'100.00\')'
+      );
+      $result = civicrm_api3('OptionValue', 'create', $params);
+
+      if (!empty($result['is_error'])) {
+        CRM_Core_Error::debug_log_message('nl.pum.dsa error in upgrade 1022 result: ');
+        CRM_Core_Error::debug_log_message(print_r($result, TRUE));
+        return FALSE;
+      }
+    } catch (CiviCRM_API3_Exception $ex) {
+      throw new Exception('Could not create option value: dsa_rejected '.__METHOD__
+          .', contact your system administrator. Error from API OptionValue create: '.$ex->getMessage());
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * CRM_Dsa_Upgrader::upgrade_1023()
+   * @date September 2020
+   *
+   * Add table for representative fixed fee amounts
+   *
+   * @return
+   */
+  public function upgrade_1023() {
+    $this->ctx->log->info('Applying update 1023 (add table civicrm_representative_fixedfee)');
+    $this->executeSqlFile('sql/civicrm_representative_fixedfee_1023.sql');
+    return TRUE;
+  }
+
+  /**
+   * CRM_Dsa_Upgrader::upgrade_1024()
+   * @date September 2020
+   *
+   * Add general ledger code for representative fixed fee amounts
+   *
+   * @return
+   */
+  public function upgrade_1024() {
+    $this->ctx->log->info('Applying update 1024 (add general ledger code for representative fixed fee amounts');
+
+    try {
+      $general_ledger_option_group = civicrm_api3('OptionGroup', 'getvalue', array('return' => 'id', 'name' => 'general_ledger'));
+      $rep_payment_configuration_option_group = civicrm_api3('OptionGroup', 'getvalue', array('return' => 'id', 'name' => 'rep_payment_configuration'));
+    } catch (CiviCRM_API3_Exception $ex) {
+    }
+
+    try {
+      $params_repfeeamount = array(
+        'version' => 3,
+        'sequential' => 1,
+        'option_group_id' => $general_ledger_option_group,
+        'label' => 'Fixed representative fee amount',
+        'name' => 'gl_fixed_representative_fee_amount',
+        'value' => '5530',
+        'is_reserved' => 1,
+        'is_active' => 1,
+        'filter' => 0,
+        'weight' => 15,
+        'description' => 'General ledger code for representative fee amount'
+      );
+      $result_repfeeamount = civicrm_api3('OptionValue', 'create', $params_repfeeamount);
+
+    } catch (CiviCRM_API3_Exception $ex) {
+      throw new Exception('Could not create option value: gl_fixed_representative_fee_amount in '.__METHOD__
+          .', contact your system administrator. Error from API OptionValue create: '.$ex->getMessage());
+    }
+
+    try {
+      $params_repfeesponsor = array(
+        'version' => 3,
+        'sequential' => 1,
+        'option_group_id' => $rep_payment_configuration_option_group,
+        'label' => 'Sponsorcode for representative fee',
+        'name' => 'sponsorcode_for_representative_fee',
+        'value' => '600',
+        'is_reserved' => 1,
+        'is_active' => 1,
+        'filter' => 0,
+        'weight' => 30,
+        'description' => 'Sponsor code for representative fee'
+      );
+      $result_repfeesponsor = civicrm_api3('OptionValue', 'create', $params_repfeesponsor);
+    } catch (CiviCRM_API3_Exception $ex) {
+      throw new Exception('Could not create option value: sponsorcode_for_representative_fee in '.__METHOD__
+          .', contact your system administrator. Error from API OptionValue create: '.$ex->getMessage());
+    }
+
+    if (!empty($result_repfeeamount['is_error']) && $result_repfeeamount['is_error'] == 1) {
+      CRM_Core_Error::debug_log_message('nl.pum.dsa error in upgrade 1024 result_repfeeamount: ');
+      CRM_Core_Error::debug_log_message(print_r($result_repfeeamount, TRUE));
+      return FALSE;
+    }
+    if (!empty($result_repfeesponsor['is_error']) && $result_repfeesponsor['is_error'] == 1) {
+      CRM_Core_Error::debug_log_message('nl.pum.dsa error in upgrade 1024 result_repfeesponsor:');
+      CRM_Core_Error::debug_log_message(print_r($result_repfeesponsor, TRUE));
+      return FALSE;
+    }
+
+
+
+    return TRUE;
+  }
+
+  /**
+   * CRM_Dsa_Upgrader::upgrade_1025()
+   * @date September 2020
+   *
+   * Add table for representative fixed fee amounts
+   *
+   * @return
+   */
+  public function upgrade_1025() {
+    $this->ctx->log->info('Applying update 1025 (add date to table civicrm_representative_fixedfee)');
+    $this->executeSqlFile('sql/civicrm_representative_fixedfee_1025.sql');
+    return TRUE;
+  }
+
+  /**
    * Helper function to define rosters for the DSA- and Representative payment runs
    * Note: by default the roster will block both runs (next_run = <yesterday>)
    * Use civicrm/rosterview (having the right privileges for the rosters) to set a proper next run date
