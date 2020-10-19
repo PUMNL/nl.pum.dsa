@@ -323,7 +323,7 @@ function dsa_civicrm_buildForm($formName, &$form) {
                   }
                 }
                 if ($opt_val['text']=='Representative payment') {
-                  if (!CRM_Core_Permission::check('create Representative payment activity') || !in_array($form->_caseDetails['case_type'],array('Advice','Seminar','Remote Coaching'))) {
+                  if (!CRM_Core_Permission::check('create Representative payment activity') || !in_array($form->_caseDetails['case_type'],array('Advice','Seminar','RemoteCoaching'))) {
                     unset($form->_elements[$key]->_options[$opt_key]);
                     //$form->_elements[$key]->_options[$opt_key]
                   }
