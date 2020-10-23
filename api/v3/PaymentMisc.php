@@ -358,13 +358,25 @@ function _dsa_AlterCountryISOCodes($countryAr) {
   return $countryAr;
 }
 
-
-
-
 /*
  * Equivalent function for mySQL 'ifnull(a,b)'
  * if returns a if not NULL, otherwise returns b
  */
 function _ifnull($a, $b=null) {
     return is_null($a)?$b:$a;
+}
+
+/**
+ * Convert amount to pennies
+ *
+ * @example
+ * toPennies(100) returns 10000
+ * toPennies(100.00) returns 10000
+ * toPennies(123.45) returns 12345
+ *
+ * @param string $value
+ * @return int amount in cents
+ */
+function toPennies($value='') {
+  return (int) (string) ((float) preg_replace("/[^0-9.]/", "", $value) * 100);
 }

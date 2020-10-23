@@ -175,6 +175,14 @@ function civicrm_api3_representative_processfixedfeepayments($params) {
             throw new Exception('Sequence \'invoice_number\' is not available.');
           }
 
+          //Fee amount must be in cents
+          $fee_amount_in_cents = '';
+          if(is_double($fee_amount)){
+            $fee_amount_in_cents = toPennies($fee_amount);
+          } else if(is_int($fee_amount)){
+            $fee_amount_in_cents = toPennies($fee_amount);
+          }
+
           $params_volgnr = array(
             'version' => 3,
             'q' => 'civicrm/ajax/rest',
@@ -196,45 +204,45 @@ function civicrm_api3_representative_processfixedfeepayments($params) {
           }
 
           $returnValues[$fields['contact_id']] = array(
-            array('Jaar' => _dsaSize(date('y'),                                              2, '',    TRUE,   FALSE,  TRUE)),
-            array('Db' => _dsaSize('I3',                                                     2, '',    TRUE,   FALSE,  TRUE)),
-            array('Mnd' => _dsaSize(date('n'),                                               2, '',    TRUE,   FALSE,  TRUE)),
-            array('Volgnr' => _dsaSize($lineNo,                                             35, '',   TRUE,   FALSE,  TRUE)),
-            array('GB' => _dsaSize($gl_repfixedfee['value'],                                 5, '0',   TRUE,   FALSE,  TRUE)),      //General ledger code for 'Fixed representative fee amount' (Option group General Ledger)
-            array('KD' => _dsaSize($sponsor_code,                                           35, '',   TRUE,   FALSE,  TRUE)),      //Sponsorcode for representative fee (Representative Payment Configuration)
-            array('Project' => _dsaSize($fields['country_iso_code'].'00000'.$projTypeShort,  8,  '',   TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence_country+case_sequence+case_sequence_type
-            array('Projland_1' => _dsaSize($fields['country_iso_code'],                      3, ' ',   TRUE,   FALSE,  TRUE)),      //Country code
-            array('FactD' => _dsaSize($invoiceDate,                                         10, '',   TRUE,   FALSE,  TRUE)),      //export run date??
-            array('DC_1' => _dsaSize('D',                                                    1,  '',   TRUE,   TRUE,   TRUE)),
-            array('DC_2' => _dsaSize('+',                                                    1,  '',   TRUE,   TRUE,   TRUE)),
-            array('Cred' => _dsaSize($fields['last_name'],                                  35, '',   TRUE,   FALSE,  TRUE)),
-            array('Bet_ref' => _dsaSize($fields['country_iso_code'].'00000'.$projTypeShort,  8,  '',   TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence+" "+case_sequence_country
-            array('Fact_nr' => _dsaSize($invoiceNumber,                                      7,  '',   TRUE,   FALSE,  TRUE)),
-            array('Einddatum' => _dsaSize($invoiceDate,                                     10, '',   TRUE,   FALSE,  TRUE)),      // export run date??
-            array('FactBedr' => _dsaSize($fee_amount,                                       11, '',   FALSE,  FALSE,  TRUE)),
-            array('DC_3' => _dsaSize('+',                                                    1,  '',   TRUE,   TRUE,   TRUE)),
-            array('Projnr_2' => _dsaSize('',                                                 0,  '',   TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence
-            array('Projland_2' => _dsaSize($fields['country_iso_code'],                      3, ' ',   TRUE,   FALSE,  TRUE)),
-            array('Val' => _dsaSize('EUR',                                                   3,  '',   TRUE,   TRUE,   TRUE)),
-            array('Shortn_cred' => _dsaSize($fields['shortname'],                            8, '',    TRUE,   FALSE,  TRUE)),
+            array('Jaar' => _dsaSize(date('y'),                                              2,  '',  TRUE,   FALSE,  TRUE)),
+            array('Db' => _dsaSize('I3',                                                     2,  '',  TRUE,   FALSE,  TRUE)),
+            array('Mnd' => _dsaSize(date('n'),                                               2,  '',  TRUE,   FALSE,  TRUE)),
+            array('Volgnr' => _dsaSize($lineNo,                                             35,  '',  TRUE,   FALSE,  TRUE)),
+            array('GB' => _dsaSize($gl_repfixedfee['value'],                                 5, '0',  TRUE,   FALSE,  TRUE)),      //General ledger code for 'Fixed representative fee amount' (Option group General Ledger)
+            array('KD' => _dsaSize($sponsor_code,                                           35,  '',  TRUE,   FALSE,  TRUE)),      //Sponsorcode for representative fee (Representative Payment Configuration)
+            array('Project' => _dsaSize($fields['country_iso_code'].'00000'.$projTypeShort,  8,  '',  TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence_country+case_sequence+case_sequence_type
+            array('Projland_1' => _dsaSize($fields['country_iso_code'],                      3, ' ',  TRUE,   FALSE,  TRUE)),      //Country code
+            array('FactD' => _dsaSize($invoiceDate,                                         10,  '',  TRUE,   FALSE,  TRUE)),      //export run date??
+            array('DC_1' => _dsaSize('D',                                                    1,  '',  TRUE,   TRUE,   TRUE)),
+            array('DC_2' => _dsaSize('+',                                                    1,  '',  TRUE,   TRUE,   TRUE)),
+            array('Cred' => _dsaSize($fields['last_name'],                                  35,  '',  TRUE,   FALSE,  TRUE)),
+            array('Bet_ref' => _dsaSize($fields['country_iso_code'].'00000'.$projTypeShort,  8,  '',  TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence+" "+case_sequence_country
+            array('Fact_nr' => _dsaSize($invoiceNumber,                                      7,  '',  TRUE,   FALSE,  TRUE)),
+            array('Einddatum' => _dsaSize($invoiceDate,                                     10,  '',  TRUE,   FALSE,  TRUE)),      // export run date??
+            array('FactBedr' => _dsaSize($fee_amount_in_cents,                              11,  '',  FALSE,  FALSE,  TRUE)),
+            array('DC_3' => _dsaSize('+',                                                    1,  '',  TRUE,   TRUE,   TRUE)),
+            array('Projnr_2' => _dsaSize('',                                                 0,  '',  TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence
+            array('Projland_2' => _dsaSize($fields['country_iso_code'],                      3, ' ',  TRUE,   FALSE,  TRUE)),
+            array('Val' => _dsaSize('EUR',                                                   3,  '',  TRUE,   TRUE,   TRUE)),
+            array('Shortn_cred' => _dsaSize($fields['shortname'],                            8,  '',  TRUE,   FALSE,  TRUE)),
             array('Name_cred' => _dsaSize($fields['last_name'].' '.$fields['initials'],     35, ' ',  TRUE,   FALSE,  TRUE)),
-            array('BankAccHold' => _dsaSize('N',                                             1,  '',   TRUE,   TRUE,   TRUE)),
-            array('Country_cred' => _dsaSize($fields['country_iso_code'],                    3, ' ', TRUE,   FALSE,  TRUE)),
+            array('BankAccHold' => _dsaSize('N',                                             1,  '',  TRUE,   TRUE,   TRUE)),
+            array('Country_cred' => _dsaSize($fields['country_iso_code'],                    3, ' ',  TRUE,   FALSE,  TRUE)),
             array('Adres_cred' => _dsaSize($fields['street_address'],                       35, ' ',  TRUE,   FALSE,  TRUE)),
             array('Pc_City_cred' => _dsaSize($fields['postal_code'].' '.$fields['city'],    35, ' ',  TRUE,   FALSE,  TRUE)),
             array('BankAcc' => _dsaSize($fields['bank_accountnumber'],                      35, ' ',  TRUE,   FALSE,  TRUE)),
-            array('ProjType' => _dsaSize($projTypeLong,                                      1,  '',   TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence_type
-            array('Shortn_cred' => _dsaSize($fields['shortname'],                            8, '',    TRUE,   FALSE,  TRUE)),      //two times the same csv field for Shortn_cred is a weird requirement from the payment system :(
+            array('ProjType' => _dsaSize($projTypeLong,                                      1,  '',  TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence_type
+            array('Shortn_cred' => _dsaSize($fields['shortname'],                            8, '',   TRUE,   FALSE,  TRUE)),      //two times the same csv field for Shortn_cred is a weird requirement from the payment system :(
             array('BankAccHolder' => _dsaSize($fields['bank_accountholder_name'],           35, ' ',  TRUE,   FALSE,  TRUE)),
-            array('BankCntry' => _dsaSize($fields['bank_countryisocode'],                    3, '',    TRUE,   FALSE,  TRUE)),
+            array('BankCntry' => _dsaSize($fields['bank_countryisocode'],                    3, '',   TRUE,   FALSE,  TRUE)),
             array('BankAccAdres' => _dsaSize($fields['bank_accountholder_address'],         35, ' ',  TRUE,   FALSE,  TRUE)),
             array('BankAccPC_city' => _dsaSize($fields['bank_accountholder_postalcode'].' '.$fields['bank_accountholder_city'], 35, ' ',  TRUE,   FALSE,  TRUE)),
             array('IBAN number' => _dsaSize($fields['bank_iban'],                           34, ' ',  TRUE,   FALSE,  TRUE)),
             array('BankName' => _dsaSize($fields['bank_name'],                              35, ' ',  TRUE,   FALSE,  TRUE)),
-            array('BankCntry' => _dsaSize($fields['bank_countryisocode'],                    3, ' ',   TRUE,   FALSE,  TRUE)),
+            array('BankCntry' => _dsaSize($fields['bank_countryisocode'],                    3, ' ',  TRUE,   FALSE,  TRUE)),
             array('BIC_SWIFT' => _dsaSize($fields['bank_bicswiftcode'],                     11, 'X',  TRUE,   FALSE,  TRUE)),
-            array('Projecttype' => _dsaSize('CTM',                                           3,  '',   TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence_type
-            array('Sector' => _dsaSize('',                                                   0,  '',   TRUE,   TRUE,   TRUE)),      //No sector for fixed fee export, but normally main sector of expert
+            array('Projecttype' => _dsaSize('CTM',                                           3,  '',  TRUE,   TRUE,   TRUE)),      //No project for fixed fee export, but normally case_sequence_type
+            array('Sector' => _dsaSize('',                                                   0,  '',  TRUE,   TRUE,   TRUE)),      //No sector for fixed fee export, but normally main sector of expert
             array('Artikel' => _dsaSize($fields['country'],                                 64, '',   TRUE,   FALSE,  TRUE)),
             array('Omschrijving' => _dsaSize($fields['country'],                            64, '',   TRUE,   FALSE,  TRUE))
           );
