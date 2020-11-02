@@ -30,7 +30,7 @@ function civicrm_api3_representative_exportrepresentatives($params) {
   $result_group_additional_data = civicrm_api('CustomGroup', 'getsingle', array('version' => 3, 'sequential' => 1, 'title' => 'Additional Data'));
   $result_group_bank_information = civicrm_api('CustomGroup', 'getsingle', array('version' => 3, 'sequential' => 1, 'title' => 'Bank Information'));
 
-  $sql = "SELECT DISTINCT ct.id, ct.first_name, ct.middle_name, ct.last_name, m.email, ctd.shortname_14 AS 'shortname', ctd.initials_17 AS 'initials', adr.street_address, adr.postal_code, adr.city, cny.name AS 'country', cny.iso_code AS 'country_iso_code', bcny.iso_code AS 'bank_country_iso_code', bank.*, ahcy.name AS 'bank_accountholder_countryname'
+  $sql = "SELECT DISTINCT ct.id as 'contact_id', ct.first_name, ct.middle_name, ct.last_name, m.email, ctd.shortname_14 AS 'shortname', ctd.initials_17 AS 'initials', adr.street_address, adr.postal_code, adr.city, cny.name AS 'country', cny.iso_code AS 'country_iso_code', bcny.iso_code AS 'bank_country_iso_code', bank.*, ahcy.name AS 'bank_accountholder_countryname'
           FROM civicrm_contact ct
           LEFT JOIN civicrm_address adr ON adr.contact_id = ct.id AND adr.is_primary = 1
           LEFT JOIN civicrm_country cny ON cny.id = adr.country_id
@@ -49,8 +49,8 @@ function civicrm_api3_representative_exportrepresentatives($params) {
   $dao = CRM_Core_DAO::executeQuery($sql);
 
   while ($dao->fetch()) {
-    $representatives[$dao->id] = array(
-      'contact_id' => $dao->id,
+    $representatives[$dao->contact_id] = array(
+      'contact_id' => $dao->contact_id,
       'first_name' => empty($dao->first_name)?'':$dao->first_name,
       'middle_name' => empty($dao->middle_name)?'':$dao->middle_name,
       'last_name' => empty($dao->last_name)?'':$dao->last_name,

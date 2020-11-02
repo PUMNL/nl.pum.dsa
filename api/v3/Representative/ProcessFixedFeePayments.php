@@ -135,30 +135,30 @@ function civicrm_api3_representative_processfixedfeepayments($params) {
 
   if(!empty($fee_amount) && !empty($paymentId)){
     if(is_array($result_representatives['values']) && count($result_representatives['values']) > 0) {
-      foreach($result_representatives['values'] as $rep_id => $fields) {
+      foreach($result_representatives['values'] as $key => $fields) {
         $process_record=TRUE;
         // payments: create a new invoice number
         $projTypeShort = 'C';
         $projTypeLong = 'CTM';
 
         if (empty($fields['country_iso_code'])){
-          $warnings[] = $msg_prefix.'contact: '.$rep_id.' - country_iso_code empty';
-          //throw new Exception($msg_prefix.'contact: '.$rep_id.' - country_iso_code empty');
+          $warnings[] = $msg_prefix.'contact: '.$fields['contact_id'].' ('.$fields['first_name'].(!empty($fields['middle_name'])?' '.$fields['middle_name']:'').' '.$fields['last_name'].') - country_iso_code empty';
+          //throw new Exception($msg_prefix.'contact: '.$fields['contact_id'].' - country_iso_code empty');
           $process_record = FALSE;
         }
         if (empty($fields['shortname'])){
-          $warnings[] = $msg_prefix.'contact: '.$rep_id.' - shortname empty';
-          //throw new Exception($msg_prefix.'contact: '.$rep_id.' - shortname empty');
+          $warnings[] = $msg_prefix.'contact: '.$fields['contact_id'].' ('.$fields['first_name'].(!empty($fields['middle_name'])?' '.$fields['middle_name']:'').' '.$fields['last_name'].') - shortname empty';
+          //throw new Exception($msg_prefix.'contact: '.$fields['contact_id'].' - shortname empty');
           $process_record = FALSE;
         }
         if (empty($fields['bank_accountnumber'])){
-          $warnings[] = $msg_prefix.'contact: '.$rep_id.' - bank account number empty';
-          //throw new Exception($msg_prefix.'contact: '.$rep_id.' - bank account number empty');
+          $warnings[] = $msg_prefix.'contact: '.$fields['contact_id'].' ('.$fields['first_name'].(!empty($fields['middle_name'])?' '.$fields['middle_name']:'').' '.$fields['last_name'].') - bank account number empty';
+          //throw new Exception($msg_prefix.'contact: '.$fields['contact_id'].' - bank account number empty');
           $process_record = FALSE;
         }
         if(empty($fields['bank_countryisocode'])){
-          $warnings[] = $msg_prefix.'contact: '.$rep_id.' - bank country iso code empty';
-          //throw new Exception($msg_prefix.'contact: '.$rep_id.' - bank country iso code empty');
+          $warnings[] = $msg_prefix.'contact: '.$fields['contact_id'].' ('.$fields['first_name'].(!empty($fields['middle_name'])?' '.$fields['middle_name']:'').' '.$fields['last_name'].') - bank country iso code empty';
+          //throw new Exception($msg_prefix.'contact: '.$fields['contact_id'].' - bank country iso code empty');
           $process_record = FALSE;
         }
 
@@ -376,8 +376,12 @@ function civicrm_api3_representative_processfixedfeepayments($params) {
 
   CRM_Core_Error::debug_log_message($msg_prefix . 'Finished');
 
-  // ALTERNATIVE: $returnValues = array(); // OK, success
-  // ALTERNATIVE: $returnValues = array("Some value"); // OK, return a single value
+  //Api return values seperate array because $returnValues array is too big for job civicrm_job_log table
+  //So use limited returnValues
+  $apiReturnValues = array();
+  foreach($returnValues as $contact_id => $value){
+    $apiReturnValues[$contact_id] = $fee_amount;
+  }
 
-  return civicrm_api3_create_success($returnValues, $params, 'Representative', 'ProcessFixedFeePayments');
+  return civicrm_api3_create_success($apiReturnValues, $params, 'Representative', 'ProcessFixedFeePayments');
 }
