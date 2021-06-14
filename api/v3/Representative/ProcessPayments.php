@@ -669,8 +669,8 @@ SELECT
     \'--BANK-->\' AS \'_BANK\',
       ' . $tbl['Bank_Information']['sql_columns'] . ',
     \'--EXPERT-->\' AS \'_EXPERT\',
-      rexp.contact_id_b AS \'expert_id\',
-      (SELECT segm.label AS \'expert_sector\' FROM civicrm_segment segm WHERE segm.id = (SELECT segment_id FROM civicrm_contact_segment WHERE contact_id = rexp.contact_id_b AND is_active = 1 AND (end_date IS NULL OR end_date > NOW()) AND is_main = 1 LIMIT 1)) AS \'expert_sector\',
+      MAX(rexp.contact_id_b) AS \'expert_id\',
+      (SELECT segm.label AS \'expert_sector\' FROM civicrm_segment segm WHERE segm.id = (SELECT segment_id FROM civicrm_contact_segment WHERE contact_id = MAX(rexp.contact_id_b) AND is_active = 1 AND (end_date IS NULL OR end_date > NOW()) AND is_main = 1 LIMIT 1)) AS \'expert_sector\',
     \'--END--\' AS \'_END\'
 FROM
       civicrm_activity                          act
@@ -712,6 +712,7 @@ WHERE
           ovl2.name = \'dsa_payable\'
           AND ovl2.option_group_id = (SELECT id FROM civicrm_option_group WHERE name = \'activity_status\')
         )
+GROUP BY cac.case_id
 ORDER BY
   con.id,
   num.case_sequence
