@@ -199,6 +199,7 @@ function _charReplacementBuild() {
   _charReplacementAdd($arCharReplacement, 'Ç',      'C');
   _charReplacementAdd($arCharReplacement, '?',      'ij');
   _charReplacementAdd($arCharReplacement, '?',      'IJ');
+  _charReplacementAdd($arCharReplacement, '&',      'and');
   return $arCharReplacement;
 }
 
