@@ -72,7 +72,7 @@ LEFT JOIN civicrm_country ccny ON ccny.id = padr.country_id
 WHERE
   payment_id IS NULL
   AND (dsa.secondary_approval_approved IS NULL)
-  AND (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other) >= 2000
+  AND (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other+dsa.amount_advance) >= 2000
   AND ( (act.status_id = (SELECT value FROM civicrm_option_value WHERE option_group_id = (SELECT id FROM civicrm_option_group WHERE name = 'activity_status') AND name = 'dsa_payable')
           AND act.is_current_revision = 1)
         OR
@@ -100,7 +100,7 @@ LIMIT %2, %3";
       $row['project_officer_name'] = $dao->project_officer_name;
       $row['project_officer_url'] = CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid={$dao->project_officer_id}");
       $row['client_country'] = $dao->client_country;
-      $row['total_dsa_amount'] = number_format((float)$dao->amount_dsa+$dao->amount_briefing+$dao->amount_airport+$dao->amount_transfer+$dao->amount_hotel+$dao->amount_visa+$dao->amount_medical+$dao->amount_other, 2);
+      $row['total_dsa_amount'] = number_format((float)$dao->amount_dsa+$dao->amount_briefing+$dao->amount_airport+$dao->amount_transfer+$dao->amount_hotel+$dao->amount_visa+$dao->amount_medical+$dao->amount_other+$dao->amount_advance, 2);
       $row['dsa_contact_name_url'] = CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid={$dao->dsa_contact_id}");
       $row['dsa_contact_name'] = CRM_Threepeas_Utils::getContactName($dao->dsa_contact_id);
       $row['dsa_contact_id'] = $dao->dsa_contact_id;
@@ -161,7 +161,7 @@ LIMIT %2, %3";
           SELECT COUNT(*)
           FROM civicrm_dsa_compose dsa
           LEFT JOIN civicrm_case_contact cc ON cc.case_id = dsa.case_id
-          WHERE dsa.secondary_approval_approved IS NULL AND (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other) >= 2000"
+          WHERE dsa.secondary_approval_approved IS NULL AND (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other+dsa.amount_advance) >= 2000"
         ),
         'rowCount' => 20,
         'status' => ts('MyDSA %%StatusMessage%%'),

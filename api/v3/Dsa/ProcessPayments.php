@@ -786,12 +786,12 @@ WHERE
          )
   AND (
     (
-      (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other) >= 2000
+      (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other+dsa.amount_advance) >= 2000
       AND dsa.secondary_approval_approved = 1
     )
     OR
     (
-      (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other) < 2000
+      (dsa.amount_dsa+dsa.amount_briefing+dsa.amount_airport+dsa.amount_transfer+dsa.amount_hotel+dsa.amount_visa+dsa.amount_medical+dsa.amount_other+dsa.amount_advance) < 2000
     )
   )
   AND date(act.activity_date_time) <= DATE_ADD(curdate(), INTERVAL ' . $offset . ' DAY) /* dsa_config */
